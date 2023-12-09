@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\dap">
+      <UniqueIdentifier>{dbe50188-5856-4ffc-9fcf-0d9d8df9c262}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\dap">
+      <UniqueIdentifier>{45ea408d-f636-4774-9539-7c2cbeb50759}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="QSCore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Debugger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\content_stream.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\io.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\nlohmann_json_serializer.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\protocol_events.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\protocol_requests.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\protocol_response.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\protocol_types.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\session.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\socket.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\typeinfo.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\typeof.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\null_json_serializer.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+    <ClCompile Include="Event.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dap\network.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Debugger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\any.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\dap.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\future.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\io.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\network.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\optional.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\protocol.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\serialization.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\session.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\traits.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\typeinfo.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\typeof.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\types.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\variant.h">
+      <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="Event.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
