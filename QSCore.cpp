@@ -1,7 +1,6 @@
 // QSCore.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include <iostream>
 
 #include "dap/io.h"
 #include "dap/network.h"
@@ -14,14 +13,12 @@
 #include "ws/WSServer.h"
 
 #include "Log.h"
+#include "qvm/QppQVM.h"
 
 #ifdef _MSC_VER
 #define OS_WINDOWS 1
 #endif
 
-// Uncomment the line below and change <path-to-log-file> to a file path to
-// write all DAP communications to the given path.
-//
 #define LOG_TO_FILE		"dap.log"
 
 #ifdef OS_WINDOWS
@@ -42,6 +39,9 @@ You may also notice that the locals contains a single variable for the currently
 
 int main(int argc, char *argv[]) {
     LOG_INIT(2, "qs-core.log");
+
+    WSServer wsock;
+    QppQVM qvm(&wsock);
         
 #ifdef OS_WINDOWS
 	// Change stdin & stdout from text mode to binary mode.
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
         // the response reports debugger capabilities.
         // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Initialize
         session->registerHandler([](const dap::InitializeRequest&) {
-            std::cout << "[InitializeRequest]" << std::endl;
+            LOGI("[InitializeRequest]");
 
             dap::InitializeResponse response;
             response.supportsConfigurationDoneRequest = true;
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
               // This example debugger only exposes a single thread.
               // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Threads
         session->registerHandler([&](const dap::ThreadsRequest&) {
-            std::cout << "[ThreadsRequest]" << std::endl;
+            LOGI("[ThreadsRequest]");
 
             dap::ThreadsResponse response;
             dap::Thread thread;
@@ -164,7 +164,7 @@ int main(int argc, char *argv[]) {
             [&](const dap::StackTraceRequest& request)
             -> dap::ResponseOrError<dap::StackTraceResponse> {
 
-                std::cout << "[StackTraceRequest]" << std::endl;
+                LOGI("[StackTraceRequest]");
 
                 if (request.threadId != threadId) {
                     return dap::Error("Unknown threadId '%d'",
@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
         session->registerHandler(
             [&](const dap::ScopesRequest& request)
             -> dap::ResponseOrError<dap::ScopesResponse> {
-                std::cout << "[ScopesRequest]" << std::endl;
+                LOGI("[ScopesRequest]");
 
                 if (request.frameId != frameId) {
                     return dap::Error("Unknown frameId '%d'", int(request.frameId));
@@ -219,7 +219,7 @@ int main(int argc, char *argv[]) {
         session->registerHandler(
             [&](const dap::VariablesRequest& request)
             -> dap::ResponseOrError<dap::VariablesResponse> {
-                std::cout << "[VariablesRequest]" << std::endl;
+                LOGI("[VariablesRequest]");
 
                 if (request.variablesReference != variablesReferenceId) {
                     return dap::Error("Unknown variablesReference '%d'",
@@ -239,7 +239,7 @@ int main(int argc, char *argv[]) {
         // all threads.
         // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Pause
         session->registerHandler([&](const dap::PauseRequest&) {
-            std::cout << "[PauseRequest]" << std::endl;
+            LOGI("[PauseRequest]");
 
             debugger.pause();
             return dap::PauseResponse();
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]) {
         // one or all threads.
         // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Continue
         session->registerHandler([&](const dap::ContinueRequest&) {
-            std::cout << "[ContinueRequest]" << std::endl;
+            LOGI("[ContinueRequest]");
 
             debugger.run();
             return dap::ContinueResponse();
@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
         // specific thread.
         // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Next
         session->registerHandler([&](const dap::NextRequest&) {
-            std::cout << "[NextRequest]" << std::endl;
+            LOGI("[NextRequest]");
 
             debugger.stepForward();
             return dap::NextResponse();
@@ -268,7 +268,7 @@ int main(int argc, char *argv[]) {
         // thread.
         // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_StepIn
         session->registerHandler([&](const dap::StepInRequest&) {
-            std::cout << "[StepInRequest]" << std::endl;
+            LOGI("[StepInRequest]");
 
             // Step-in treated as step-over as there's only one stack frame.
             debugger.stepForward();
@@ -279,7 +279,7 @@ int main(int argc, char *argv[]) {
         // thread.
         // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_StepOut
         session->registerHandler([&](const dap::StepOutRequest&) {
-            std::cout << "[StepOutRequest]" << std::endl;
+            LOGI("[StepOutRequest]");
 
             // Step-out is not supported as there's only one stack frame.
             return dap::StepOutResponse();
@@ -292,8 +292,7 @@ int main(int argc, char *argv[]) {
         session->registerHandler(
             [&](const dap::SetBreakpointsRequest& request) {
                 dap::SetBreakpointsResponse response;
-
-                std::cout << "[SetBreakpointsRequest]" << std::endl;
+                LOGI("[SetBreakpointsRequest]");
 
                 auto breakpoints = request.breakpoints.value({});
                 if (request.source.sourceReference.value(0) ==
@@ -319,7 +318,7 @@ int main(int argc, char *argv[]) {
               // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_SetExceptionBreakpoints
         session->registerHandler(
             [&](const dap::SetExceptionBreakpointsRequest&) {
-                std::cout << "[SetExceptionBreakpointsRequest]" << std::endl;
+                LOGI("[SetExceptionBreakpointsRequest]");
 
                 return dap::SetExceptionBreakpointsResponse();
             });
@@ -330,7 +329,7 @@ int main(int argc, char *argv[]) {
         session->registerHandler(
             [&](const dap::SourceRequest& request)
             -> dap::ResponseOrError<dap::SourceResponse> {
-                std::cout << "[SourceRequest]" << std::endl;
+                LOGI("[SourceRequest]");
 
                 if (request.sourceReference != sourceReferenceId) {
                     return dap::Error("Unknown source reference '%d'",
@@ -347,15 +346,25 @@ int main(int argc, char *argv[]) {
               // adapter to start the debuggee. This request contains the launch
               // arguments. This example debugger does nothing with this request.
               // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Launch
-        session->registerHandler([&](const dap::LaunchRequest&) {
-            std::cout << "[LaunchRequest]" << std::endl;
+        session->registerHandler([&](const dap::LaunchRequest& req) {
+            LOGI(" ~ [LaunchRequest] noDebug = %u ~", req.noDebug);
+           
+            int ok = 0;
+            if (req.noDebug) {
+                ok = qvm.run("test.qasm");
+            }
+            else {
+                ok = qvm.debug("test.qasm");
+            }
+            LOGI("QVM launch ret %d", ok);
+
             return dap::LaunchResponse();
             });
 
 
         // Handler for disconnect requests
         session->registerHandler([&](const dap::DisconnectRequest& request) {
-            std::cout << "[DisconnectRequest]" << std::endl;
+            LOGI("[DisconnectRequest]");
 
             if (request.terminateDebuggee.value(false)) {
                 terminate.fire();
@@ -368,7 +377,7 @@ int main(int argc, char *argv[]) {
               // this request to 'start' the debugger.
               // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_ConfigurationDone
         session->registerHandler([&](const dap::ConfigurationDoneRequest&) {
-            std::cout << "[ConfigurationDoneRequest]" << std::endl;
+            LOGI("[ConfigurationDoneRequest]");
 
             configured.fire();
             return dap::ConfigurationDoneResponse();
@@ -422,7 +431,6 @@ int main(int argc, char *argv[]) {
     LOGI("DAP Server started on port %d", DAP_SERVER_PORT);
 
     int wsPort = 5556;
-    WSServer wsock;
     LOGI("WS Server started on port %d", WS_SERVER_PORT);
     
     wsock.start((argc > 1) ? argv[1] : NULL, WS_SERVER_PORT);
