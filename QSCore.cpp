@@ -104,13 +104,6 @@ int main(int argc, char *argv[]) {
         session->setOnInvalidData(dap::kClose);
         session->bind(socket);
 
-
-
-
-        // 000000000000000000000000
-
-
-
   // The Initialize request is the first message sent from the client and
         // the response reports debugger capabilities.
         // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Initialize
