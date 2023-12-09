@@ -21,7 +21,8 @@
 #define JSON_NOEXCEPTION 1
 #include <nlohmann/json.hpp>
 
-#include <iostream>
+#include "../Log.h"
+
 
 namespace dap {
 namespace json {
@@ -30,7 +31,7 @@ NlohmannDeserializer::NlohmannDeserializer(const std::string& str)
     : json(new nlohmann::json(nlohmann::json::parse(str, nullptr, false))),
       ownsJson(true) {
 
-   std::cout << "<<" << str << std::endl;
+   LOGI("RECV: '%s'", str.c_str());
 
 }
 
@@ -164,7 +165,8 @@ NlohmannSerializer::~NlohmannSerializer() {
 
 std::string NlohmannSerializer::dump() const {
   std::string res = json->dump();
-  std::cout << ">>" << res << std::endl;
+
+  LOGI("SEND: '%s'", res.c_str());
   return res;
 }
 
