@@ -8,39 +8,34 @@
 
 #define DEMO_FILE "/home/qbit/qasm/file1.qasm"
 
-QppQVM::QppQVM(WSServer* ws) : circuit(NULL), engine(NULL) 
-{
+QppQVM::QppQVM(WSServer* ws) : circuit(NULL), engine(NULL) {
 	this->wsServer = ws;
 }
 
-QppQVM::~QppQVM() 
-{
+QppQVM::~QppQVM() {
 	SAFE_DELETE(circuit);
 	SAFE_DELETE(engine);
 }
 
-int QppQVM::loadSourceCode(const std::string& fileName) 
-{
+int QppQVM::loadSourceCode(const std::string& fileName) {
+	LOGI("[%s]", fileName.c_str());
 	int ret = 0;
 	SAFE_DELETE(circuit);
 
 	std::string src = "";
 	std::string file = fileName;
 
-	if (!Utils::fileExists(file)) 
-	{
+	if (!Utils::fileExists(file)) {
 		LOGI("File [%s] not exist, use demo file [%s]", fileName.c_str(), DEMO_FILE);
 		file = DEMO_FILE;
 		ret = 1;
 	}
 
-	if (!Utils::fileExists(file) ) 
-	{
+	if (!Utils::fileExists(file) ) {
 		LOGI("File '%s' not exists", file.c_str());
 		return 1;
 	}
-	else 
-	{
+	else {
 		LOGI("File '%s' exist !", file.c_str());
 	}
 	src = Utils::loadFile(file);
@@ -57,8 +52,7 @@ int QppQVM::loadSourceCode(const std::string& fileName)
 }
 
 
-int QppQVM::run(const std::string& fileName) 
-{
+int QppQVM::run(const std::string& fileName) {
 	LOGI("%s", fileName.c_str());
 
 	ASSERT(loadSourceCode(fileName));
@@ -71,8 +65,7 @@ int QppQVM::run(const std::string& fileName)
 	return 0;
 }
 
-int QppQVM::debug(const std::string& fileName) 
-{
+int QppQVM::debug(const std::string& fileName) {
 	LOGI("%s", fileName.c_str());
 
 	ASSERT( loadSourceCode(fileName) );

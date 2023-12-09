@@ -22,28 +22,23 @@
 Logger Logger::logger;
 
 
-Logger::Logger() : _mode(0), _level(0) 
-{
+Logger::Logger() : _mode(0), _level(0) {
 }
 
-Logger::~Logger() 
-{
+Logger::~Logger() {
 }
 
 
-void Logger::init(int level, const std::string& filename) 
-{
+void Logger::init(int level, const std::string& filename) {
 	_mode	=  LO_CONSOLE;
 	_level	= level;
 
-	if (!filename.empty()) 
-	{
+	if (!filename.empty()) {
 		setFileName(filename);
 		_mode |= LO_FILE;
 
 
-		if (_mode & LO_FILE) 
-		{
+		if (_mode & LO_FILE) {
 			FILE* fp = fopen(_filepath.c_str(), "w");
 			if (fp)
 				fclose(fp);
@@ -51,8 +46,7 @@ void Logger::init(int level, const std::string& filename)
 	}
 }
 
-void Logger::setFileName(const std::string& fileName) 
-{ 
+void Logger::setFileName(const std::string& fileName) { 
 	baseFileName = fileName;
 
 	time_t t = time(NULL);
@@ -64,8 +58,7 @@ void Logger::setFileName(const std::string& fileName)
 }
 
 
-void Logger::logArgs(int level, const std::string &funcName, const char *format, va_list args)
-{
+void Logger::logArgs(int level, const std::string &funcName, const char *format, va_list args) {
 	char buf[ MAX_LOG_LEN + 1 ];
 	/*int len =*/ vsnprintf( buf, MAX_LOG_LEN, format, args );
 
@@ -108,8 +101,7 @@ void Logger::logArgs(int level, const std::string &funcName, const char *format,
 	}
 }
 
-void Logger::log(const std::string &funcName, int level, const char *format, ...)
-{
+void Logger::log(const std::string &funcName, int level, const char *format, ...) {
 	if( _level < level )
 		return;
 	va_list	args;
@@ -118,8 +110,7 @@ void Logger::log(const std::string &funcName, int level, const char *format, ...
 	va_end( args );
 }
 
-void Logger::data(const std::string &funcName, int level, const char *title, const byte *data, unsigned int len)
-{
+void Logger::data(const std::string &funcName, int level, const char *title, const byte *data, unsigned int len) {
 	if( _level < level )
 		return;
 	log(funcName, level, title);
@@ -133,10 +124,8 @@ void Logger::data(const std::string &funcName, int level, const char *title, con
 	if(sz>MAX_DATA_LEN) sz = MAX_DATA_LEN;
 #endif
 
-	for(unsigned int i=0; i<sz; i ++)
-	{
-		if(bytesPerLine > 0 && ( bytesPerLine % 16 ) == 0) 
-		{
+	for(size_t i=0; i<sz; i ++) {
+		if(bytesPerLine > 0 && ( bytesPerLine % 16 ) == 0) {
 			log( funcName, level, str );
 			pos = bytesPerLine = 0;
 		}

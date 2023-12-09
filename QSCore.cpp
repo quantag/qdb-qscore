@@ -41,7 +41,7 @@ You may also notice that the locals contains a single variable for the currently
 
 
 int main(int argc, char *argv[]) {
-    LOG_INIT(2, "");
+    LOG_INIT(2, "qs-core.log");
         
 #ifdef OS_WINDOWS
 	// Change stdin & stdout from text mode to binary mode.
@@ -174,6 +174,7 @@ int main(int argc, char *argv[]) {
                 dap::Source source;
                 source.sourceReference = 0;
                 //sourceReferenceId;
+
                 source.path = "c:\\work\\gitquantag\\qasm-adapter-vscode\\sampleWorkspace\\qft.qasm";
                 source.name = "qft.qasm";
 
