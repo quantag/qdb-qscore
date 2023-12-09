@@ -19,6 +19,21 @@
     <Filter Include="Source Files\dap">
       <UniqueIdentifier>{45ea408d-f636-4774-9539-7c2cbeb50759}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\qvm">
+      <UniqueIdentifier>{924884f5-13ae-4508-9436-16aeaa607bc0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\qvm">
+      <UniqueIdentifier>{4466447a-bf58-4436-89b5-425216897b12}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\interfaces">
+      <UniqueIdentifier>{6e766f92-7907-4a3a-80e0-395d7dc5a951}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\ws">
+      <UniqueIdentifier>{e17ba199-f3aa-4e19-ba36-3375eec0178f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ws">
+      <UniqueIdentifier>{d7c703cb-3d58-4428-a6e4-7e1ae2b80c8b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="QSCore.cpp">
@@ -69,6 +84,24 @@
     <ClCompile Include="dap\network.cpp">
       <Filter>Source Files\dap</Filter>
     </ClCompile>
+    <ClCompile Include="qvm\QppQVM.cpp">
+      <Filter>Source Files\qvm</Filter>
+    </ClCompile>
+    <ClCompile Include="Log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ws\WSListener.cpp">
+      <Filter>Source Files\ws</Filter>
+    </ClCompile>
+    <ClCompile Include="ws\WSServer.cpp">
+      <Filter>Source Files\ws</Filter>
+    </ClCompile>
+    <ClCompile Include="ws\WSSession.cpp">
+      <Filter>Source Files\ws</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debugger.h">
@@ -118,6 +151,27 @@
     </ClInclude>
     <ClInclude Include="Event.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="qvm\QppQVM.h">
+      <Filter>Header Files\qvm</Filter>
+    </ClInclude>
+    <ClInclude Include="interfaces\iqvm.h">
+      <Filter>Header Files\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="Log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ws\WSListener.h">
+      <Filter>Header Files\ws</Filter>
+    </ClInclude>
+    <ClInclude Include="ws\WSServer.h">
+      <Filter>Header Files\ws</Filter>
+    </ClInclude>
+    <ClInclude Include="ws\WSSession.h">
+      <Filter>Header Files\ws</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

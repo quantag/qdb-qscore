@@ -102,9 +102,11 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;CPPDAP_JSON_NLOHMANN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;CPPDAP_JSON_NLOHMANN;WIN32;_WIN32_WINDOWS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>.\third_party\json\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\third_party\json\include;.\third_party\qpp\include;.\third_party\eigen;.\third_party\qasmtools\include;.\third_party\boost\include\boost-1_82;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,7 +146,13 @@
     <ClCompile Include="dap\typeof.cpp" />
     <ClCompile Include="Debugger.cpp" />
     <ClCompile Include="Event.cpp" />
+    <ClCompile Include="Log.cpp" />
     <ClCompile Include="QSCore.cpp" />
+    <ClCompile Include="qvm\QppQVM.cpp" />
+    <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="ws\WSListener.cpp" />
+    <ClCompile Include="ws\WSServer.cpp" />
+    <ClCompile Include="ws\WSSession.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dap\any.h" />
@@ -163,6 +171,13 @@
     <ClInclude Include="dap\variant.h" />
     <ClInclude Include="Debugger.h" />
     <ClInclude Include="Event.h" />
+    <ClInclude Include="interfaces\iqvm.h" />
+    <ClInclude Include="Log.h" />
+    <ClInclude Include="qvm\QppQVM.h" />
+    <ClInclude Include="Utils.h" />
+    <ClInclude Include="ws\WSListener.h" />
+    <ClInclude Include="ws\WSServer.h" />
+    <ClInclude Include="ws\WSSession.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
