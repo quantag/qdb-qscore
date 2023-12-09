@@ -11,7 +11,9 @@
 #include "Event.h"
 #include "Debugger.h"
 
-#include <conio.h>
+#include "ws/WSServer.h"
+
+#include "Log.h"
 
 #ifdef _MSC_VER
 #define OS_WINDOWS 1
@@ -27,6 +29,9 @@
 #include <io.h>     // _setmode
 #endif              // OS_WINDOWS
 
+#define DAP_SERVER_PORT     5555
+#define WS_SERVER_PORT      5556
+
 // sourceContent holds the synthetic file source.
 constexpr char sourceContent[] = R"(// Hello Debugger!
 This is a synthetic source file provided by the DAP debugger.
@@ -36,7 +41,8 @@ You may also notice that the locals contains a single variable for the currently
 
 
 int main(int argc, char *argv[]) {
-
+    LOG_INIT(2, "");
+        
 #ifdef OS_WINDOWS
 	// Change stdin & stdout from text mode to binary mode.
 	// This ensures sequences of \r\n are not changed to \n.
@@ -50,7 +56,8 @@ int main(int argc, char *argv[]) {
 	log = dap::file(LOG_TO_FILE);
 #endif
 
-	constexpr int kPort = 5555;
+    //DAP Server Port
+	constexpr int kPort = DAP_SERVER_PORT;
 
 	const dap::integer threadId = 100;
 	const dap::integer frameId = 200;
@@ -411,9 +418,12 @@ int main(int argc, char *argv[]) {
     // onError will be called on any connection errors.
     server->start(kPort, onClientConnected, onError);
 
+    LOGI("DAP Server started on port %d", DAP_SERVER_PORT);
 
-    _getch();
+    int wsPort = 5556;
+    WSServer wsock;
+    LOGI("WS Server started on port %d", WS_SERVER_PORT);
+    
+    wsock.start((argc > 1) ? argv[1] : NULL, WS_SERVER_PORT);
     return 0;
-
-
 }
