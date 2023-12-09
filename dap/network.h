@@ -47,7 +47,8 @@ class Server {
   // start() begins listening for connections on the given port.
   // callback will be called for each connection.
   // onError will be called for any connection errors.
-  virtual bool start(int port,
+  virtual bool start(const char* host,
+                     int port,
                      const OnConnect& callback,
                      const OnError& onError = ignoreErrors) = 0;
 

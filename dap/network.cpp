@@ -29,13 +29,13 @@ class Impl : public dap::net::Server {
 
   ~Impl() { stop(); }
 
-  bool start(int port,
+  bool start(const char* host, int port,
              const OnConnect& onConnect,
              const OnError& onError) override {
     std::unique_lock<std::mutex> lock(mutex);
     stopWithLock();
     socket = std::unique_ptr<dap::Socket>(
-        new dap::Socket("localhost", std::to_string(port).c_str()));
+        new dap::Socket(host, std::to_string(port).c_str()));
 
     if (!socket->isOpen()) {
       onError("Failed to open socket");

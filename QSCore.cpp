@@ -416,7 +416,7 @@ int main(int argc, char *argv[]) {
     // Start listening on kPort.
     // onClientConnected will be called when a client wants to connect.
     // onError will be called on any connection errors.
-    server->start(kPort, onClientConnected, onError);
+    server->start( (argc > 1) ? argv[1] : "localhost", kPort, onClientConnected, onError);
 
     LOGI("DAP Server started on port %d", DAP_SERVER_PORT);
 
