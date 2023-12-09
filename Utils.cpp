@@ -125,3 +125,16 @@ int Utils::fileExists(const std::string& filePath)
     return file.good() ? 1 : 0;
 }
 
+
+ std::string Utils::getShortName(const std::string& fileName) {
+    // Find the last occurrence of path separator
+    size_t lastSeparator = fileName.find_last_of("/\\");
+
+    // Extract the file name using substr
+    if (lastSeparator != std::string::npos) {
+        return fileName.substr(lastSeparator + 1);
+    }
+
+    // If no separator found, return the original string
+    return fileName;
+}

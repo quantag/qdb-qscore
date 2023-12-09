@@ -17,5 +17,6 @@ public:
 	static int fileExists(const std::string& filePath);
 
 	static int isBase64String(const std::string& str);
-		
+	static std::string getShortName(const std::string& fileName);
+
 };
