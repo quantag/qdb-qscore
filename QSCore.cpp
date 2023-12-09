@@ -13,13 +13,14 @@
 #include "ws/WSServer.h"
 
 #include "Log.h"
+#include "Utils.h"
 #include "qvm/QppQVM.h"
 
 #ifdef _MSC_VER
 #define OS_WINDOWS 1
 #endif
 
-#define LOG_TO_FILE		"dap.log"
+//#define LOG_TO_FILE		"dap.log"
 
 #ifdef OS_WINDOWS
 #include <fcntl.h>  // _O_BINARY
@@ -50,11 +51,10 @@ int main(int argc, char *argv[]) {
 	_setmode(_fileno(stdout), _O_BINARY);
 #endif  // OS_WINDOWS
 
-	std::shared_ptr<dap::Writer> log;
-
-#ifdef LOG_TO_FILE
-	log = dap::file(LOG_TO_FILE);
-#endif
+//	std::shared_ptr<dap::Writer> log;
+//#ifdef LOG_TO_FILE
+//	log = dap::file(LOG_TO_FILE);
+//#endif
 
     //DAP Server Port
 	constexpr int kPort = DAP_SERVER_PORT;
@@ -76,30 +76,30 @@ int main(int argc, char *argv[]) {
         // Event handlers from the Debugger.
         auto onDebuggerEvent = [&](Debugger::Event onEvent) {
             switch (onEvent) {
-            case Debugger::Event::Stepped: {
-                // The debugger has single-line stepped. Inform the client.
-                dap::StoppedEvent event;
-                event.reason = "step";
-                event.threadId = threadId;
-                session->send(event);
-                break;
-            }
-            case Debugger::Event::BreakpointHit: {
-                // The debugger has hit a breakpoint. Inform the client.
-                dap::StoppedEvent event;
-                event.reason = "breakpoint";
-                event.threadId = threadId;
-                session->send(event);
-                break;
-            }
-            case Debugger::Event::Paused: {
-                // The debugger has been suspended. Inform the client.
-                dap::StoppedEvent event;
-                event.reason = "pause";
-                event.threadId = threadId;
-                session->send(event);
-                break;
-            }
+                case Debugger::Event::Stepped: {
+                    // The debugger has single-line stepped. Inform the client.
+                    dap::StoppedEvent event;
+                    event.reason = "step";
+                    event.threadId = threadId;
+                    session->send(event);
+                    break;
+                }
+                case Debugger::Event::BreakpointHit: {
+                    // The debugger has hit a breakpoint. Inform the client.
+                    dap::StoppedEvent event;
+                    event.reason = "breakpoint";
+                    event.threadId = threadId;
+                    session->send(event);
+                    break;
+                }
+                case Debugger::Event::Paused: {
+                    // The debugger has been suspended. Inform the client.
+                    dap::StoppedEvent event;
+                    event.reason = "pause";
+                    event.threadId = threadId;
+                    session->send(event);
+                    break;
+                }
             }
             };
 
@@ -124,13 +124,10 @@ int main(int argc, char *argv[]) {
 
         // Handle errors reported by the Session. These errors include protocol
       // parsing errors and receiving messages with no handler.
-        session->onError([&](const char* msg) {
-            if (log) {
-                dap::writef(log, "dap::Session error: %s\n", msg);
-                log->close();
-            }
+        session->onError([&](const char* msg) {         
+            LOGE("dap::Session error: %s", msg);          
             terminate.fire();
-            });
+        });
 
         // When the Initialize response has been sent, we need to send the
         // initialized event. We use the registerSentHandler() to ensure the
@@ -165,7 +162,6 @@ int main(int argc, char *argv[]) {
             -> dap::ResponseOrError<dap::StackTraceResponse> {
 
                 LOGI("[StackTraceRequest]");
-
                 if (request.threadId != threadId) {
                     return dap::Error("Unknown threadId '%d'",
                         int(request.threadId));
@@ -173,15 +169,14 @@ int main(int argc, char *argv[]) {
 
                 dap::Source source;
                 source.sourceReference = 0;
-                //sourceReferenceId;
 
-                source.path = "c:\\work\\gitquantag\\qasm-adapter-vscode\\sampleWorkspace\\qft.qasm";
-                source.name = "qft.qasm";
+                source.path = session->currentSourceFilePath;
+                source.name = Utils::getShortName(session->currentSourceFilePath);
 
                 dap::StackFrame frame;
                 frame.line = debugger.currentLine();
                 frame.column = 1;
-                frame.name = "HelloDebugger";
+                frame.name = "QuantumDebugger";
                 frame.id = frameId;
                 frame.source = source;
 
@@ -336,7 +331,6 @@ int main(int argc, char *argv[]) {
                         int(request.sourceReference));
                 }
 
-
                 dap::SourceResponse response;
                 response.content = sourceContent;
                 return response;
@@ -347,17 +341,19 @@ int main(int argc, char *argv[]) {
               // arguments. This example debugger does nothing with this request.
               // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Launch
         session->registerHandler([&](const dap::LaunchRequest& req) {
-            LOGI(" ~ [LaunchRequest] noDebug = %u ~", req.noDebug);
+            LOGI(" ~ [LaunchRequest] [%s]", req.program.value().c_str());
            
+            session->currentSourceFilePath = req.program.value();
+            bool isRun = req.noDebug.has_value();
+
             int ok = 0;
-            if (req.noDebug) {
-                ok = qvm.run("test.qasm");
+            if (isRun) {
+                ok = qvm.run(req.program.value());
             }
             else {
-                ok = qvm.debug("test.qasm");
+                ok = qvm.debug(req.program.value());
             }
             LOGI("QVM launch ret %d", ok);
-
             return dap::LaunchResponse();
             });
 

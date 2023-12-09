@@ -1197,6 +1197,7 @@ struct LaunchRequest : public Request {
   // If true, the launch request should launch the program without enabling
   // debugging.
   optional<boolean> noDebug;
+  optional<string> program;
 };
 
 DAP_DECLARE_STRUCT_TYPEINFO(LaunchRequest);
