@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdarg.h>
+
 #ifdef WIN32
 	#include <windows.h>
 	#include <direct.h>
@@ -13,7 +14,7 @@
 
 
 
-#define MAX_LOG_LEN		1024
+#define MAX_LOG_LEN		8000
 #define MAX_DATA_LEN	128
 
 /**
