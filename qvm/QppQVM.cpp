@@ -101,31 +101,29 @@ int QppQVM::getSourceLines() {
 void QppQVM::stepForward() {
 	LOGI("");
 
-	if (mIt != circuit->end()) {
+	//if (mIt != circuit->end()) {
 		LOGI("Executing next line..");
 		this->currentState.currentLine++;
 
 		try {
 			//engine->execute(mIt); // crash
 
-			qpp::ket psi = engine->get_psi();
-			cmat rho = prj(psi);
-
+		//	qpp::ket psi = engine->get_psi();
+		//	cmat rho = prj(psi);
 		//	mIt++; // crash
+		//	setCurrentState(psi, rho);
 
-			setCurrentState(psi, rho);
-
-			int ret1 = frontend->updateState(currentState);
-			LOGI("frontend.updateState ret %d", ret1);
+		//	int ret1 = frontend->updateState(currentState);
+		//	LOGI("frontend.updateState ret %d", ret1);
 		}
 		catch (...) {
 			LOGE("Error executing next line");
 		}
 
-	}
-	else {
-		LOGI("Reached end of circuit..");
-	}
+	//}
+	//else {
+	//	LOGI("Reached end of circuit..");
+	//}
 }
 
 // Convert qpp::ket to std::vector<complexNumber>
