@@ -30,18 +30,18 @@ void Debugger::continueDebugger() {
 int Debugger::launch(int isRun, const std::string& fileName) {
     LOGI("noDebug = %d, file = [%s]", isRun, fileName.c_str());
 
-    int ok = 0;
+    int ret = 0;
     if (isRun) {
-        ok = qvm->run(fileName);
+        ret = qvm->run(fileName);
     }
     else {
-        ok = qvm->debug(fileName);
+        ret = qvm->debug(fileName);
     }
 
-    if (ok) {
+    if (ret==0) {
         this->numSourceLines = qvm->getSourceLines();
     }
-    return ok;
+    return ret;
 }
 
 
@@ -62,7 +62,9 @@ void Debugger::stepForward() {
       LOGI("***");
 
       std::unique_lock<std::mutex> lock(mutex);
-      line = (line % numSourceLines) + 1;
+
+      if(numSourceLines>0)
+        line = (line % numSourceLines) + 1;
 
       qvm->stepForward();
 
