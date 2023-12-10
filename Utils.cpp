@@ -138,3 +138,27 @@ int Utils::fileExists(const std::string& filePath)
     // If no separator found, return the original string
     return fileName;
 }
+
+ int Utils::calcNumberOfLines(const std::string& sourceCode) {
+     int numberOfLines = 0;
+     bool isNewLine = true;
+
+     for (char c : sourceCode) {
+         if (c == '\n' || c == '\r') {
+             if (!isNewLine) {
+                 isNewLine = true;
+                 ++numberOfLines;
+             }
+         }
+         else {
+             isNewLine = false;
+         }
+     }
+
+     // Check if the last line doesn't end with a newline character
+     if (!isNewLine && !sourceCode.empty()) {
+         ++numberOfLines;
+     }
+
+     return numberOfLines;
+ }

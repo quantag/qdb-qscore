@@ -22,7 +22,7 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	int ret = 0;
 	SAFE_DELETE(circuit);
 
-	std::string src = "";
+	sourceCode = "";
 	std::string file = fileName;
 
 	if (!Utils::fileExists(file)) {
@@ -38,13 +38,13 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	else {
 		LOGI("File '%s' exist !", file.c_str());
 	}
-	src = Utils::loadFile(file);
-	LOGI("Loaded %u bytes from [%s]", src.size(), file.c_str());
+	sourceCode = Utils::loadFile(file);
+	LOGI("Loaded %u bytes from [%s]", sourceCode.size(), file.c_str());
 
-	src = Utils::encode64(src);
+	std::string encodedSourceCode = Utils::encode64(sourceCode);
 	circuit = qasm::readFromFile(file);
 	
-	std::string data = "{\"command\":\"load\",\"code\":\"" + src + "\"}";
+	std::string data = "{\"command\":\"load\",\"code\":\"" + encodedSourceCode + "\"}";
 	int ret1 = wsServer->send(data);
 	LOGI("WS SEND ret %d", ret1);
 
@@ -79,10 +79,30 @@ int QppQVM::debug(const std::string& fileName) {
 	engine = QEngine::instance(*circuit); // create an engine out of a quantum circuit
 
 	mIt = circuit->cbegin();
-	engine->execute(mIt);
-
-	qpp::ket psi = engine->get_psi();
-	cmat rho = prj(psi);
-
 	return 0;
+}
+
+int QppQVM::getSourceLines() {
+	return Utils::calcNumberOfLines(this->sourceCode);
+}
+
+// Execute next line
+void QppQVM::stepForward() {
+	LOGI("");
+
+	if (mIt != circuit->end()) {
+		LOGI("Excuting next line..");
+		engine->execute(mIt);
+
+		qpp::ket psi = engine->get_psi();
+		cmat rho = prj(psi);
+		//	sendUpdateState();
+
+		mIt++;
+	}
+	else {
+		LOGI("Reached and of circuit..");
+	}
+
+
 }

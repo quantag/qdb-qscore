@@ -150,6 +150,7 @@
     <ClCompile Include="QSCore.cpp" />
     <ClCompile Include="qvm\QppQVM.cpp" />
     <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="WebFrontend.cpp" />
     <ClCompile Include="ws\WSListener.cpp" />
     <ClCompile Include="ws\WSServer.cpp" />
     <ClCompile Include="ws\WSSession.cpp" />
@@ -171,10 +172,12 @@
     <ClInclude Include="dap\variant.h" />
     <ClInclude Include="Debugger.h" />
     <ClInclude Include="Event.h" />
+    <ClInclude Include="interfaces\ifrontend.h" />
     <ClInclude Include="interfaces\iqvm.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="qvm\QppQVM.h" />
     <ClInclude Include="Utils.h" />
+    <ClInclude Include="WebFrontend.h" />
     <ClInclude Include="ws\WSListener.h" />
     <ClInclude Include="ws\WSServer.h" />
     <ClInclude Include="ws\WSSession.h" />

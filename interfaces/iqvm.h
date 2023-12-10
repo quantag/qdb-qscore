@@ -9,4 +9,7 @@ public:
 
 	virtual int run(const std::string& fileName) = 0;
 	virtual int debug(const std::string& fileName) = 0;
+
+	virtual int getSourceLines() = 0;
+	virtual void stepForward() = 0;
 };

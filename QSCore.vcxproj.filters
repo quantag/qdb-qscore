@@ -102,6 +102,9 @@
     <ClCompile Include="ws\WSSession.cpp">
       <Filter>Source Files\ws</Filter>
     </ClCompile>
+    <ClCompile Include="WebFrontend.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debugger.h">
@@ -172,6 +175,12 @@
     </ClInclude>
     <ClInclude Include="ws\WSSession.h">
       <Filter>Header Files\ws</Filter>
+    </ClInclude>
+    <ClInclude Include="WebFrontend.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="interfaces\ifrontend.h">
+      <Filter>Header Files\interfaces</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
