@@ -17,9 +17,9 @@ void Debugger::continueDebugger() {
       std::unique_lock<std::mutex> lock(mutex);
 
       for (int64_t i = 0; i < numSourceLines; i++) {
-            int64_t l = ((line + i) % numSourceLines) + 1;
+            int64_t l = ((qvm->getCurrentLine() + i) % numSourceLines) + 1;
             if (breakpoints.count(l)) {
-                  line = l;
+                  qvm->setCurrentLine( (int)l);
                   lock.unlock();
                   onEvent(Event::BreakpointHit);
                   return;
@@ -52,18 +52,18 @@ void Debugger::pause() {
 }
 
 int64_t Debugger::currentLine() {
-    LOGI("*** line = %d", line);
+    LOGI("*** line = %d", qvm->getCurrentLine());
 
     std::unique_lock<std::mutex> lock(mutex);
-    return line;
+    return qvm->getCurrentLine();
 }
 
 void Debugger::stepForward() {
-      LOGI("*** line = %d, numSourceLines = %d", line, numSourceLines);
+      LOGI("*** line = %d, numSourceLines = %d", qvm->getCurrentLine(), numSourceLines);
 
       std::unique_lock<std::mutex> lock(mutex);
-      if(numSourceLines>0)
-        line = (line % numSourceLines) + 1;
+      //if(numSourceLines>0)
+      //  line = (line % numSourceLines) + 1;
 
       qvm->stepForward();
 

@@ -102,8 +102,11 @@ void QppQVM::stepForward() {
 	LOGI("");
 
 	//if (mIt != circuit->end()) {
-		LOGI("Executing next line..");
-		this->currentState.currentLine++;
+		LOGI("Executing next line.. %d", this->currentState.currentLine);
+		this->currentState.currentLine ++;
+
+		if(this->getSourceLines()>0)
+			this->currentState.currentLine %= this->getSourceLines();
 
 		try {
 			//engine->execute(mIt); // crash
