@@ -46,12 +46,18 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	sourceCode = Utils::loadFile(file);
 	LOGI("Loaded %u bytes from [%s]", sourceCode.size(), file.c_str());
 
-	circuit = qasm::readFromFile(file);
 	this->currentState.currentLine = 0;
-
 	
 	int ret1 = frontend->loadCode(sourceCode);
 	LOGI("frontend.loadCode ret %d", ret1);
+
+	try {
+		circuit = qasm::readFromFile(file);
+
+	}
+	catch (...) {
+		LOGE("Error during creation of Circuit from file %s", file.c_str());
+	}
 
 	return ret;
 }
@@ -119,10 +125,13 @@ void QppQVM::stepForward() {
 std::vector<complexNumber> QppQVM::convertToStdVector(const qpp::ket& eigenVector) {
 	std::vector<complexNumber> result;
 
-	for (Eigen::Index i = 0; i < eigenVector.rows(); ++i) {
+	int rows = (int)eigenVector.rows();
+	int cols = (int)eigenVector.cols();
+
+	for (int i = 0; i < rows; i++) {
 		complexNumber cn;
-		cn.a = eigenVector(2 * i).real();
-		cn.b = eigenVector(2 * i + 1).real();
+		cn.a = eigenVector(i).real();
+		cn.b = eigenVector(i).imag();
 		result.push_back(cn);
 	}
 

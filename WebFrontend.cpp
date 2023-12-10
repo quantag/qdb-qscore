@@ -53,6 +53,7 @@ int WebFrontend::updateState(const FrontState& state) {
 
 int WebFrontend::send(const nlohmann::json& _data) {
 	std::string data = _data.dump();
+	LOGI("FRONTEND>> '%s'", data.c_str());
 
 	int res = wsServer->send(data);
 	return res;

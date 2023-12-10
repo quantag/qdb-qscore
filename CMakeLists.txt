@@ -107,6 +107,7 @@ set(Source_Files
     "Event.cpp"
     "QSCore.cpp"
     "Utils.cpp"
+    "WebFrontend.cpp"
 
     "ws/WSServer.cpp"
     "ws/WSListener.cpp"    
