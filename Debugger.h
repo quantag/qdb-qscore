@@ -4,8 +4,9 @@
 #include <mutex>
 #include <unordered_set>
 
-// Total number of newlines in source.
-constexpr int64_t numSourceLines = 7;
+
+class WSServer;
+class IQVM;
 
 // Debugger holds the dummy debugger state and fires events to the EventHandler
 // passed to the constructor.
@@ -14,10 +15,13 @@ class Debugger {
   enum class Event { BreakpointHit, Stepped, Paused };
   using EventHandler = std::function<void(Event)>;
 
-  Debugger(const EventHandler&);
+  Debugger(const EventHandler&, WSServer*);
+  ~Debugger();
 
   // run() instructs the debugger to continue execution.
-  void run();
+  void continueDebugger();
+
+  int launch(int isRun, const std::string& fileName);
 
   // pause() instructs the debugger to pause execution.
   void pause();
@@ -34,9 +38,15 @@ class Debugger {
   // addBreakpoint() sets a new breakpoint on the given line.
   void addBreakpoint(int64_t line);
 
+  // Total number of newlines in source.
+  int64_t numSourceLines;
+
  private:
   EventHandler onEvent;
   std::mutex mutex;
   int64_t line = 1;
   std::unordered_set<int64_t> breakpoints;
+
+  IQVM* qvm;
+
 };

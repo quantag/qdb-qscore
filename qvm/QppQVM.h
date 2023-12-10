@@ -14,7 +14,6 @@ public:
 	~QppQVM();
 
 	virtual int loadSourceCode(const std::string& fileName);
-
 	virtual int run(const std::string& fileName);
 	virtual int debug(const std::string& fileName);
 
@@ -22,4 +21,6 @@ private:
 	QCircuit* circuit;
 	QEngine* engine;
 	WSServer* wsServer;
+
+	QCircuit::iterator mIt; // current state
 };

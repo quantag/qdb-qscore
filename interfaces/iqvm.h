@@ -3,7 +3,6 @@
 #include <string>
 
 // interface to QVM
-
 class IQVM {
 public:
 	virtual int loadSourceCode(const std::string& fileName) = 0;
