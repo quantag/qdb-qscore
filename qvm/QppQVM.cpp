@@ -111,6 +111,7 @@ void QppQVM::stepForward() {
 			cmat rho = prj(psi);
 
 			this->currentState.currentLine++;
+			mIt++;
 
 			setCurrentState(psi, rho);
 
@@ -120,7 +121,6 @@ void QppQVM::stepForward() {
 		catch (...) {
 			LOGE("Error executing next line");
 		}*/
-		mIt++;
 
 	}
 	else {
