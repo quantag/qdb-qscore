@@ -113,8 +113,8 @@ void QppQVM::stepForward() {
 		//	mIt++; // crash
 		//	setCurrentState(psi, rho);
 
-		//	int ret1 = frontend->updateState(currentState);
-		//	LOGI("frontend.updateState ret %d", ret1);
+			int ret1 = frontend->updateState(currentState);
+			LOGI("frontend.updateState ret %d", ret1);
 		}
 		catch (...) {
 			LOGE("Error executing next line");
