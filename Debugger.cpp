@@ -59,10 +59,9 @@ int64_t Debugger::currentLine() {
 }
 
 void Debugger::stepForward() {
-      LOGI("***");
+      LOGI("*** line = %d, numSourceLines = %d", line, numSourceLines);
 
       std::unique_lock<std::mutex> lock(mutex);
-
       if(numSourceLines>0)
         line = (line % numSourceLines) + 1;
 
