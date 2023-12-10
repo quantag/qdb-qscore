@@ -14,26 +14,23 @@
 
 #include "Log.h"
 #include "Utils.h"
-#include "qvm/QppQVM.h"
+//#include "interfaces/IQVM.h"
 
 #ifdef _MSC_VER
-#define OS_WINDOWS 1
+    #define OS_WINDOWS 1
 #endif
 
-//#define LOG_TO_FILE		"dap.log"
-
 #ifdef OS_WINDOWS
-#include <fcntl.h>  // _O_BINARY
-#include <io.h>     // _setmode
+    #include <fcntl.h>  // _O_BINARY
+    #include <io.h>     // _setmode
 #endif              // OS_WINDOWS
 
 #define DAP_SERVER_PORT     5555
 #define WS_SERVER_PORT      5556
 
 // sourceContent holds the synthetic file source.
-constexpr char sourceContent[] = R"(// Hello Debugger!
+constexpr char sourceContent[] = R"(// !
 This is a synthetic source file provided by the DAP debugger.
-You can set breakpoints, and single line step.
 You may also notice that the locals contains a single variable for the currently executing line number.)";
 
 
@@ -42,7 +39,6 @@ int main(int argc, char *argv[]) {
     LOG_INIT(2, "qs-core.log");
 
     WSServer wsock;
-    QppQVM qvm(&wsock);
         
 #ifdef OS_WINDOWS
 	// Change stdin & stdout from text mode to binary mode.
@@ -50,14 +46,6 @@ int main(int argc, char *argv[]) {
 	_setmode(_fileno(stdin), _O_BINARY);
 	_setmode(_fileno(stdout), _O_BINARY);
 #endif  // OS_WINDOWS
-
-//	std::shared_ptr<dap::Writer> log;
-//#ifdef LOG_TO_FILE
-//	log = dap::file(LOG_TO_FILE);
-//#endif
-
-    //DAP Server Port
-	constexpr int kPort = DAP_SERVER_PORT;
 
 	const dap::integer threadId = 100;
 	const dap::integer frameId = 200;
@@ -101,10 +89,10 @@ int main(int argc, char *argv[]) {
                     break;
                 }
             }
-            };
+        };
 
         // Construct the debugger.
-        Debugger debugger(onDebuggerEvent);
+        Debugger debugger(onDebuggerEvent, &wsock);
 
         // Set the session to close on invalid data. This ensures that data received over the network
         // receives a baseline level of validation before being processed.
@@ -119,8 +107,9 @@ int main(int argc, char *argv[]) {
 
             dap::InitializeResponse response;
             response.supportsConfigurationDoneRequest = true;
+     
             return response;
-            });
+        });
 
         // Handle errors reported by the Session. These errors include protocol
       // parsing errors and receiving messages with no handler.
@@ -246,15 +235,15 @@ int main(int argc, char *argv[]) {
         session->registerHandler([&](const dap::ContinueRequest&) {
             LOGI("[ContinueRequest]");
 
-            debugger.run();
+            debugger.continueDebugger();
             return dap::ContinueResponse();
             });
 
         // The Next request instructs the debugger to single line step for a
         // specific thread.
         // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Next
-        session->registerHandler([&](const dap::NextRequest&) {
-            LOGI("[NextRequest]");
+        session->registerHandler([&](const dap::NextRequest& req) {
+            LOGI("*** [NextRequest] threadId=%d ***", req.threadId);
 
             debugger.stepForward();
             return dap::NextResponse();
@@ -297,7 +286,7 @@ int main(int argc, char *argv[]) {
                     for (size_t i = 0; i < breakpoints.size(); i++) {
                         debugger.addBreakpoint(breakpoints[i].line);
                         response.breakpoints[i].verified =
-                            breakpoints[i].line < numSourceLines;
+                            breakpoints[i].line < debugger.numSourceLines;
                     }
                 }
                 else {
@@ -326,13 +315,18 @@ int main(int argc, char *argv[]) {
             -> dap::ResponseOrError<dap::SourceResponse> {
                 LOGI("[SourceRequest]");
 
+                if (request.source.has_value()) {
+                    LOGI("source = [%s]", request.source.value().path);
+                }
+                
+                LOGI("sourceReference = [%d]", request.sourceReference);            
                 if (request.sourceReference != sourceReferenceId) {
                     return dap::Error("Unknown source reference '%d'",
                         int(request.sourceReference));
                 }
 
                 dap::SourceResponse response;
-                response.content = sourceContent;
+                response.content = sourceContent; // TODO: remove?
                 return response;
             });
 
@@ -346,16 +340,10 @@ int main(int argc, char *argv[]) {
             session->currentSourceFilePath = req.program.value();
             bool isRun = req.noDebug.has_value();
 
-            int ok = 0;
-            if (isRun) {
-                ok = qvm.run(req.program.value());
-            }
-            else {
-                ok = qvm.debug(req.program.value());
-            }
+            int ok = debugger.launch(isRun, req.program.value());
             LOGI("QVM launch ret %d", ok);
             return dap::LaunchResponse();
-            });
+        });
 
 
         // Handler for disconnect requests
@@ -369,34 +357,17 @@ int main(int argc, char *argv[]) {
             });
 
         // The ConfigurationDone request is made by the client once all
-              // configuration requests have been made. This example debugger uses
-              // this request to 'start' the debugger.
-              // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_ConfigurationDone
+        // configuration requests have been made. This example debugger uses
+        // this request to 'start' the debugger.
+        // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_ConfigurationDone
         session->registerHandler([&](const dap::ConfigurationDoneRequest&) {
             LOGI("[ConfigurationDoneRequest]");
 
             configured.fire();
             return dap::ConfigurationDoneResponse();
-            });
+        });
 
-
-
-        /*
-                // Signal used to terminate the server session when a DisconnectRequest
-                // is made by the client.
-                bool terminate = false;
-                std::condition_variable cv;
-                std::mutex mutex;  // guards 'terminate'
-
-                // Wait for the client to disconnect (or reach a 5 second timeout)
-                // before releasing the session and disconnecting the socket to the
-                // client.
-                std::unique_lock<std::mutex> lock(mutex);
-                cv.wait_for(lock, std::chrono::seconds(5), [&] { return terminate; });
-                printf("Server closing connection\n");
-                */
-
-                // Wait for the ConfigurationDone request to be made.
+        // Wait for the ConfigurationDone request to be made.
         configured.wait();
 
         // Broadcast the existance of the single thread to the client.
@@ -419,14 +390,12 @@ int main(int argc, char *argv[]) {
 
     // Create the network server
     auto server = dap::net::Server::create();
-    // Start listening on kPort.
+    // Start listening on DAP_SERVER_PORT
     // onClientConnected will be called when a client wants to connect.
     // onError will be called on any connection errors.
-    server->start( (argc > 1) ? argv[1] : "localhost", kPort, onClientConnected, onError);
+    server->start( (argc > 1) ? argv[1] : "localhost", DAP_SERVER_PORT, onClientConnected, onError);
 
     LOGI("DAP Server started on port %d", DAP_SERVER_PORT);
-
-    int wsPort = 5556;
     LOGI("WS Server started on port %d", WS_SERVER_PORT);
     
     wsock.start((argc > 1) ? argv[1] : NULL, WS_SERVER_PORT);

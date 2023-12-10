@@ -45,8 +45,8 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	circuit = qasm::readFromFile(file);
 	
 	std::string data = "{\"command\":\"load\",\"code\":\"" + src + "\"}";
-	ret = wsServer->send(data);
-	LOGI("WS SEND ret %d", ret);
+	int ret1 = wsServer->send(data);
+	LOGI("WS SEND ret %d", ret1);
 
 	return ret;
 }
@@ -68,14 +68,21 @@ int QppQVM::run(const std::string& fileName) {
 int QppQVM::debug(const std::string& fileName) {
 	LOGI("%s", fileName.c_str());
 
-	ASSERT( loadSourceCode(fileName) );
+	int ret = loadSourceCode(fileName);
+	if (ret != 0) {
+		LOGE("Error loading sources from [%s]", fileName.c_str());
+		return ret;
+	}
 	LOGI("Loaded source code from [%s]", fileName.c_str());
 
 	SAFE_DELETE(engine);
 	engine = QEngine::instance(*circuit); // create an engine out of a quantum circuit
 
-	const QCircuit::iterator& it = circuit->cbegin();
-	engine->execute(it);
+	mIt = circuit->cbegin();
+	engine->execute(mIt);
+
+	qpp::ket psi = engine->get_psi();
+	cmat rho = prj(psi);
 
 	return 0;
 }
