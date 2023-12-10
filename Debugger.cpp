@@ -4,16 +4,13 @@
 #include "Log.h"
 #include "qvm/QppQVM.h"
 
-Debugger::Debugger(const EventHandler& onEvent, WSServer* ws) : onEvent(onEvent) {
-    numSourceLines = 7; // TODO: set correct
-
+Debugger::Debugger(const EventHandler& onEvent, WSServer* ws) : onEvent(onEvent), numSourceLines(0) {
     qvm = new QppQVM(ws);
 }
 
 Debugger::~Debugger() {
     delete qvm;
 }
-
 
 void Debugger::continueDebugger() {
       LOGI("***");
@@ -41,6 +38,9 @@ int Debugger::launch(int isRun, const std::string& fileName) {
         ok = qvm->debug(fileName);
     }
 
+    if (ok) {
+        this->numSourceLines = qvm->getSourceLines();
+    }
     return ok;
 }
 
@@ -63,6 +63,9 @@ void Debugger::stepForward() {
 
       std::unique_lock<std::mutex> lock(mutex);
       line = (line % numSourceLines) + 1;
+
+      qvm->stepForward();
+
       lock.unlock();
       onEvent(Event::Stepped);
 }

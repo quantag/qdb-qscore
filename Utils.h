@@ -16,7 +16,7 @@ public:
 	static std::string  encode64(const std::string& val);
 	static int fileExists(const std::string& filePath);
 
-	static int isBase64String(const std::string& str);
 	static std::string getShortName(const std::string& fileName);
+	static int calcNumberOfLines(const std::string& sourceCode);
 
 };
