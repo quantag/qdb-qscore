@@ -89,7 +89,9 @@ int QppQVM::debug(const std::string& fileName) {
 	SAFE_DELETE(engine);
 	engine = QEngine::instance(*circuit); // create an engine out of a quantum circuit
 
-	mIt = circuit->cbegin();
+	mIt = circuit->begin();
+	LOGI("Iterator initialized");
+
 	return 0;
 }
 
@@ -101,7 +103,7 @@ int QppQVM::getSourceLines() {
 void QppQVM::stepForward() {
 	LOGI("");
 
-	//if (mIt != circuit->end()) {
+	if (mIt != circuit->end()) {
 		LOGI("Executing next line.. %d", this->currentState.currentLine);
 		this->currentState.currentLine ++;
 
@@ -109,12 +111,12 @@ void QppQVM::stepForward() {
 			this->currentState.currentLine %= this->getSourceLines();
 
 		try {
-			//engine->execute(mIt); // crash
+			engine->execute( mIt++ ); // crash
 
-		//	qpp::ket psi = engine->get_psi();
-		//	cmat rho = prj(psi);
-		//	mIt++; // crash
-		//	setCurrentState(psi, rho);
+			qpp::ket psi = engine->get_psi();
+			cmat rho = prj(psi);
+
+			setCurrentState(psi, rho);
 
 			int ret1 = frontend->updateState(currentState);
 			LOGI("frontend.updateState ret %d", ret1);
@@ -123,10 +125,10 @@ void QppQVM::stepForward() {
 			LOGE("Error executing next line");
 		}
 
-	//}
-	//else {
-	//	LOGI("Reached end of circuit..");
-	//}
+	}
+	else {
+		LOGI("Reached end of circuit..");
+	}
 }
 
 // Convert qpp::ket to std::vector<complexNumber>

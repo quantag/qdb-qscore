@@ -62,9 +62,6 @@ void Debugger::stepForward() {
       LOGI("*** line = %d, numSourceLines = %d", qvm->getCurrentLine(), numSourceLines);
 
       std::unique_lock<std::mutex> lock(mutex);
-      //if(numSourceLines>0)
-      //  line = (line % numSourceLines) + 1;
-
       qvm->stepForward();
 
       lock.unlock();
