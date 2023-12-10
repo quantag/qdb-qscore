@@ -103,15 +103,15 @@ void QppQVM::stepForward() {
 
 	if (mIt != circuit->end()) {
 		LOGI("Executing next line..");
+		this->currentState.currentLine++;
 
-		/*try {
-			engine->execute(mIt);
+		try {
+			//engine->execute(mIt); // crash
 
 			qpp::ket psi = engine->get_psi();
 			cmat rho = prj(psi);
 
-			this->currentState.currentLine++;
-			mIt++;
+		//	mIt++; // crash
 
 			setCurrentState(psi, rho);
 
@@ -120,7 +120,7 @@ void QppQVM::stepForward() {
 		}
 		catch (...) {
 			LOGE("Error executing next line");
-		}*/
+		}
 
 	}
 	else {
