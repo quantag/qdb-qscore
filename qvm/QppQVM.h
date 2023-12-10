@@ -2,11 +2,13 @@
 #pragma once
 
 #include "../interfaces/iqvm.h"
+
 #include "qpp.h"
 
 using namespace qpp;
 
 class WSServer;
+class IFrontend;
 
 class QppQVM : public IQVM {
 public:
@@ -20,11 +22,14 @@ public:
 	int getSourceLines();
 	void stepForward();
 
+	static std::vector<complexNumber> convertToStdVector(const qpp::ket& eigenVector);
+	static matrix2d convertToMatrix2D(const qpp::cmat& eigenMatrix);
+
 private:
 	QCircuit* circuit;
 	QEngine* engine;
-	WSServer* wsServer;
+	IFrontend* frontend;
 
 	QCircuit::iterator mIt; // current state
-	std::string sourceCode;
+	void setCurrentState(const qpp::ket& psi, const qpp::cmat& mat);
 };

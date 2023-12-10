@@ -6,15 +6,20 @@
 #include "../ws/WSServer.h"
 #include "../Utils.h"
 
+#include "../WebFrontend.h"
+
 #define DEMO_FILE "/home/qbit/qasm/file1.qasm"
 
 QppQVM::QppQVM(WSServer* ws) : circuit(NULL), engine(NULL) {
-	this->wsServer = ws;
+	this->frontend = new WebFrontend();
+	this->frontend->setWSServer(ws);
 }
 
 QppQVM::~QppQVM() {
 	SAFE_DELETE(circuit);
 	SAFE_DELETE(engine);
+	SAFE_DELETE(frontend);
+
 }
 
 int QppQVM::loadSourceCode(const std::string& fileName) {
@@ -41,12 +46,12 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	sourceCode = Utils::loadFile(file);
 	LOGI("Loaded %u bytes from [%s]", sourceCode.size(), file.c_str());
 
-	std::string encodedSourceCode = Utils::encode64(sourceCode);
 	circuit = qasm::readFromFile(file);
+	this->currentState.currentLine = 0;
+
 	
-	std::string data = "{\"command\":\"load\",\"code\":\"" + encodedSourceCode + "\"}";
-	int ret1 = wsServer->send(data);
-	LOGI("WS SEND ret %d", ret1);
+	int ret1 = frontend->loadCode(sourceCode);
+	LOGI("frontend.loadCode ret %d", ret1);
 
 	return ret;
 }
@@ -96,13 +101,54 @@ void QppQVM::stepForward() {
 
 		qpp::ket psi = engine->get_psi();
 		cmat rho = prj(psi);
-		//	sendUpdateState();
 
-		mIt++;
+		this->currentState.currentLine ++;
+		mIt ++;
+
+		setCurrentState(psi, rho);
+
+		int ret1 = frontend->updateState( currentState );
+		LOGI("frontend.updateState ret %d", ret1);
 	}
 	else {
 		LOGI("Reached and of circuit..");
 	}
+}
 
+// Convert qpp::ket to std::vector<complexNumber>
+std::vector<complexNumber> QppQVM::convertToStdVector(const qpp::ket& eigenVector) {
+	std::vector<complexNumber> result;
 
+	for (Eigen::Index i = 0; i < eigenVector.rows(); ++i) {
+		complexNumber cn;
+		cn.a = eigenVector(2 * i).real();
+		cn.b = eigenVector(2 * i + 1).real();
+		result.push_back(cn);
+	}
+
+	return result;
+}
+
+// Convert qpp::cmat to std::vector<std::vector<complexNumber>>
+matrix2d QppQVM::convertToMatrix2D(const qpp::cmat& eigenMatrix) {
+	matrix2d result;
+
+	for (Eigen::Index i = 0; i < eigenMatrix.rows(); ++i) {
+		std::vector<complexNumber> row;
+		for (Eigen::Index j = 0; j < eigenMatrix.cols(); ++j) {
+			complexNumber cn;
+			cn.a = eigenMatrix(i, j).real();
+			cn.b = eigenMatrix(i, j).imag();
+			row.push_back(cn);
+		}
+		result.push_back(row);
+	}
+
+	return result;
+}
+
+void QppQVM::setCurrentState(const qpp::ket &psi, const qpp::cmat &mat) {
+	this->currentState.states.clear();
+	this->currentState.states = QppQVM::convertToStdVector(psi);	
+	this->currentState.densityMatrix = QppQVM::convertToMatrix2D(mat);
 }
