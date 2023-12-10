@@ -44,7 +44,7 @@ class Debugger {
  private:
   EventHandler onEvent;
   std::mutex mutex;
-  int64_t line = 1;
+//  int64_t line = 1;
   std::unordered_set<int64_t> breakpoints;
 
   IQVM* qvm;
