@@ -32,6 +32,6 @@ private:
 	IFrontend* frontend;
 
 	QCircuit::iterator mIt; // current state
-	void setCurrentState(const qpp::ket& psi, const qpp::cmat& mat);
+	void setCurrentState(const qpp::ket& psi);
 
 };
