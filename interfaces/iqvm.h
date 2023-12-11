@@ -24,13 +24,14 @@ public:
 	virtual FrontState& getCurrentState() {
 		return this->currentState;
 	}
-	virtual int getQubitsCount() const {
+
+	virtual size_t getQubitsCount() const {
 		return this->nQubits;
 	}
 
 protected:
 	std::string sourceCode;
 	FrontState currentState;
-	int nQubits;
+	size_t nQubits;
 
 };
