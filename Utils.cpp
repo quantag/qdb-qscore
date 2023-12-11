@@ -170,18 +170,18 @@ int Utils::fileExists(const std::string& filePath)
  }
 
 
- std::string Utils::toBinaryString(unsigned char val, int n) {
+ std::string Utils::toBinaryString(unsigned char val, size_t n) {
      // Use bitwise shift and bitwise OR to extract each bit of the value
      std::bitset<8> bits(val);
      std::string binaryString = bits.to_string();
 
      // If the specified length is greater than the actual length, pad with zeros
-     if (n > 8) {
+     if (n > 8U) {
          binaryString = std::string(n - 8, '0') + binaryString;
      }
 
      // If the specified length is less than the actual length, truncate
-     if (n < 8) {
+     if (n < 8U) {
          binaryString = binaryString.substr(8 - n);
      }
 

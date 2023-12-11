@@ -20,6 +20,6 @@ public:
 	static std::string getShortName(const std::string& fileName);
 	static int calcNumberOfLines(const std::string& sourceCode);
 	static std::string complex2str(complexNumber a);
-	static std::string toBinaryString(unsigned char val, int n);
+	static std::string toBinaryString(unsigned char val, size_t n);
 
 };
