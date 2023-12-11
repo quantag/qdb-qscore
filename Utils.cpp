@@ -162,3 +162,9 @@ int Utils::fileExists(const std::string& filePath)
 
      return numberOfLines;
  }
+
+
+ std::string Utils::complex2str(complexNumber z) {
+     std::string res = std::to_string(z.a) + " + i" + std::to_string(z.b);
+     return res;
+ }

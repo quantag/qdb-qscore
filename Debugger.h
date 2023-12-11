@@ -4,6 +4,7 @@
 #include <mutex>
 #include <unordered_set>
 
+#include "Typedefs.h"
 
 class WSServer;
 class IQVM;
@@ -40,6 +41,8 @@ class Debugger {
 
   // Total number of newlines in source.
   int64_t numSourceLines;
+
+  std::vector<complexNumber> getQVMVariables();
 
  private:
   EventHandler onEvent;

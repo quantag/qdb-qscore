@@ -21,6 +21,10 @@ public:
 		this->currentState.currentLine = line;
 	}
 
+	virtual FrontState& getCurrentState() {
+		return currentState;
+	}
+
 protected:
 	std::string sourceCode;
 	FrontState currentState;

@@ -81,3 +81,7 @@ void Debugger::addBreakpoint(int64_t l) {
     std::unique_lock<std::mutex> lock(mutex);
     this->breakpoints.emplace(l);
 }
+
+std::vector<complexNumber> Debugger::getQVMVariables() {
+    return this->qvm->getCurrentState().states;
+}

@@ -14,7 +14,7 @@
 
 #include "Log.h"
 #include "Utils.h"
-//#include "interfaces/IQVM.h"
+#include "Typedefs.h"
 
 #ifdef _MSC_VER
     #define OS_WINDOWS 1
@@ -217,6 +217,20 @@ int main(int argc, char *argv[]) {
 
                 dap::VariablesResponse response;
                 response.variables.push_back(currentLineVar);
+                /*
+                * add qubits here
+                */
+                std::vector<complexNumber> qubits = debugger.getQVMVariables();
+                int idx = 0;
+                for (complexNumber item : qubits) {
+                    dap::Variable qubitVar;
+                    qubitVar.name = "q[" + std::to_string(idx) + "]";
+                    qubitVar.value = Utils::complex2str(item);
+                    qubitVar.type = "complex";
+                    idx++;
+                    response.variables.push_back(qubitVar);
+                }
+
                 return response;
             });
         // The Pause request instructs the debugger to pause execution of one or

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "Typedefs.h"
 
 class Utils {
 public:
@@ -18,5 +19,6 @@ public:
 
 	static std::string getShortName(const std::string& fileName);
 	static int calcNumberOfLines(const std::string& sourceCode);
+	static std::string complex2str(complexNumber a);
 
 };
