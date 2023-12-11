@@ -46,7 +46,7 @@ int WebFrontend::updateState(const FrontState& state) {
 
 	json["line"] = state.currentLine;
 	json["states"] = state.states;
-	json["matrix"] = state.densityMatrix;
+//	json["matrix"] = state.densityMatrix;
 
 	return send(json);
 }

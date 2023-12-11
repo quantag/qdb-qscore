@@ -44,7 +44,7 @@ class Debugger {
 
   std::vector<complexNumber> getQVMVariables();
 
-  virtual int getQubitsCount() const;
+  virtual size_t getQubitsCount() const;
 
  private:
   EventHandler onEvent;

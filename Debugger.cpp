@@ -86,6 +86,6 @@ std::vector<complexNumber> Debugger::getQVMVariables() {
     return this->qvm->getCurrentState().states;
 }
 
-int Debugger::getQubitsCount() const {
+size_t Debugger::getQubitsCount() const {
     return qvm->getQubitsCount();
 }
