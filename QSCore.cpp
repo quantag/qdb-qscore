@@ -221,10 +221,10 @@ int main(int argc, char *argv[]) {
                 * add qubits here
                 */
                 std::vector<complexNumber> qubits = debugger.getQVMVariables();
-                int idx = 0;
+                unsigned char idx = 0;
                 for (complexNumber item : qubits) {
                     dap::Variable qubitVar;
-                    qubitVar.name = "q[" + std::to_string(idx) + "]";
+                    qubitVar.name = "|" + Utils::toBinaryString(idx, debugger.getQubitsCount()) + ">";
                     qubitVar.value = Utils::complex2str(item);
                     qubitVar.type = "complex";
                     idx++;

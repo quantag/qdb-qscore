@@ -1,6 +1,7 @@
 #pragma once
 
 // z = a + i*b
+// TODO: use std::complex instead
 struct complexNumber {
 	double a;
 	double b;

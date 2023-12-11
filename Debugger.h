@@ -44,6 +44,8 @@ class Debugger {
 
   std::vector<complexNumber> getQVMVariables();
 
+  virtual int getQubitsCount() const;
+
  private:
   EventHandler onEvent;
   std::mutex mutex;
