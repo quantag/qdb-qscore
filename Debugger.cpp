@@ -85,3 +85,7 @@ void Debugger::addBreakpoint(int64_t l) {
 std::vector<complexNumber> Debugger::getQVMVariables() {
     return this->qvm->getCurrentState().states;
 }
+
+int Debugger::getQubitsCount() const {
+    return qvm->getQubitsCount();
+}

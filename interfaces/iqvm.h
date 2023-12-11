@@ -22,10 +22,15 @@ public:
 	}
 
 	virtual FrontState& getCurrentState() {
-		return currentState;
+		return this->currentState;
+	}
+	virtual int getQubitsCount() const {
+		return this->nQubits;
 	}
 
 protected:
 	std::string sourceCode;
 	FrontState currentState;
+	int nQubits;
+
 };
