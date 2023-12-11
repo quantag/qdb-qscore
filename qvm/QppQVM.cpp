@@ -41,6 +41,7 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	}
 	else {
 		LOGI("File '%s' exist !", file.c_str());
+		ret = 0;
 	}
 
 	sourceCode = Utils::loadFile(file);
@@ -53,11 +54,11 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	try {
 		circuit = qasm::readFromFile(file);
 		this->nQubits = circuit->get_nq();
+		LOGI("Created QCircuit from file '%s', nQubits = %u", file.c_str(), this->nQubits);
 	}
 	catch (...) {
 		LOGE("Error during creation of Circuit from file %s", file.c_str());
 	}
-
 	return ret;
 }
 
