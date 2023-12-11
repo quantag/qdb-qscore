@@ -113,12 +113,9 @@ void QppQVM::stepForward() {
 			engine->execute( mIt++ ); // crash
 
 			qpp::ket psi = engine->get_psi();
-			cmat rho = prj(psi);
+//			cmat rho = prj(psi);
 
-			
-
-			setCurrentState(psi, rho);
-			
+			setCurrentState(psi);	
 			// const States& st = States::get_instance();  ?
 
 			int ret1 = frontend->updateState(currentState);
@@ -169,10 +166,8 @@ matrix2d QppQVM::convertToMatrix2D(const qpp::cmat& eigenMatrix) {
 	return result;
 }
 
-void QppQVM::setCurrentState(const qpp::ket &psi, const qpp::cmat &mat) {
-	this->currentState.states.clear();
+void QppQVM::setCurrentState(const qpp::ket &psi) {
 	this->currentState.states = QppQVM::convertToStdVector(psi);	
-	this->currentState.densityMatrix = QppQVM::convertToMatrix2D(mat);
 }
 
 /*

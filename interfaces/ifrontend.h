@@ -12,7 +12,7 @@ struct FrontState {
 	int currentLine;
 
 	std::vector<complexNumber> states;
-	matrix2d densityMatrix;
+//	matrix2d densityMatrix;
 };
 
 

@@ -210,13 +210,13 @@ int main(int argc, char *argv[]) {
                         int(request.variablesReference));
                 }
 
-                dap::Variable currentLineVar;
-                currentLineVar.name = "currentLine";
-                currentLineVar.value = std::to_string(debugger.currentLine());
-                currentLineVar.type = "int";
+             //   dap::Variable currentLineVar;
+            //    currentLineVar.name = "currentLine";
+            //    currentLineVar.value = std::to_string(debugger.currentLine());
+             //   currentLineVar.type = "int";
 
                 dap::VariablesResponse response;
-                response.variables.push_back(currentLineVar);
+            //    response.variables.push_back(currentLineVar);
                 /*
                 * add qubits here
                 */
@@ -229,6 +229,8 @@ int main(int argc, char *argv[]) {
                     qubitVar.type = "complex";
                     idx++;
                     response.variables.push_back(qubitVar);
+
+                    LOGI( "adding variable %s", qubitVar.name.c_str() );
                 }
 
                 return response;
