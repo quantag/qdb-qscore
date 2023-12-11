@@ -53,7 +53,7 @@ void Logger::setFileName(const std::string& fileName) {
 	time_t t = time(NULL);
 	struct tm *tmp = localtime(&t);
 	char ts[200];
-	strftime(ts, 200, ".%y%m%d-%H%M", tmp);
+	strftime(ts, 200, ".%y%m%d-%H%M.txt", tmp);
 
 	_filepath = fileName + ts;
 }

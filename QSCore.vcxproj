@@ -176,6 +176,7 @@
     <ClInclude Include="interfaces\iqvm.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="qvm\QppQVM.h" />
+    <ClInclude Include="Typedefs.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="WebFrontend.h" />
     <ClInclude Include="ws\WSListener.h" />

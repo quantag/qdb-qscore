@@ -182,5 +182,8 @@
     <ClInclude Include="interfaces\ifrontend.h">
       <Filter>Header Files\interfaces</Filter>
     </ClInclude>
+    <ClInclude Include="Typedefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
