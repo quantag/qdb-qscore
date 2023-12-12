@@ -292,11 +292,11 @@ int main(int argc, char *argv[]) {
         session->registerHandler(
             [&](const dap::SetBreakpointsRequest& request) {
                 dap::SetBreakpointsResponse response;
-                LOGI("[SetBreakpointsRequest]");
+                LOGI("[SetBreakpointsRequest] v1 = %d v2 = %d", 
+                    request.source.sourceReference.value(0), sourceReferenceId);
 
                 auto breakpoints = request.breakpoints.value({});
-                if (request.source.sourceReference.value(0) ==
-                    sourceReferenceId) {
+                if (1) { //request.source.sourceReference.value(0) == sourceReferenceId) {
                     debugger.clearBreakpoints();
                     response.breakpoints.resize(breakpoints.size());
                     for (size_t i = 0; i < breakpoints.size(); i++) {
@@ -414,6 +414,6 @@ int main(int argc, char *argv[]) {
     LOGI("DAP Server started on port %d", DAP_SERVER_PORT);
     LOGI("WS Server started on port %d", WS_SERVER_PORT);
     
-    wsock.start((argc > 1) ? argv[1] : NULL, WS_SERVER_PORT);
+    wsock.start( (argc > 2) ? argv[2] : NULL, WS_SERVER_PORT);
     return 0;
 }
