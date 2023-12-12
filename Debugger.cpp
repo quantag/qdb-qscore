@@ -76,7 +76,7 @@ void Debugger::clearBreakpoints() {
 }
 
 void Debugger::addBreakpoint(int64_t l) {
-    LOGI("***");
+    LOGI("*** line = %d", l);
 
     std::unique_lock<std::mutex> lock(mutex);
     this->breakpoints.emplace(l);

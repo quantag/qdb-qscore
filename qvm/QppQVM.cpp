@@ -19,7 +19,6 @@ QppQVM::~QppQVM() {
 	SAFE_DELETE(circuit);
 	SAFE_DELETE(engine);
 	SAFE_DELETE(frontend);
-
 }
 
 int QppQVM::loadSourceCode(const std::string& fileName) {
