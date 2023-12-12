@@ -28,6 +28,8 @@
 #define DAP_SERVER_PORT     5555
 #define WS_SERVER_PORT      5556
 
+#define LOCALHOST   "127.0.0.1"
+
 // sourceContent holds the synthetic file source.
 constexpr char sourceContent[] = R"(// !
 This is a synthetic source file provided by the DAP debugger.
@@ -37,9 +39,8 @@ You may also notice that the locals contains a single variable for the currently
 
 int main(int argc, char *argv[]) {
     LOG_INIT(2, "qs-core.log");
-
     WSServer wsock;
-        
+
 #ifdef OS_WINDOWS
 	// Change stdin & stdout from text mode to binary mode.
 	// This ensures sequences of \r\n are not changed to \n.
@@ -402,18 +403,21 @@ int main(int argc, char *argv[]) {
         };
 
     // Error handler
-    auto onError = [&](const char* msg) { printf("Server error: %s\n", msg); };
+    auto onError = [&](const char* msg) { 
+        LOGE("Server error: %s", msg); 
+    };
 
     // Create the network server
     auto server = dap::net::Server::create();
-    // Start listening on DAP_SERVER_PORT
-    // onClientConnected will be called when a client wants to connect.
-    // onError will be called on any connection errors.
-    server->start( (argc > 1) ? argv[1] : "localhost", DAP_SERVER_PORT, onClientConnected, onError);
 
-    LOGI("DAP Server started on port %d", DAP_SERVER_PORT);
-    LOGI("WS Server started on port %d", WS_SERVER_PORT);
-    
-    wsock.start( (argc > 2) ? argv[2] : NULL, WS_SERVER_PORT);
+    const char* dapHost = (argc > 1) ? argv[1] : LOCALHOST;
+    server->start( dapHost, DAP_SERVER_PORT, onClientConnected, onError);
+    LOGI("DAP Server started on [%s:%d]", dapHost, DAP_SERVER_PORT);
+
+    const char* wsHost = (argc > 2) ? argv[2] : LOCALHOST;
+    LOGI("Starting WS Server on [%s:%d]", wsHost, WS_SERVER_PORT);
+   
+    wsock.start(wsHost, WS_SERVER_PORT);
+
     return 0;
 }

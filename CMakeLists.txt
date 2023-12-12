@@ -129,6 +129,7 @@ set(Source_Files
     "dap/session.cpp"
     "dap/typeinfo.cpp"
     "dap/typeof.cpp"
+    "dap/Impl.cpp"
 )
 source_group("Source Files" FILES ${Source_Files})
 

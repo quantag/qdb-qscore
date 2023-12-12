@@ -21,67 +21,7 @@
 #include <string>
 #include <thread>
 
-namespace {
-
-class Impl : public dap::net::Server {
- public:
-  Impl() : stopped{true} {}
-
-  ~Impl() { stop(); }
-
-  bool start(const char* host, int port,
-             const OnConnect& onConnect,
-             const OnError& onError) override {
-    std::unique_lock<std::mutex> lock(mutex);
-    stopWithLock();
-    socket = std::unique_ptr<dap::Socket>(
-        new dap::Socket(host, std::to_string(port).c_str()));
-
-    if (!socket->isOpen()) {
-      onError("Failed to open socket");
-      return false;
-    }
-
-    stopped = false;
-    thread = std::thread([=] {
-      while (true) {
-        if (auto rw = socket->accept()) {
-          onConnect(rw);
-          continue;
-        }
-        if (!stopped) {
-          onError("Failed to accept connection");
-        }
-        break;
-      };
-    });
-
-    return true;
-  }
-
-  void stop() override {
-    std::unique_lock<std::mutex> lock(mutex);
-    stopWithLock();
-  }
-
- private:
-  bool isRunning() { return !stopped; }
-
-  void stopWithLock() {
-    if (!stopped.exchange(true)) {
-      socket->close();
-      thread.join();
-    }
-  }
-
-  std::mutex mutex;
-  std::thread thread;
-  std::unique_ptr<dap::Socket> socket;
-  std::atomic<bool> stopped;
-  OnError errorHandler;
-};
-
-}  // anonymous namespace
+#include "Impl.h"
 
 namespace dap {
 namespace net {
