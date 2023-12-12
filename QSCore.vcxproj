@@ -132,6 +132,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dap\content_stream.cpp" />
+    <ClCompile Include="dap\Impl.cpp" />
     <ClCompile Include="dap\io.cpp" />
     <ClCompile Include="dap\network.cpp" />
     <ClCompile Include="dap\nlohmann_json_serializer.cpp" />
@@ -159,6 +160,7 @@
     <ClInclude Include="dap\any.h" />
     <ClInclude Include="dap\dap.h" />
     <ClInclude Include="dap\future.h" />
+    <ClInclude Include="dap\Impl.h" />
     <ClInclude Include="dap\io.h" />
     <ClInclude Include="dap\network.h" />
     <ClInclude Include="dap\optional.h" />

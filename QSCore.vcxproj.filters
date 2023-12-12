@@ -105,6 +105,9 @@
     <ClCompile Include="WebFrontend.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dap\Impl.cpp">
+      <Filter>Source Files\dap</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debugger.h">
@@ -184,6 +187,9 @@
     </ClInclude>
     <ClInclude Include="Typedefs.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dap\Impl.h">
+      <Filter>Header Files\dap</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
