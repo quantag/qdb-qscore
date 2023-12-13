@@ -30,7 +30,7 @@ void WSSession::run() {
 }
 
 void WSSession::send(const std::string& data) {
-    LOGI("SEND> '%s'", data.c_str());
+//    LOGI("SEND> '%s'", data.c_str());
 
     ws_.text(true);
     ignoreReadAfterWrite = 1;
@@ -69,8 +69,8 @@ void WSSession::on_read(beast::error_code ec, std::size_t bytes_transferred) {
     }
 
     // Echo the message
- //   ws_.text(ws_.got_text());
- //   ws_.async_write( buffer_.data(), beast::bind_front_handler( &WSSession::on_write, shared_from_this()) );
+    ws_.text(ws_.got_text());
+    ws_.async_write( buffer_.data(), beast::bind_front_handler( &WSSession::on_write, shared_from_this()) );
 }
 
 void WSSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
