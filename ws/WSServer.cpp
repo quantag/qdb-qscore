@@ -25,16 +25,13 @@ namespace net = boost::asio;            // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 
 
-WSServer::WSServer() : list(NULL) 
-{
+WSServer::WSServer() : list(NULL) {
 }
 
-WSServer::~WSServer() 
-{
+WSServer::~WSServer() {
 }
 
-void WSServer::start(const char* host, int _port) 
-{
+void WSServer::start(const char* host, int _port) {
     auto const address = net::ip::make_address( (host!=NULL) ? host : "127.0.0.1");
     auto const port = static_cast<unsigned short>( _port );
     auto const threads = std::max<int>(1,  1);
@@ -60,17 +57,14 @@ void WSServer::start(const char* host, int _port)
     ioc.run();
 }
 
-int WSServer::send(const std::string& data) 
-{
+int WSServer::send(const std::string& data) {
     if (!this->list) return 1;
     if (!this->list->activeSession) return 2;
 
-    try 
-    {
+    try {
         this->list->activeSession->send(data);
     }
-    catch (...) 
-    {
+    catch (...) {
         return 3;
     }
 

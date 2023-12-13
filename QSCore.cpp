@@ -402,16 +402,11 @@ int main(int argc, char *argv[]) {
         terminate.wait();
         };
 
-    // Error handler
-    auto onError = [&](const char* msg) { 
-        LOGE("Server error: %s", msg); 
-    };
-
     // Create the network server
     auto server = dap::net::Server::create();
 
     const char* dapHost = (argc > 1) ? argv[1] : LOCALHOST;
-    server->start( dapHost, DAP_SERVER_PORT, onClientConnected, onError);
+    server->start( dapHost, DAP_SERVER_PORT, onClientConnected);
     LOGI("DAP Server started on [%s:%d]", dapHost, DAP_SERVER_PORT);
 
     const char* wsHost = (argc > 2) ? argv[2] : LOCALHOST;

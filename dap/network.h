@@ -26,9 +26,11 @@ namespace net {
 // connect() connects to the given TCP address and port.
 // If timeoutMillis is non-zero and no connection was made before timeoutMillis
 // milliseconds, then nullptr is returned.
-std::shared_ptr<ReaderWriter> connect(const char* addr,
+
+/*std::shared_ptr<ReaderWriter> connect(const char* addr,
                                       int port,
                                       uint32_t timeoutMillis = 0);
+                                      */
 
 // Server implements a basic TCP server.
 class Server {
@@ -49,8 +51,7 @@ class Server {
   // onError will be called for any connection errors.
   virtual bool start(const char* host,
                      int port,
-                     const OnConnect& callback,
-                     const OnError& onError = ignoreErrors) = 0;
+                     const OnConnect& callback) = 0;
 
   // stop() stops listening for connections.
   // stop() is implicitly called on destruction.

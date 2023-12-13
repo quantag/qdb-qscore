@@ -4,8 +4,7 @@
 
 class WSListener;
 
-class WSServer 
-{
+class WSServer {
 public:
 	WSServer();
 	~WSServer();
