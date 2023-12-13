@@ -14,8 +14,7 @@ namespace websocket = beast::websocket; // from <boost/beast/websocket.hpp>
 
 
 // Echoes back all received WebSocket messages
-class WSSession : public std::enable_shared_from_this<WSSession>
-{
+class WSSession : public std::enable_shared_from_this<WSSession> {
     websocket::stream<beast::tcp_stream> ws_;
     beast::flat_buffer buffer_;
 

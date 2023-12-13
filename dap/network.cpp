@@ -23,18 +23,22 @@
 
 #include "Impl.h"
 
+#include "../Log.h"
+
 namespace dap {
 namespace net {
 
 std::unique_ptr<Server> Server::create() {
-  return std::unique_ptr<Server>(new Impl());
+    LOGI("");
+    return std::unique_ptr<Server>(new Impl());
 }
 
-std::shared_ptr<ReaderWriter> connect(const char* addr,
+/*std::shared_ptr<ReaderWriter> connect(const char* addr,
                                       int port,
                                       uint32_t timeoutMillis) {
-  return Socket::connect(addr, std::to_string(port).c_str(), timeoutMillis);
-}
+    LOGI("DAP connect from %s:%d", addr, port);
+    return Socket::connect(addr, std::to_string(port).c_str(), timeoutMillis);
+}*/
 
 }  // namespace net
 }  // namespace dap

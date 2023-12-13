@@ -15,8 +15,7 @@ namespace beast = boost::beast;         // from <boost/beast.hpp>
 
 
 // Accepts incoming connections and launches the sessions
-class WSListener : public std::enable_shared_from_this<WSListener>
-{
+class WSListener : public std::enable_shared_from_this<WSListener> {
     net::io_context& ioc_;
     tcp::acceptor acceptor_;
 

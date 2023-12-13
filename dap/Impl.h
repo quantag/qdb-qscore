@@ -14,8 +14,7 @@ class Impl : public dap::net::Server {
         ~Impl();
 
         bool start(const char* host, int port,
-            const OnConnect& onConnect,
-            const OnError& onError) override;
+            const OnConnect& onConnect) override;
 
         void stop() override;
 
