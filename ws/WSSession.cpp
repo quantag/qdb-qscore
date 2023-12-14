@@ -4,6 +4,8 @@
 #include "../Log.h"
 #include <boost/beast/http.hpp>
 
+#include <streambuf>
+
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 
 
@@ -70,6 +72,10 @@ void WSSession::on_read(beast::error_code ec, std::size_t bytes_transferred) {
 
     // Echo the message
     ws_.text(ws_.got_text());
+   
+    std::string s(boost::asio::buffer_cast<const char*>(buffer_.data()), buffer_.size());
+    LOGI("FRONT<< '%s'", s.c_str());
+
     ws_.async_write( buffer_.data(), beast::bind_front_handler( &WSSession::on_write, shared_from_this()) );
 }
 

@@ -26,8 +26,7 @@ bool ServerImpl::start(const char* host, int port, const OnConnect& onConnect) {
     stopped = false;
     thread = std::thread([=] {
         while (true) {
-            if (auto rw = socket->accept()) {
-                
+            if (auto rw = socket->accept()) {                
                 std::thread sessionThread( onConnect, rw );
                 sessionThread.detach();
                 LOGI("after onConnect");
