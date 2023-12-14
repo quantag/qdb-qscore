@@ -30,6 +30,8 @@
 
 #define LOCALHOST   "127.0.0.1"
 
+
+
 // sourceContent holds the synthetic file source.
 constexpr char sourceContent[] = R"(// !
 This is a synthetic source file provided by the DAP debugger.
@@ -415,6 +417,5 @@ int main(int argc, char *argv[]) {
     LOGI("Starting WS Server on [%s:%d]", wsHost, WS_SERVER_PORT);
    
     wsock.start(wsHost, WS_SERVER_PORT);
-
     return 0;
 }

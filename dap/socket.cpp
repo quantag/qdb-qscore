@@ -17,16 +17,18 @@
 #include "rwmutex.h"
 
 #if defined(_WIN32)
-#include <winsock2.h>
-#include <ws2tcpip.h>
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
 #else
-#include <netdb.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <unistd.h>
+    #include <netdb.h>
+    #include <netinet/in.h>
+    #include <netinet/tcp.h>
+    #include <sys/select.h>
+    #include <sys/socket.h>
+    #include <unistd.h>
 #endif
+
+#include "../Log.h"
 
 #if defined(_WIN32)
 #include <atomic>
@@ -43,45 +45,46 @@ using SOCKET = int;
 
 namespace {
 constexpr SOCKET InvalidSocket = static_cast<SOCKET>(-1);
+
 void init() {
-#if defined(_WIN32)
-  if (wsaInitCount++ == 0) {
-    WSADATA winsockData;
-    (void)WSAStartup(MAKEWORD(2, 2), &winsockData);
-  }
-#endif
+    #if defined(_WIN32)
+      if (wsaInitCount++ == 0) {
+        WSADATA winsockData;
+        (void)WSAStartup(MAKEWORD(2, 2), &winsockData);
+      }
+    #endif
 }
 
 void term() {
-#if defined(_WIN32)
-  if (--wsaInitCount == 0) {
-    WSACleanup();
-  }
+    #if defined(_WIN32)
+      if (--wsaInitCount == 0) {
+        WSACleanup();
+      }
 #endif
 }
 
 bool setBlocking(SOCKET s, bool blocking) {
 #if defined(_WIN32)
-  u_long mode = blocking ? 0 : 1;
-  return ioctlsocket(s, FIONBIO, &mode) == NO_ERROR;
+      u_long mode = blocking ? 0 : 1;
+      return ioctlsocket(s, FIONBIO, &mode) == NO_ERROR;
 #else
-  auto arg = fcntl(s, F_GETFL, nullptr);
-  if (arg < 0) {
-    return false;
-  }
-  arg = blocking ? (arg & ~O_NONBLOCK) : (arg | O_NONBLOCK);
-  return fcntl(s, F_SETFL, arg) >= 0;
+      auto arg = fcntl(s, F_GETFL, nullptr);
+      if (arg < 0) {
+        return false;
+      }
+      arg = blocking ? (arg & ~O_NONBLOCK) : (arg | O_NONBLOCK);
+      return fcntl(s, F_SETFL, arg) >= 0;
 #endif
 }
 
 bool errored(SOCKET s) {
-  if (s == InvalidSocket) {
-    return true;
-  }
-  char error = 0;
-  socklen_t len = sizeof(error);
-  getsockopt(s, SOL_SOCKET, SO_ERROR, &error, &len);
-  return error != 0;
+      if (s == InvalidSocket) {
+        return true;
+      }
+      char error = 0;
+      socklen_t len = sizeof(error);
+      getsockopt(s, SOL_SOCKET, SO_ERROR, &error, &len);
+      return error != 0;
 }
 
 }  // anonymous namespace
@@ -230,8 +233,7 @@ class dap::Socket::Shared : public dap::ReaderWriter {
 
 namespace dap {
 
-Socket::Socket(const char* address, const char* port)
-    : shared(Shared::create(address, port)) {
+Socket::Socket(const char* address, const char* port) : shared(Shared::create(address, port)) {
   if (shared) {
     shared->lock([&](SOCKET socket, const addrinfo* info) {
       if (bind(socket, info->ai_addr, (int)info->ai_addrlen) != 0) {
@@ -248,19 +250,20 @@ Socket::Socket(const char* address, const char* port)
 }
 
 std::shared_ptr<ReaderWriter> Socket::accept() const {
-  std::shared_ptr<Shared> out;
-  if (shared) {
-    shared->lock([&](SOCKET socket, const addrinfo*) {
-      if (socket != InvalidSocket && !errored(socket)) {
-        init();
-        auto accepted = ::accept(socket, 0, 0);
-        if (accepted != InvalidSocket) {
-          out = std::make_shared<Shared>(accepted);
-          out->setOptions();
-        }
+    LOGI("");
+      std::shared_ptr<Shared> out;
+      if (shared) {
+            shared->lock([&](SOCKET socket, const addrinfo*) {
+              if (socket != InvalidSocket && !errored(socket)) {
+                init();
+                auto accepted = ::accept(socket, 0, 0);
+                if (accepted != InvalidSocket) {
+                  out = std::make_shared<Shared>(accepted);
+                  out->setOptions();
+                }
+              }
+            });
       }
-    });
-  }
   return out;
 }
 

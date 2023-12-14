@@ -31,6 +31,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../Log.h"
+
 namespace {
 
 class SessionImpl : public dap::Session {
@@ -137,14 +139,15 @@ class SessionImpl : public dap::Session {
   }
 
   ~SessionImpl() {
+        LOGI("Session closed");
         inbox.close();
         reader.close();
         writer.close();
         if (recvThread.joinable()) {
-          recvThread.join();
+            recvThread.join();
         }
         if (dispatchThread.joinable()) {
-          dispatchThread.join();
+            dispatchThread.join();
         }
   }
 
@@ -509,6 +512,7 @@ Error::Error(const char* msg, ...) {
 Session::~Session() = default;
 
 std::unique_ptr<Session> Session::create() {
+    LOGI("");
     return std::unique_ptr<Session>(new SessionImpl());
 }
 
