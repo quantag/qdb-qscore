@@ -8,10 +8,10 @@
 #include <thread>
 
 
-class Impl : public dap::net::Server {
+class ServerImpl : public dap::net::Server {
     public:
-        Impl();
-        ~Impl();
+        ServerImpl();
+        ~ServerImpl();
 
         bool start(const char* host, int port,
             const OnConnect& onConnect) override;

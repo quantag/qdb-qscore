@@ -8,7 +8,7 @@ namespace http = beast::http;           // from <boost/beast/http.hpp>
 
 
 WSSession::WSSession(tcp::socket&& socket) : ws_(std::move(socket)), ignoreReadAfterWrite(0) {
-//    LOGI("= New WS Connection from [%s] =", socket.remote_endpoint().address().to_v4().to_string().c_str());
+//    LOGI("= New WS Connection from [%s] =", socket.remote_endpoint().address().to_v4().to_string().c_str());  crash in this line
 }
 
 // Start the asynchronous operation
