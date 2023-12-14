@@ -6,11 +6,15 @@
 
 #include <streambuf>
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 
 
-WSSession::WSSession(tcp::socket&& socket) : ws_(std::move(socket)), ignoreReadAfterWrite(0) {
+WSSession::WSSession(tcp::socket&& socket) : ws_(std::move(socket)) {
 //    LOGI("= New WS Connection from [%s] =", socket.remote_endpoint().address().to_v4().to_string().c_str());  crash in this line
+    this->sessionId = "";
 }
 
 // Start the asynchronous operation
@@ -35,7 +39,7 @@ void WSSession::send(const std::string& data) {
 //    LOGI("SEND> '%s'", data.c_str());
 
     ws_.text(true);
-    ignoreReadAfterWrite = 1;
+ //   ignoreReadAfterWrite = 1;
     ws_.async_write(
         boost::asio::buffer(data.c_str(), data.size()),
         beast::bind_front_handler(&WSSession::on_write, shared_from_this()));
@@ -76,7 +80,23 @@ void WSSession::on_read(beast::error_code ec, std::size_t bytes_transferred) {
     std::string s(boost::asio::buffer_cast<const char*>(buffer_.data()), buffer_.size());
     LOGI("FRONT<< '%s'", s.c_str());
 
-    ws_.async_write( buffer_.data(), beast::bind_front_handler( &WSSession::on_write, shared_from_this()) );
+    if (!s.empty()) {
+        try {
+            json data = json::parse(s);
+            setSessionId(data["id"]);
+        }
+        catch (...) {
+            LOGE("Can not parse JSON form frontend: '%s'", s.c_str());
+        }
+    }
+    
+    do_read();
+  //  ws_.async_write( buffer_.data(), beast::bind_front_handler( &WSSession::on_write, shared_from_this()) );
+}
+
+void WSSession::setSessionId(const std::string& id) {
+    LOGI("%s", id.c_str());
+    this->sessionId = id;
 }
 
 void WSSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
@@ -89,11 +109,11 @@ void WSSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
     // Clear the buffer
     buffer_.consume(buffer_.size());
 
-    if (ignoreReadAfterWrite) {
+/*    if (ignoreReadAfterWrite) {
         ignoreReadAfterWrite = 0;
     }
     else {
         // Do another read
         do_read();
-    }
+    }*/
 }

@@ -22,6 +22,11 @@ public:
     // Take ownership of the socket
     explicit WSSession(tcp::socket&& socket);
 
+    void setSessionId(const std::string& id);
+    const std::string& getSessionId() const {
+        return this->sessionId;
+    }
+
     // Start the asynchronous operation
     void run();
     void send(const std::string& data);
@@ -30,5 +35,7 @@ public:
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
 
     void on_write(beast::error_code ec, std::size_t bytes_transferred);
-    int ignoreReadAfterWrite;
+//    int ignoreReadAfterWrite;
+
+    std::string sessionId;
 };
