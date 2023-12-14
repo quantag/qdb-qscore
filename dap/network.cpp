@@ -30,7 +30,8 @@ namespace net {
 
 std::unique_ptr<Server> Server::create() {
     LOGI("");
-    return std::unique_ptr<Server>(new Impl());
+
+    return std::unique_ptr<Server>(new ServerImpl());
 }
 
 /*std::shared_ptr<ReaderWriter> connect(const char* addr,

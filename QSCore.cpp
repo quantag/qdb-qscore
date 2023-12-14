@@ -60,6 +60,8 @@ int main(int argc, char *argv[]) {
     // Callback handler for a socket connection to the server
     auto onClientConnected =
         [&](const std::shared_ptr<dap::ReaderWriter>& socket) {
+        LOGI("== DAP client CONNECTED ==");
+
         auto session = dap::Session::create();
 
         // Event handlers from the Debugger.

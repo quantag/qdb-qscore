@@ -3,15 +3,14 @@
 
 #include "../Log.h"
 
-Impl::Impl() : stopped{ true } {
+ServerImpl::ServerImpl() : stopped{ true } {
 }
 
-Impl::~Impl() { 
+ServerImpl::~ServerImpl() {
 	stop(); 
 }
 
-bool Impl::start(const char* host, int port, const OnConnect& onConnect) {
-
+bool ServerImpl::start(const char* host, int port, const OnConnect& onConnect) {
     LOGI("");
 
     std::unique_lock<std::mutex> lock(mutex);
@@ -43,13 +42,13 @@ bool Impl::start(const char* host, int port, const OnConnect& onConnect) {
 }
 
 
-void Impl::stop() {
+void ServerImpl::stop() {
     LOGI("");
     std::unique_lock<std::mutex> lock(mutex);
     stopWithLock();
 }
 
-void Impl::stopWithLock() {
+void ServerImpl::stopWithLock() {
     LOGI("");
     if (!stopped.exchange(true)) {
         socket->close();

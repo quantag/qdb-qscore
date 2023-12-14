@@ -33,72 +33,71 @@
 
 namespace {
 
-class Impl : public dap::Session {
+class SessionImpl : public dap::Session {
  public:
   void setOnInvalidData(dap::OnInvalidData onInvalidData_) override {
-    this->onInvalidData = onInvalidData_;
+        this->onInvalidData = onInvalidData_;
   }
 
   void onError(const ErrorHandler& handler) override { handlers.put(handler); }
 
   void registerHandler(const dap::TypeInfo* typeinfo,
                        const GenericRequestHandler& handler) override {
-    handlers.put(typeinfo, handler);
+        handlers.put(typeinfo, handler);
   }
 
   void registerHandler(const dap::TypeInfo* typeinfo,
                        const GenericEventHandler& handler) override {
-    handlers.put(typeinfo, handler);
+        handlers.put(typeinfo, handler);
   }
 
   void registerHandler(const dap::TypeInfo* typeinfo,
                        const GenericResponseSentHandler& handler) override {
-    handlers.put(typeinfo, handler);
+        handlers.put(typeinfo, handler);
   }
 
   std::function<void()> getPayload() override {
-    auto request = reader.read();
-    if (request.size() > 0) {
-      if (auto payload = processMessage(request)) {
-        return payload;
-      }
-    }
-    return {};
+        auto request = reader.read();
+        if (request.size() > 0) {
+          if (auto payload = processMessage(request)) {
+            return payload;
+          }
+        }
+        return {};
   }
 
   void connect(const std::shared_ptr<dap::Reader>& r,
                const std::shared_ptr<dap::Writer>& w) override {
-    if (isBound.exchange(true)) {
-      handlers.error("Session::connect called twice");
-      return;
-    }
+        if (isBound.exchange(true)) {
+          handlers.error("Session::connect called twice");
+          return;
+        }
 
-    reader = dap::ContentReader(r, this->onInvalidData);
-    writer = dap::ContentWriter(w);
+        reader = dap::ContentReader(r, this->onInvalidData);
+        writer = dap::ContentWriter(w);
   }
 
-  void startProcessingMessages(
-      const ClosedHandler& onClose /* = {} */) override {
-    if (isProcessingMessages.exchange(true)) {
-      handlers.error("Session::startProcessingMessages() called twice");
-      return;
-    }
-    recvThread = std::thread([this, onClose] {
-      while (reader.isOpen()) {
-        if (auto payload = getPayload()) {
-          inbox.put(std::move(payload));
+  void startProcessingMessages( const ClosedHandler& onClose /* = {} */) override {
+        if (isProcessingMessages.exchange(true)) {
+          handlers.error("Session::startProcessingMessages() called twice");
+          return;
         }
-      }
-      if (onClose) {
-        onClose();
-      }
-    });
+        recvThread = std::thread([this, onClose] {
+          while (reader.isOpen()) {
+            if (auto payload = getPayload()) {
+              inbox.put(std::move(payload));
+            }
+          }
+          if (onClose) {
+            onClose();
+          }
+        });
 
     dispatchThread = std::thread([this] {
-      while (auto payload = inbox.take()) {
-        payload.value()();
-      }
-    });
+          while (auto payload = inbox.take()) {
+            payload.value()();
+          }
+        });
   }
 
   bool send(const dap::TypeInfo* requestTypeInfo,
@@ -106,7 +105,6 @@ class Impl : public dap::Session {
             const void* request,
             const GenericResponseHandler& responseHandler) override {
     int seq = nextSeq++;
-
     handlers.put(seq, responseTypeInfo, responseHandler);
 
     dap::json::Serializer s;
@@ -124,30 +122,30 @@ class Impl : public dap::Session {
   }
 
   bool send(const dap::TypeInfo* typeinfo, const void* event) override {
-    dap::json::Serializer s;
-    if (!s.object([&](dap::FieldSerializer* fs) {
-          return fs->field("seq", dap::integer(nextSeq++)) &&
-                 fs->field("type", "event") &&
-                 fs->field("event", typeinfo->name()) &&
-                 fs->field("body", [&](dap::Serializer* s) {
-                   return typeinfo->serialize(s, event);
-                 });
-        })) {
-      return false;
-    }
-    return send(s.dump());
+        dap::json::Serializer s;
+        if (!s.object([&](dap::FieldSerializer* fs) {
+              return fs->field("seq", dap::integer(nextSeq++)) &&
+                     fs->field("type", "event") &&
+                     fs->field("event", typeinfo->name()) &&
+                     fs->field("body", [&](dap::Serializer* s) {
+                       return typeinfo->serialize(s, event);
+                     });
+            })) {
+          return false;
+        }
+        return send(s.dump());
   }
 
-  ~Impl() {
-    inbox.close();
-    reader.close();
-    writer.close();
-    if (recvThread.joinable()) {
-      recvThread.join();
-    }
-    if (dispatchThread.joinable()) {
-      dispatchThread.join();
-    }
+  ~SessionImpl() {
+        inbox.close();
+        reader.close();
+        writer.close();
+        if (recvThread.joinable()) {
+          recvThread.join();
+        }
+        if (dispatchThread.joinable()) {
+          dispatchThread.join();
+        }
   }
 
  private:
@@ -213,56 +211,52 @@ class Impl : public dap::Session {
       }
     }
 
-    std::pair<const dap::TypeInfo*, GenericEventHandler> event(
-        const std::string& name) {
-      std::unique_lock<std::mutex> lock(eventMutex);
-      auto it = eventMap.find(name);
-      return (it != eventMap.end()) ? it->second : decltype(it->second){};
+    std::pair<const dap::TypeInfo*, GenericEventHandler> event( const std::string& name ) {
+          std::unique_lock<std::mutex> lock(eventMutex);
+          auto it = eventMap.find(name);
+          return (it != eventMap.end()) ? it->second : decltype(it->second){};
     }
 
-    void put(const dap::TypeInfo* typeinfo,
-             const GenericEventHandler& handler) {
-      std::unique_lock<std::mutex> lock(eventMutex);
-      auto added =
-          eventMap.emplace(typeinfo->name(), std::make_pair(typeinfo, handler))
-              .second;
-      if (!added) {
-        errorfLocked("Event handler for '%s' already registered",
-                     typeinfo->name().c_str());
-      }
+    void put(const dap::TypeInfo* typeinfo, const GenericEventHandler& handler) {
+          std::unique_lock<std::mutex> lock(eventMutex);
+          auto added =
+              eventMap.emplace(typeinfo->name(), std::make_pair(typeinfo, handler))
+                  .second;
+          if (!added) {
+            errorfLocked("Event handler for '%s' already registered",
+                         typeinfo->name().c_str());
+          }
     }
 
     GenericResponseSentHandler responseSent(const dap::TypeInfo* typeinfo) {
-      std::unique_lock<std::mutex> lock(responseSentMutex);
-      auto it = responseSentMap.find(typeinfo);
-      return (it != responseSentMap.end()) ? it->second
-                                           : decltype(it->second){};
+          std::unique_lock<std::mutex> lock(responseSentMutex);
+          auto it = responseSentMap.find(typeinfo);
+          return (it != responseSentMap.end()) ? it->second : decltype(it->second){};
     }
 
-    void put(const dap::TypeInfo* typeinfo,
-             const GenericResponseSentHandler& handler) {
-      std::unique_lock<std::mutex> lock(responseSentMutex);
-      auto added = responseSentMap.emplace(typeinfo, handler).second;
-      if (!added) {
-        errorfLocked("Response sent handler for '%s' already registered",
-                     typeinfo->name().c_str());
-      }
+    void put(const dap::TypeInfo* typeinfo, const GenericResponseSentHandler& handler) {
+          std::unique_lock<std::mutex> lock(responseSentMutex);
+          auto added = responseSentMap.emplace(typeinfo, handler).second;
+          if (!added) {
+            errorfLocked("Response sent handler for '%s' already registered",
+                         typeinfo->name().c_str());
+          }
     }
 
    private:
     void errorfLocked(const char* format, ...) {
-      va_list vararg;
-      va_start(vararg, format);
-      errorLocked(format, vararg);
-      va_end(vararg);
+          va_list vararg;
+          va_start(vararg, format);
+          errorLocked(format, vararg);
+          va_end(vararg);
     }
 
     void errorLocked(const char* format, va_list args) {
-      char buf[2048];
-      vsnprintf(buf, sizeof(buf), format, args);
-      if (errorHandler) {
-        errorHandler(buf);
-      }
+          char buf[2048];
+          vsnprintf(buf, sizeof(buf), format, args);
+          if (errorHandler) {
+            errorHandler(buf);
+          }
     }
 
     std::mutex errorMutex;
@@ -289,212 +283,212 @@ class Impl : public dap::Session {
   };  // EventHandlers
 
   Payload processMessage(const std::string& str) {
-    auto d = dap::json::Deserializer(str);
-    dap::string type;
-    if (!d.field("type", &type)) {
-      handlers.error("Message missing string 'type' field");
-      return {};
-    }
+        auto d = dap::json::Deserializer(str);
+        dap::string type;
+        if (!d.field("type", &type)) {
+          handlers.error("Message missing string 'type' field");
+          return {};
+        }
 
-    dap::integer sequence = 0;
-    if (!d.field("seq", &sequence)) {
-      handlers.error("Message missing number 'seq' field");
-      return {};
-    }
+        dap::integer sequence = 0;
+        if (!d.field("seq", &sequence)) {
+          handlers.error("Message missing number 'seq' field");
+          return {};
+        }
 
-    if (type == "request") {
-      return processRequest(&d, sequence);
-    } else if (type == "event") {
-      return processEvent(&d);
-    } else if (type == "response") {
-      processResponse(&d);
-      return {};
-    } else {
-      handlers.error("Unknown message type '%s'", type.c_str());
-    }
+        if (type == "request") {
+          return processRequest(&d, sequence);
+        } else if (type == "event") {
+          return processEvent(&d);
+        } else if (type == "response") {
+          processResponse(&d);
+          return {};
+        } else {
+          handlers.error("Unknown message type '%s'", type.c_str());
+        }
 
-    return {};
+        return {};
   }
 
   Payload processRequest(dap::json::Deserializer* d, dap::integer sequence) {
-    dap::string command;
-    if (!d->field("command", &command)) {
-      handlers.error("Request missing string 'command' field");
-      return {};
-    }
+        dap::string command;
+        if (!d->field("command", &command)) {
+          handlers.error("Request missing string 'command' field");
+          return {};
+        }
 
-    const dap::TypeInfo* typeinfo;
-    GenericRequestHandler handler;
-    std::tie(typeinfo, handler) = handlers.request(command);
-    if (!typeinfo) {
-      handlers.error("No request handler registered for command '%s'",
-                     command.c_str());
-      return {};
-    }
+        const dap::TypeInfo* typeinfo;
+        GenericRequestHandler handler;
+        std::tie(typeinfo, handler) = handlers.request(command);
+        if (!typeinfo) {
+          handlers.error("No request handler registered for command '%s'",
+                         command.c_str());
+          return {};
+        }
 
-    auto data = new uint8_t[typeinfo->size()];
-    typeinfo->construct(data);
+        auto data = new uint8_t[typeinfo->size()];
+        typeinfo->construct(data);
 
-    if (!d->field("arguments", [&](dap::Deserializer* d) {
-          return typeinfo->deserialize(d, data);
-        })) {
-      handlers.error("Failed to deserialize request");
-      typeinfo->destruct(data);
-      delete[] data;
-      return {};
-    }
+        if (!d->field("arguments", [&](dap::Deserializer* d) {
+              return typeinfo->deserialize(d, data);
+            })) {
+          handlers.error("Failed to deserialize request");
+          typeinfo->destruct(data);
+          delete[] data;
+          return {};
+        }
 
-    return [=] {
-      handler(
-          data,
-          [=](const dap::TypeInfo* typeinfo, const void* data) {
-            // onSuccess
-            dap::json::Serializer s;
-            s.object([&](dap::FieldSerializer* fs) {
-              return fs->field("seq", dap::integer(nextSeq++)) &&
-                     fs->field("type", "response") &&
-                     fs->field("request_seq", sequence) &&
-                     fs->field("success", dap::boolean(true)) &&
-                     fs->field("command", command) &&
-                     fs->field("body", [&](dap::Serializer* s) {
-                       return typeinfo->serialize(s, data);
-                     });
-            });
-            send(s.dump());
+     return [=] {
+          handler(
+              data,
+              [=](const dap::TypeInfo* typeinfo, const void* data) {
+                // onSuccess
+                dap::json::Serializer s;
+                s.object([&](dap::FieldSerializer* fs) {
+                  return fs->field("seq", dap::integer(nextSeq++)) &&
+                         fs->field("type", "response") &&
+                         fs->field("request_seq", sequence) &&
+                         fs->field("success", dap::boolean(true)) &&
+                         fs->field("command", command) &&
+                         fs->field("body", [&](dap::Serializer* s) {
+                           return typeinfo->serialize(s, data);
+                         });
+                });
+                send(s.dump());
 
-            if (auto handler = handlers.responseSent(typeinfo)) {
-              handler(data, nullptr);
-            }
-          },
-          [=](const dap::TypeInfo* typeinfo, const dap::Error& error) {
-            // onError
-            dap::json::Serializer s;
-            s.object([&](dap::FieldSerializer* fs) {
-              return fs->field("seq", dap::integer(nextSeq++)) &&
-                     fs->field("type", "response") &&
-                     fs->field("request_seq", sequence) &&
-                     fs->field("success", dap::boolean(false)) &&
-                     fs->field("command", command) &&
-                     fs->field("message", error.message);
-            });
-            send(s.dump());
+                if (auto handler = handlers.responseSent(typeinfo)) {
+                  handler(data, nullptr);
+                }
+              },
+              [=](const dap::TypeInfo* typeinfo, const dap::Error& error) {
+                // onError
+                dap::json::Serializer s;
+                s.object([&](dap::FieldSerializer* fs) {
+                  return fs->field("seq", dap::integer(nextSeq++)) &&
+                         fs->field("type", "response") &&
+                         fs->field("request_seq", sequence) &&
+                         fs->field("success", dap::boolean(false)) &&
+                         fs->field("command", command) &&
+                         fs->field("message", error.message);
+                });
+                send(s.dump());
 
-            if (auto handler = handlers.responseSent(typeinfo)) {
-              handler(nullptr, &error);
-            }
-          });
-      typeinfo->destruct(data);
-      delete[] data;
-    };
+                if (auto handler = handlers.responseSent(typeinfo)) {
+                  handler(nullptr, &error);
+                }
+              });
+          typeinfo->destruct(data);
+          delete[] data;
+        };
   }
 
   Payload processEvent(dap::json::Deserializer* d) {
-    dap::string event;
-    if (!d->field("event", &event)) {
-      handlers.error("Event missing string 'event' field");
-      return {};
-    }
+        dap::string event;
+        if (!d->field("event", &event)) {
+          handlers.error("Event missing string 'event' field");
+          return {};
+        }
 
-    const dap::TypeInfo* typeinfo;
-    GenericEventHandler handler;
-    std::tie(typeinfo, handler) = handlers.event(event);
-    if (!typeinfo) {
-      handlers.error("No event handler registered for event '%s'",
-                     event.c_str());
-      return {};
-    }
+        const dap::TypeInfo* typeinfo;
+        GenericEventHandler handler;
+        std::tie(typeinfo, handler) = handlers.event(event);
+        if (!typeinfo) {
+          handlers.error("No event handler registered for event '%s'",
+                         event.c_str());
+          return {};
+        }
 
-    auto data = new uint8_t[typeinfo->size()];
-    typeinfo->construct(data);
+        auto data = new uint8_t[typeinfo->size()];
+        typeinfo->construct(data);
 
-    // "body" is an optional field for some events, such as "Terminated Event".
-    bool body_ok = true;
-    d->field("body", [&](dap::Deserializer* d) {
-      if (!typeinfo->deserialize(d, data)) {
-        body_ok = false;
-      }
-      return true;
-    });
+        // "body" is an optional field for some events, such as "Terminated Event".
+        bool body_ok = true;
+        d->field("body", [&](dap::Deserializer* d) {
+              if (!typeinfo->deserialize(d, data)) {
+                body_ok = false;
+              }
+              return true;
+        });
 
-    if (!body_ok) {
-      handlers.error("Failed to deserialize event '%s' body", event.c_str());
-      typeinfo->destruct(data);
-      delete[] data;
-      return {};
-    }
+        if (!body_ok) {
+              handlers.error("Failed to deserialize event '%s' body", event.c_str());
+              typeinfo->destruct(data);
+              delete[] data;
+              return {};
+        }
 
-    return [=] {
-      handler(data);
-      typeinfo->destruct(data);
-      delete[] data;
-    };
+        return [=] {
+              handler(data);
+              typeinfo->destruct(data);
+              delete[] data;
+        };
   }
 
   void processResponse(const dap::Deserializer* d) {
-    dap::integer requestSeq = 0;
-    if (!d->field("request_seq", &requestSeq)) {
-      handlers.error("Response missing int 'request_seq' field");
-      return;
+        dap::integer requestSeq = 0;
+        if (!d->field("request_seq", &requestSeq)) {
+              handlers.error("Response missing int 'request_seq' field");
+              return;
     }
 
     const dap::TypeInfo* typeinfo;
     GenericResponseHandler handler;
     std::tie(typeinfo, handler) = handlers.response(requestSeq);
     if (!typeinfo) {
-      handlers.error("Unknown response with sequence %d", requestSeq);
-      return;
+          handlers.error("Unknown response with sequence %d", requestSeq);
+          return;
     }
 
     dap::boolean success = false;
     if (!d->field("success", &success)) {
-      handlers.error("Response missing int 'success' field");
-      return;
+          handlers.error("Response missing int 'success' field");
+          return;
     }
 
     if (success) {
-      auto data = std::unique_ptr<uint8_t[]>(new uint8_t[typeinfo->size()]);
-      typeinfo->construct(data.get());
+          auto data = std::unique_ptr<uint8_t[]>(new uint8_t[typeinfo->size()]);
+          typeinfo->construct(data.get());
 
-      // "body" field in Response is an optional field.
-      d->field("body", [&](const dap::Deserializer* d) {
-        return typeinfo->deserialize(d, data.get());
-      });
+          // "body" field in Response is an optional field.
+          d->field("body", [&](const dap::Deserializer* d) {
+            return typeinfo->deserialize(d, data.get());
+          });
 
-      handler(data.get(), nullptr);
-      typeinfo->destruct(data.get());
+          handler(data.get(), nullptr);
+          typeinfo->destruct(data.get());
     } else {
-      std::string message;
-      if (!d->field("message", &message)) {
-        handlers.error("Failed to deserialize message");
-        return;
-      }
-      auto error = dap::Error("%s", message.c_str());
-      handler(nullptr, &error);
+          std::string message;
+          if (!d->field("message", &message)) {
+            handlers.error("Failed to deserialize message");
+            return;
+          }
+          auto error = dap::Error("%s", message.c_str());
+          handler(nullptr, &error);
     }
   }
 
   bool send(const std::string& s) {
-    std::unique_lock<std::mutex> lock(sendMutex);
-    if (!writer.isOpen()) {
-      handlers.error("Send failed as the writer is closed");
-      return false;
-    }
-    return writer.write(s);
+        std::unique_lock<std::mutex> lock(sendMutex);
+        if (!writer.isOpen()) {
+          handlers.error("Send failed as the writer is closed");
+          return false;
+        }
+        return writer.write(s);
   }
 
-  std::atomic<bool> isBound = {false};
-  std::atomic<bool> isProcessingMessages = {false};
-  dap::ContentReader reader;
-  dap::ContentWriter writer;
+      std::atomic<bool> isBound = {false};
+      std::atomic<bool> isProcessingMessages = {false};
+      dap::ContentReader reader;
+      dap::ContentWriter writer;
 
-  std::atomic<bool> shutdown = {false};
-  EventHandlers handlers;
-  std::thread recvThread;
-  std::thread dispatchThread;
-  dap::Chan<Payload> inbox;
-  std::atomic<uint32_t> nextSeq = {1};
-  std::mutex sendMutex;
-  dap::OnInvalidData onInvalidData = dap::kIgnore;
+      std::atomic<bool> shutdown = {false};
+      EventHandlers handlers;
+      std::thread recvThread;
+      std::thread dispatchThread;
+      dap::Chan<Payload> inbox;
+      std::atomic<uint32_t> nextSeq = {1};
+      std::mutex sendMutex;
+      dap::OnInvalidData onInvalidData = dap::kIgnore;
 };
 
 }  // anonymous namespace
@@ -504,18 +498,18 @@ namespace dap {
 Error::Error(const std::string& message) : message(message) {}
 
 Error::Error(const char* msg, ...) {
-  char buf[2048];
-  va_list vararg;
-  va_start(vararg, msg);
-  vsnprintf(buf, sizeof(buf), msg, vararg);
-  va_end(vararg);
-  message = buf;
+      char buf[2048];
+      va_list vararg;
+      va_start(vararg, msg);
+      vsnprintf(buf, sizeof(buf), msg, vararg);
+      va_end(vararg);
+      message = buf;
 }
 
 Session::~Session() = default;
 
 std::unique_ptr<Session> Session::create() {
-  return std::unique_ptr<Session>(new Impl());
+    return std::unique_ptr<Session>(new SessionImpl());
 }
 
 }  // namespace dap
