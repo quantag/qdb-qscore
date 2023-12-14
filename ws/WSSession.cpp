@@ -84,13 +84,13 @@ void WSSession::on_read(beast::error_code ec, std::size_t bytes_transferred) {
         try {
             json data = json::parse(s);
             setSessionId(data["id"]);
+            do_read();
         }
         catch (...) {
             LOGE("Can not parse JSON form frontend: '%s'", s.c_str());
         }
     }
     
-    do_read();
   //  ws_.async_write( buffer_.data(), beast::bind_front_handler( &WSSession::on_write, shared_from_this()) );
 }
 
