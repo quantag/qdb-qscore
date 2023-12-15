@@ -33,9 +33,7 @@ public:
     void on_accept(beast::error_code ec);
     void do_read();
     void on_read(beast::error_code ec, std::size_t bytes_transferred);
-
     void on_write(beast::error_code ec, std::size_t bytes_transferred);
- //   int ignoreReadAfterWrite;
 
     std::string sessionId;
 };
