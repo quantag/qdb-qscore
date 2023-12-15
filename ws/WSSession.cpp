@@ -3,12 +3,11 @@
 
 #include "../Log.h"
 #include <boost/beast/http.hpp>
-
 #include <streambuf>
-
 #include <nlohmann/json.hpp>
-using json = nlohmann::json;
 
+
+using json = nlohmann::json;
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 
 
@@ -61,6 +60,7 @@ void WSSession::on_accept(beast::error_code ec) {
 }
 
 void WSSession::do_read() {
+    LOGI("");
     // Read a message into our buffer
     ws_.async_read( buffer_,
                     beast::bind_front_handler(
@@ -69,6 +69,7 @@ void WSSession::do_read() {
 }
 
 void WSSession::on_read(beast::error_code ec, std::size_t bytes_transferred) {
+    LOGI("");
     boost::ignore_unused(bytes_transferred);
 
     // This indicates that the session was closed
@@ -105,6 +106,7 @@ void WSSession::setSessionId(const std::string& id) {
 }
 
 void WSSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
+    LOGI("");
     boost::ignore_unused(bytes_transferred);
     if (ec) {
         LOGE("Error write %s", ec.message().c_str());
