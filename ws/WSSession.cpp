@@ -12,7 +12,7 @@ namespace http = beast::http;           // from <boost/beast/http.hpp>
 
 
 WSSession::WSSession(tcp::socket&& socket) : ws_(std::move(socket)) {
-//    LOGI("= New WS Connection from [%s] =", socket.remote_endpoint().address().to_v4().to_string().c_str());  crash in this line
+    LOGI("= New WS Connection from WebFront =");
     this->sessionId = "";
 }
 
@@ -43,7 +43,6 @@ void WSSession::send(const std::string& data) {
     }
 
     ws_.text(true);
-//    ignoreReadAfterWrite = 1;
     ws_.async_write(
         boost::asio::buffer(data.c_str(), data.size()),
         beast::bind_front_handler(&WSSession::on_write, shared_from_this()));
@@ -86,27 +85,25 @@ void WSSession::on_read(beast::error_code ec, std::size_t bytes_transferred) {
     std::string s(boost::asio::buffer_cast<const char*>(buffer_.data()), buffer_.size());
     LOGI("FRONT<< '%s'", s.c_str());
 
-/*    if (!s.empty()) {
-        try {
-            json data = json::parse(s);
-            setSessionId(data["id"]);
-            do_read();
-        }
-        catch (...) {
-            LOGE("Can not parse JSON form frontend: '%s'", s.c_str());
-        }
+    try {
+        json parsedJson = json::parse(s);
+        if (parsedJson.contains("id"))
+            this->setSessionId(parsedJson["id"]);
+
+    } catch(...) {
+        LOGE("Can not parse json");
     }
-  */  
- //   ws_.async_write( buffer_.data(), beast::bind_front_handler( &WSSession::on_write, shared_from_this()) );
 }
 
 void WSSession::setSessionId(const std::string& id) {
     LOGI("%s", id.c_str());
+
     this->sessionId = id;
 }
 
 void WSSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
     LOGI("");
+
     boost::ignore_unused(bytes_transferred);
     if (ec) {
         LOGE("Error write %s", ec.message().c_str());
@@ -115,12 +112,4 @@ void WSSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
 
     // Clear the buffer
     buffer_.consume(buffer_.size());
-
-//    if (ignoreReadAfterWrite) {
-//        ignoreReadAfterWrite = 0;
-//    }
- //   else {
- //       // Do another read
- //       do_read();
- //   }
 }
