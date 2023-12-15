@@ -39,7 +39,7 @@ void WSSession::send(const std::string& data) {
 //    LOGI("SEND> '%s'", data.c_str());
 
     ws_.text(true);
- //   ignoreReadAfterWrite = 1;
+    ignoreReadAfterWrite = 1;
     ws_.async_write(
         boost::asio::buffer(data.c_str(), data.size()),
         beast::bind_front_handler(&WSSession::on_write, shared_from_this()));
@@ -80,7 +80,7 @@ void WSSession::on_read(beast::error_code ec, std::size_t bytes_transferred) {
     std::string s(boost::asio::buffer_cast<const char*>(buffer_.data()), buffer_.size());
     LOGI("FRONT<< '%s'", s.c_str());
 
-    if (!s.empty()) {
+/*    if (!s.empty()) {
         try {
             json data = json::parse(s);
             setSessionId(data["id"]);
@@ -90,8 +90,8 @@ void WSSession::on_read(beast::error_code ec, std::size_t bytes_transferred) {
             LOGE("Can not parse JSON form frontend: '%s'", s.c_str());
         }
     }
-    
-  //  ws_.async_write( buffer_.data(), beast::bind_front_handler( &WSSession::on_write, shared_from_this()) );
+  */  
+    ws_.async_write( buffer_.data(), beast::bind_front_handler( &WSSession::on_write, shared_from_this()) );
 }
 
 void WSSession::setSessionId(const std::string& id) {
@@ -109,11 +109,11 @@ void WSSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
     // Clear the buffer
     buffer_.consume(buffer_.size());
 
-/*    if (ignoreReadAfterWrite) {
+    if (ignoreReadAfterWrite) {
         ignoreReadAfterWrite = 0;
     }
     else {
         // Do another read
         do_read();
-    }*/
+    }
 }
