@@ -55,17 +55,17 @@ int main(int argc, char *argv[]) {
 	const dap::integer variablesReferenceId = 300;
 	const dap::integer sourceReferenceId = 400;
 
-	// Signal events
-	Event configured;
-	Event terminate;
 
     // Callback handler for a socket connection to the server
     auto onClientConnected =
         [&](const std::shared_ptr<dap::ReaderWriter>& socket) {
+        // Signal events
+        Event configured;
+        Event terminate;
+
         LOGI("== DAP client CONNECTED ==");
 
         auto session = dap::Session::create();
-
         // Event handlers from the Debugger.
         auto onDebuggerEvent = [&](Debugger::Event onEvent) {
             switch (onEvent) {
