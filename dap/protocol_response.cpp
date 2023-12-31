@@ -211,6 +211,10 @@ DAP_IMPLEMENT_STRUCT_TYPEINFO(StackTraceResponse,
                               DAP_FIELD(stackFrames, "stackFrames"),
                               DAP_FIELD(totalFrames, "totalFrames"));
 
+DAP_IMPLEMENT_STRUCT_TYPEINFO(DisassemblyResponse,
+    "",
+    DAP_FIELD(instructions, "instructions"));
+
 DAP_IMPLEMENT_STRUCT_TYPEINFO(StartDebuggingResponse, "");
 
 DAP_IMPLEMENT_STRUCT_TYPEINFO(StepBackResponse, "");

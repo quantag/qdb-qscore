@@ -2203,6 +2203,17 @@ struct StackTraceResponse : public Response {
 
 DAP_DECLARE_STRUCT_TYPEINFO(StackTraceResponse);
 
+// Response to `disassembly` request.
+struct DisassemblyResponse : public Response {
+    /**
+     * The list of disassembled instructions.
+     */
+    array<DisassembledInstruction> instructions;
+
+};
+
+DAP_DECLARE_STRUCT_TYPEINFO(DisassemblyResponse);
+
 // Provides formatting information for a stack frame.
 struct StackFrameFormat : public ValueFormat {
   // Includes all stack frames, including those the debug adapter might
@@ -2249,6 +2260,42 @@ struct StackTraceRequest : public Request {
   // Retrieve the stacktrace for this thread.
   integer threadId;
 };
+
+struct DisassemblyRequest : public Request {
+    using Response = DisassemblyResponse;
+
+    /**
+     * If true, the adapter should attempt to resolve memory addresses and other
+     * values to symbolic names.
+     */
+    optional<boolean> resolveSymbols;
+
+    /**
+     * Number of instructions to disassemble starting at the specified location
+     * and offset.
+     * An adapter must return exactly this number of instructions - any
+     * unavailable instructions should be replaced with an implementation-defined
+     * 'invalid instruction' value.
+     */
+    integer instructionCount;
+    /**
+     * Offset (in instructions) to be applied after the byte offset (if any)
+     * before disassembling. Can be negative.
+     */
+    optional<integer> instructionOffset;
+
+    /**
+     * Offset (in bytes) to be applied to the reference location before
+     * disassembling. Can be negative.
+     */
+    optional<integer> offset;
+    /**
+     * Memory reference to the base location containing the instructions to
+     * disassemble.
+     */
+    string memoryReference;
+};
+DAP_DECLARE_STRUCT_TYPEINFO(DisassemblyRequest);
 
 DAP_DECLARE_STRUCT_TYPEINFO(StackTraceRequest);
 
