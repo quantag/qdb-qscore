@@ -112,6 +112,7 @@ int main(int argc, char *argv[]) {
 
             dap::InitializeResponse response;
             response.supportsConfigurationDoneRequest = true;
+            response.supportsDisassembleRequest = true;
      
             return response;
         });
@@ -174,10 +175,28 @@ int main(int argc, char *argv[]) {
                 frame.id = frameId;
                 frame.source = source;
 
+                // this line makes 'Open Disassembly View" item active
+                frame.instructionPointerReference = "0"; //TODO: put correct value. 
+
                 dap::StackTraceResponse response;
                 response.stackFrames.push_back(frame);
                 return response;
             });
+
+
+        session->registerHandler(
+            [&](const dap::DisassemblyRequest& request)
+            -> dap::ResponseOrError<dap::DisassemblyResponse> {
+
+                LOGI("[DisassemblyRequest]");
+                dap::DisassembledInstruction code;
+                code.address = "0x100";
+                code.column = 1;
+                dap::DisassemblyResponse response;
+                response.instructions.push_back(code);  
+                return response;
+            });
+
         // The Scopes request reports all the scopes of the given stack frame.
         // This example debugger only exposes a single 'Locals' scope for the
         // single frame.

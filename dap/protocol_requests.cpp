@@ -225,6 +225,16 @@ DAP_IMPLEMENT_STRUCT_TYPEINFO(StackTraceRequest,
                               DAP_FIELD(startFrame, "startFrame"),
                               DAP_FIELD(threadId, "threadId"));
 
+DAP_IMPLEMENT_STRUCT_TYPEINFO(DisassemblyRequest,
+    "disassemble",
+    DAP_FIELD(memoryReference, "memoryReference"),
+    DAP_FIELD(offset, "offset"),
+    DAP_FIELD(instructionOffset, "instructionOffset"),
+    DAP_FIELD(resolveSymbols, "resolveSymbols"),
+    DAP_FIELD(instructionCount, "instructionCount"));
+
+
+
 DAP_IMPLEMENT_STRUCT_TYPEINFO(StartDebuggingRequest,
                               "startDebugging",
                               DAP_FIELD(configuration, "configuration"),
