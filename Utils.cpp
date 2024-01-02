@@ -105,7 +105,7 @@ std::string  Utils::encode64(const std::string& val) {
     using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
     auto tmp = std::string(It(std::begin(val)), It(std::end(val)));
     return tmp.append((3 - val.size() % 3) % 3, '=');
-    return val;
+ //   return val;
 }
 
 int Utils::fileExists(const std::string& filePath) {
@@ -178,3 +178,70 @@ int Utils::fileExists(const std::string& filePath) {
  std::string Utils::intToString(int n) {
      return std::to_string(n);
  }
+
+#define TEMP_FILE "tempPythonScript.py"
+
+std::string Utils::executePythonCode(const std::string& sourceCode) {
+    LOGI("%s", sourceCode.c_str());
+
+    // Create a temporary file to store the Python code
+    std::ofstream tempFile(TEMP_FILE);
+    tempFile << sourceCode;
+    tempFile.close();
+
+    char buffer[128];
+    std::string result = "";
+
+    std::string cmd = "C:\\work\\quantum\\qiskit\\Scripts\\activate && python ";
+    cmd += TEMP_FILE;
+
+    FILE* pipe = _popen(cmd.c_str(), "r");
+    if (!pipe) {
+        LOGE("popen() failed!");
+        std::remove(TEMP_FILE);
+        return "";
+    }
+    try {
+        while (fgets(buffer, sizeof buffer, pipe) != NULL) {
+            result += buffer;
+        }
+    }
+    catch (...) {
+        _pclose(pipe);
+        std::remove(TEMP_FILE);
+
+        return "";
+    }
+    _pclose(pipe);
+    std::remove(TEMP_FILE);
+
+    return result;
+ }
+
+#include <iostream>
+#include <regex>
+
+CodeType Utils::detectCodeType(const std::string& sourceCode) {
+    if (containsPythonKeywords(sourceCode)) {
+        return CodeType::Python;
+    }
+    else if (containsOpenQASMKeywords(sourceCode)) {
+        return CodeType::OpenQASM;
+    }
+    else {
+        return CodeType::Unknown;
+    }
+}
+
+
+bool Utils::containsPythonKeywords(const std::string& sourceCode) {
+    static const std::regex pythonKeywordsRegex("(def|import|print)");
+
+    return std::regex_search(sourceCode, pythonKeywordsRegex);
+}
+
+bool Utils::containsOpenQASMKeywords(const std::string& sourceCode) {
+    static const std::regex openQASMKeywordsRegex("(qreg|creg|H|X|Y|Z|measure)");
+
+    return std::regex_search(sourceCode, openQASMKeywordsRegex);
+}

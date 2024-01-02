@@ -50,6 +50,21 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	sourceCode = Utils::loadFile(file);
 	LOGI("Loaded %u bytes from [%s]", sourceCode.size(), file.c_str());
 
+	CodeType type = Utils::detectCodeType(sourceCode);
+	LOGI("Source code type: %d", type);
+
+	switch (type) {
+	case CodeType::Python:
+		LOGI("Recognized Python source");
+		this->sourceCode = parsePythonToOpenQASM(sourceCode);
+		break;
+	case CodeType::OpenQASM:
+		LOGI("Recognized OpenQASM source");
+		break;
+	default:
+		LOGE("Not recognized source code type");
+	}
+
 	int nLines = Utils::parseSourcePerLines(this->sourceCode, this->sourceCodePerLines);
 	LOGI("Parsed lines: %d", nLines);
 
@@ -64,16 +79,29 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 		this->sourceCodeParsed = 1;
 	}
 	catch (...) {
-		LOGE("Error during creation of Circuit from file %s", file.c_str());
+		LOGE("Error parsing OpenQASM from file %s. May be it is not OpenQASM", file.c_str());
+
 	}
 	return ret;
 }
 
 
+std::string QppQVM::parsePythonToOpenQASM(const std::string& sourceCode) {
+	LOGI("%s", sourceCode.c_str());
+
+	std::string src = "from qiskit import qasm2\n" + sourceCode;
+	src += "\nprint( qasm2.dumps(qc) )";
+
+	std::string out = Utils::executePythonCode(src);
+	LOGI("%s", out.c_str());
+
+	return out;
+}
+
 int QppQVM::run(const std::string& fileName) {
 	LOGI("%s", fileName.c_str());
 
-	ASSERT(loadSourceCode(fileName));
+	ASSERT( loadSourceCode(fileName) );
 	LOGI("Loaded source code from [%s] parsed = %d", fileName.c_str(), this->sourceCodeParsed);
 
 	SAFE_DELETE(engine);
@@ -139,7 +167,6 @@ void QppQVM::stepForward() {
 		catch (...) {
 			LOGE("Error executing next line");
 		}
-
 	}
 	else {
 		LOGI("Reached end of circuit..");

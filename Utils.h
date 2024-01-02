@@ -5,6 +5,12 @@
 
 #include "Typedefs.h"
 
+enum class CodeType {
+	Python,
+	OpenQASM,
+	Unknown
+};
+
 class Utils {
 public:
 
@@ -23,4 +29,11 @@ public:
 	static std::string toBinaryString(unsigned char val, size_t n);
 	static std::string intToString(int n);
 		
+	static std::string executePythonCode(const std::string& sourceCode);
+	static bool isOpenQASMCode(const std::string& code);
+
+	static CodeType detectCodeType(const std::string& sourceCode);
+	static bool containsPythonKeywords(const std::string& sourceCode);
+	static bool containsOpenQASMKeywords(const std::string& sourceCode);
+
 };
