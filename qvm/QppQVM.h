@@ -34,4 +34,6 @@ private:
 	QCircuit::iterator mIt; // current state
 	void setCurrentState(const qpp::ket& psi);
 
+	std::string parsePythonToOpenQASM(const std::string& sourceCode);
+
 };
