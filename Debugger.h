@@ -43,8 +43,11 @@ class Debugger {
   int64_t numSourceLines;
 
   std::vector<complexNumber> getQVMVariables();
-
   virtual size_t getQubitsCount() const;
+
+  IQVM* getQVM() {
+	  return qvm;
+  }
 
  private:
   EventHandler onEvent;

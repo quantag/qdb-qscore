@@ -15,6 +15,8 @@
 #include "Log.h"
 #include "Utils.h"
 #include "Typedefs.h"
+#include "interfaces/iqvm.h"
+
 
 #ifdef _MSC_VER
     #define OS_WINDOWS 1
@@ -188,12 +190,22 @@ int main(int argc, char *argv[]) {
             [&](const dap::DisassemblyRequest& request)
             -> dap::ResponseOrError<dap::DisassemblyResponse> {
 
-                LOGI("[DisassemblyRequest]");
-                dap::DisassembledInstruction code;
-                code.address = "0x100";
-                code.column = 1;
+                LOGI("[DisassemblyRequest] %d", debugger.numSourceLines);
                 dap::DisassemblyResponse response;
-                response.instructions.push_back(code);  
+
+                if (debugger.getQVM()->isSourceCodeParsed()) {
+                    int baseAddress = 100;
+                    for(int i=0; i< debugger.getQVM()->getSourcePerLines().size(); i++) {
+                        dap::DisassembledInstruction code;
+
+                        code.address = Utils::intToString(baseAddress + i);
+                        code.column = 1;
+                        code.instruction = debugger.getQVM()->getSourcePerLines().at(i);
+
+                        response.instructions.push_back(code);
+                    }
+                }
+
                 return response;
             });
 
