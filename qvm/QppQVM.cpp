@@ -13,6 +13,7 @@
 QppQVM::QppQVM(WSServer* ws) : circuit(NULL), engine(NULL) {
 	this->frontend = new WebFrontend();
 	this->frontend->setWSServer(ws);
+	this->sourceCodeParsed = 0;
 }
 
 QppQVM::~QppQVM() {
@@ -23,8 +24,11 @@ QppQVM::~QppQVM() {
 
 int QppQVM::loadSourceCode(const std::string& fileName) {
 	LOGI("[%s]", fileName.c_str());
+
 	int ret = 0;
 	SAFE_DELETE(circuit);
+	this->sourceCodeParsed = 0;
+	this->sourceCodePerLines.clear();
 
 	sourceCode = "";
 	std::string file = fileName;
@@ -46,6 +50,9 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	sourceCode = Utils::loadFile(file);
 	LOGI("Loaded %u bytes from [%s]", sourceCode.size(), file.c_str());
 
+	int nLines = Utils::parseSourcePerLines(this->sourceCode, this->sourceCodePerLines);
+	LOGI("Parsed lines: %d", nLines);
+
 	this->currentState.currentLine = 0;
 	int ret1 = frontend->loadCode(sourceCode);
 	LOGI("frontend.loadCode ret %d", ret1);
@@ -54,6 +61,7 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 		circuit = qasm::readFromFile(file);
 		this->nQubits = circuit->get_nq();
 		LOGI("Created QCircuit from file '%s', nQubits = %u", file.c_str(), this->nQubits);
+		this->sourceCodeParsed = 1;
 	}
 	catch (...) {
 		LOGE("Error during creation of Circuit from file %s", file.c_str());
@@ -66,12 +74,13 @@ int QppQVM::run(const std::string& fileName) {
 	LOGI("%s", fileName.c_str());
 
 	ASSERT(loadSourceCode(fileName));
-	LOGI("Loaded source code from [%s]", fileName.c_str());
+	LOGI("Loaded source code from [%s] parsed = %d", fileName.c_str(), this->sourceCodeParsed);
 
 	SAFE_DELETE(engine);
-	engine = QEngine::instance(*circuit); // create an engine out of a quantum circuit
-
-	engine->execute();
+	if (this->circuit && this->sourceCodeParsed) {
+		engine = QEngine::instance(*circuit); // create an engine out of a quantum circuit
+		engine->execute();
+	}
 	return 0;
 }
 
@@ -83,13 +92,14 @@ int QppQVM::debug(const std::string& fileName) {
 		LOGE("Error loading sources from [%s]", fileName.c_str());
 		return ret;
 	}
-	LOGI("Loaded source code from [%s]", fileName.c_str());
+	LOGI("Loaded source code from [%s] parsed = %d", fileName.c_str(), this->sourceCodeParsed);
 
 	SAFE_DELETE(engine);
-	engine = QEngine::instance(*circuit); // create an engine out of a quantum circuit
-
-	mIt = circuit->begin();
-	LOGI("Iterator initialized");
+	if(this->circuit && this->sourceCodeParsed) {
+		engine = QEngine::instance(*circuit); // create an engine out of a quantum circuit
+		mIt = circuit->begin();
+		LOGI("Iterator initialized");
+	}
 
 	return 0;
 }
@@ -101,6 +111,11 @@ int QppQVM::getSourceLines() {
 // Execute next line
 void QppQVM::stepForward() {
 	LOGI("");
+
+	if (!circuit || !this->sourceCodeParsed) {
+		LOGI("Source code not parsed. Simulate. Line = %d", ++this->currentState.currentLine);
+		return;
+	}
 
 	if (mIt != circuit->end()) {
 		LOGI("Executing next line.. %d", this->currentState.currentLine);

@@ -20,30 +20,26 @@
 using namespace std;
 
 // trim from start (in place)
-static inline void ltrim(std::string& s) 
-{
+static inline void ltrim(std::string& s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
         return !std::isspace(ch);
         }));
 }
 
 // trim from end (in place)
-static inline void rtrim(std::string& s) 
-{
+static inline void rtrim(std::string& s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
         return !std::isspace(ch);
         }).base(), s.end());
 }
 
-void Utils::trim(std::string& s) 
-{
+void Utils::trim(std::string& s) {
 	rtrim(s);
 	ltrim(s);
 }
 
 
-std::vector<std::string> Utils::tokenize(const std::string& str, const std::string& sep) 
-{
+std::vector<std::string> Utils::tokenize(const std::string& str, const std::string& sep) {
     std::vector<std::string> tokens;
     size_t startPos = 0;
     size_t foundPos = str.find_first_of(sep, startPos);
@@ -53,7 +49,6 @@ std::vector<std::string> Utils::tokenize(const std::string& str, const std::stri
         std::string token = str.substr(startPos, foundPos - startPos);
 
         // Add the token to the vector
-
         if(!token.empty())
             tokens.push_back(token);
 
@@ -73,12 +68,10 @@ std::vector<std::string> Utils::tokenize(const std::string& str, const std::stri
     return tokens;
 }
 
-std::string Utils::loadFile(const std::string& fileName) 
-{
+std::string Utils::loadFile(const std::string& fileName) {
     std::ifstream file(fileName);
 
-    if (!file.is_open()) 
-    {
+    if (!file.is_open()) {
        // std::cerr << "Error opening file: " << fileName << std::endl;
         return "";
     }
@@ -90,29 +83,24 @@ std::string Utils::loadFile(const std::string& fileName)
     return buffer.str();
 }
 
-std::vector<std::string> Utils::parseSourcePerLines(const std::string& source) 
-{
-    std::vector<std::string> lines;
+int Utils::parseSourcePerLines(const std::string& source, std::vector<std::string>& lines) {
     std::istringstream sourceStream(source);
     std::string line;
+    lines.clear();
 
     while (std::getline(sourceStream, line)) {
         lines.push_back(line);
     }
-
-    return lines;
+    return (int) lines.size();
 }
 
-void Utils::logSource(const std::vector<std::string>& src) 
-{
-    for (int i = 0; i < src.size(); i++) 
-    {
+void Utils::logSource(const std::vector<std::string>& src) {
+    for (int i = 0; i < src.size(); i++) {
         LOGI("line %d. [%s]", i+1, src.at(i).c_str());
     }
 }
 
-std::string  Utils::encode64(const std::string& val) 
-{
+std::string  Utils::encode64(const std::string& val) {
     using namespace boost::archive::iterators;
     using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
     auto tmp = std::string(It(std::begin(val)), It(std::end(val)));
@@ -120,8 +108,7 @@ std::string  Utils::encode64(const std::string& val)
     return val;
 }
 
-int Utils::fileExists(const std::string& filePath) 
-{
+int Utils::fileExists(const std::string& filePath) {
     std::ifstream file(filePath.c_str());
     return file.good() ? 1 : 0;
 }
@@ -186,4 +173,8 @@ int Utils::fileExists(const std::string& filePath)
      }
 
      return binaryString;
+ }
+
+ std::string Utils::intToString(int n) {
+     return std::to_string(n);
  }

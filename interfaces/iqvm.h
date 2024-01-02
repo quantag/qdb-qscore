@@ -7,7 +7,6 @@
 class IQVM {
 public:
 	virtual int loadSourceCode(const std::string& fileName) = 0;
-
 	virtual int run(const std::string& fileName) = 0;
 	virtual int debug(const std::string& fileName) = 0;
 
@@ -29,9 +28,25 @@ public:
 		return this->nQubits;
 	}
 
+	virtual int isSourceCodeParsed() const {
+		return sourceCodeParsed;
+	}
+
+	const std::string& getSourceCode() const {
+		return sourceCode;
+	}
+
+	const std::vector<std::string>& getSourcePerLines() {
+		return sourceCodePerLines;
+	}
+
 protected:
 	std::string sourceCode;
+	std::vector<std::string> sourceCodePerLines;
+
 	FrontState currentState;
 	size_t nQubits;
+
+	int sourceCodeParsed;
 
 };
