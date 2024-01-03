@@ -10,14 +10,13 @@
 
 #define DEMO_FILE "/home/qbit/qasm/file1.qasm"
 
-QppQVM::QppQVM(WSServer* ws) : circuit(NULL), engine(NULL) {
+QppQVM::QppQVM(WSServer* ws) : engine(NULL) {
 	this->frontend = new WebFrontend();
 	this->frontend->setWSServer(ws);
 	this->sourceCodeParsed = 0;
 }
 
 QppQVM::~QppQVM() {
-	SAFE_DELETE(circuit);
 	SAFE_DELETE(engine);
 	SAFE_DELETE(frontend);
 }
@@ -26,7 +25,7 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	LOGI("[%s]", fileName.c_str());
 
 	int ret = 0;
-	SAFE_DELETE(circuit);
+
 	this->sourceCodeParsed = 0;
 	this->sourceCodePerLines.clear();
 
@@ -69,11 +68,15 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	LOGI("Parsed lines: %d", nLines);
 
 	this->currentState.currentLine = 0;
-	int ret1 = frontend->loadCode(sourceCode);
+	int ret1 = frontend->loadCode(this->sourceCode);
 	LOGI("frontend.loadCode ret %d", ret1);
 
 	try {
-		circuit = qasm::readFromFile(file);
+		//circuit = qasm::readFromFile(file);
+
+		std::istringstream stringStream(this->sourceCode);
+		circuit = std::make_unique<QCircuit>(qasm::read(stringStream));
+
 		this->nQubits = circuit->get_nq();
 		LOGI("Created QCircuit from file '%s', nQubits = %u", file.c_str(), this->nQubits);
 		this->sourceCodeParsed = 1;
@@ -94,6 +97,9 @@ std::string QppQVM::parsePythonToOpenQASM(const std::string& sourceCode) {
 
 	std::string out = Utils::executePythonCode(src);
 	LOGI("%s", out.c_str());
+
+//	if(out.find("OPENQASM")==std::string::npos)
+//		out = "OPENQASM 2.0;\n" + out;
 
 	return out;
 }
