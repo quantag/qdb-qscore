@@ -27,7 +27,10 @@ public:
 //	static std::vector<std::complex<double>> getQubitStateVector(const QEngine& quantumSystem, int qubitIndex);
 
 private:
-	QCircuit* circuit;
+	//QCircuit* circuit;
+	// Smart pointer to store QCircuit object
+	std::unique_ptr<QCircuit> circuit;
+
 	QEngine* engine;
 	IFrontend* frontend;
 
