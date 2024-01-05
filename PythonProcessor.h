@@ -19,6 +19,9 @@ private:
 	void findAllQuantumCircuitDeclarations(std::vector<int>& result);
 	std::string getQuantumCircuitName(int line);
 	int findLastUsage(const std::string& item);
+	void removeAllPrints();
+
+	bool validateLine(const std::string& line);
 
 };
 
