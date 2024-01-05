@@ -17,6 +17,9 @@ std::string PythonProcessor::parsePythonToOpenQASM(const std::string& sourceCode
 	Utils::parseSourcePerLines(sourceCode, sourceLines);
 	Utils::logSource(sourceLines);
 
+	this->removeAllPrints();
+
+
 	std::vector<int> linesWithQuantumCircuit;
 	findAllQuantumCircuitDeclarations(linesWithQuantumCircuit);
 
@@ -37,6 +40,8 @@ std::string PythonProcessor::parsePythonToOpenQASM(const std::string& sourceCode
 	else {
 		LOGI("No QuantumCircuit declarations found");
 	}
+
+
 
 	if (!importPresent("qiskit", "qasm2"))
 		addImport("qiskit", "qasm2"); // "from qiskit import qasm2\n" + sourceCode;
@@ -114,4 +119,19 @@ bool PythonProcessor::importPresent(const std::string& module, const std::string
 		}
 	}
 	return false;
+}
+
+void PythonProcessor::removeAllPrints() {
+	auto it = std::remove_if(sourceLines.begin(), sourceLines.end(), [this](const std::string& line) {
+		return !validateLine(line);
+		});
+
+	sourceLines.erase(it, sourceLines.end());
+}
+
+bool PythonProcessor::validateLine(const std::string& line) {
+	if (line.find("print") != std::string::npos)
+		return false;
+
+	return true;
 }
