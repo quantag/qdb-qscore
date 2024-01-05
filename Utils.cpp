@@ -89,14 +89,19 @@ int Utils::parseSourcePerLines(const std::string& source, std::vector<std::strin
     lines.clear();
 
     while (std::getline(sourceStream, line)) {
-        lines.push_back(line);
+        Utils::trim(line);
+        if (line.empty())
+            continue;
+
+        if(line.at(0)!='#')
+            lines.push_back(line);
     }
     return (int) lines.size();
 }
 
 void Utils::logSource(const std::vector<std::string>& src) {
     for (int i = 0; i < src.size(); i++) {
-        LOGI("line %d. [%s]", i+1, src.at(i).c_str());
+        LOGI("line %d. [%s]", i, src.at(i).c_str());
     }
 }
 
@@ -244,4 +249,12 @@ bool Utils::containsOpenQASMKeywords(const std::string& sourceCode) {
     static const std::regex openQASMKeywordsRegex("(qreg|creg|H|X|Y|Z|measure)");
 
     return std::regex_search(sourceCode, openQASMKeywordsRegex);
+}
+
+std::string Utils::vectorToString(const std::vector<int> data) {
+    std::string str = "";
+    for (int val : data) {
+        str += to_string(val) + " ";
+    }
+    return str;
 }

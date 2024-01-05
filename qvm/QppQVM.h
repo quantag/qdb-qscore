@@ -9,6 +9,7 @@ using namespace qpp;
 
 class WSServer;
 class IFrontend;
+class PythonProcessor;
 
 class QppQVM : public IQVM {
 public:
@@ -25,6 +26,7 @@ public:
 	static std::vector<complexNumber> convertToStdVector(const qpp::ket& eigenVector);
 	static matrix2d convertToMatrix2D(const qpp::cmat& eigenMatrix);
 //	static std::vector<std::complex<double>> getQubitStateVector(const QEngine& quantumSystem, int qubitIndex);
+//	static std::string parsePythonToOpenQASM(const std::string& sourceCode);
 
 private:
 	//QCircuit* circuit;
@@ -37,6 +39,5 @@ private:
 	QCircuit::iterator mIt; // current state
 	void setCurrentState(const qpp::ket& psi);
 
-	std::string parsePythonToOpenQASM(const std::string& sourceCode);
-
+	PythonProcessor* processor;
 };
