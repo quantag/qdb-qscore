@@ -7,6 +7,7 @@
 #include "../Utils.h"
 
 #include "../WebFrontend.h"
+#include "../PythonProcessor.h"
 
 #define DEMO_FILE "/home/qbit/qasm/file1.qasm"
 
@@ -14,11 +15,13 @@ QppQVM::QppQVM(WSServer* ws) : engine(NULL) {
 	this->frontend = new WebFrontend();
 	this->frontend->setWSServer(ws);
 	this->sourceCodeParsed = 0;
+	processor = new PythonProcessor();
 }
 
 QppQVM::~QppQVM() {
 	SAFE_DELETE(engine);
 	SAFE_DELETE(frontend);
+	delete processor;
 }
 
 int QppQVM::loadSourceCode(const std::string& fileName) {
@@ -55,7 +58,7 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	switch (type) {
 	case CodeType::Python:
 		LOGI("Recognized Python source");
-		this->sourceCode = parsePythonToOpenQASM(sourceCode);
+		this->sourceCode = processor->parsePythonToOpenQASM(sourceCode);
 		break;
 	case CodeType::OpenQASM:
 		LOGI("Recognized OpenQASM source");
@@ -72,8 +75,6 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	LOGI("frontend.loadCode ret %d", ret1);
 
 	try {
-		//circuit = qasm::readFromFile(file);
-
 		std::istringstream stringStream(this->sourceCode);
 		circuit = std::make_unique<QCircuit>(qasm::read(stringStream));
 
@@ -88,21 +89,6 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	return ret;
 }
 
-
-std::string QppQVM::parsePythonToOpenQASM(const std::string& sourceCode) {
-	LOGI("%s", sourceCode.c_str());
-
-	std::string src = "from qiskit import qasm2\n" + sourceCode;
-	src += "\nprint( qasm2.dumps(qc) )";
-
-	std::string out = Utils::executePythonCode(src);
-	LOGI("%s", out.c_str());
-
-//	if(out.find("OPENQASM")==std::string::npos)
-//		out = "OPENQASM 2.0;\n" + out;
-
-	return out;
-}
 
 int QppQVM::run(const std::string& fileName) {
 	LOGI("%s", fileName.c_str());

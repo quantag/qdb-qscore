@@ -108,6 +108,9 @@
     <ClCompile Include="dap\Impl.cpp">
       <Filter>Source Files\dap</Filter>
     </ClCompile>
+    <ClCompile Include="PythonProcessor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debugger.h">
@@ -190,6 +193,9 @@
     </ClInclude>
     <ClInclude Include="dap\Impl.h">
       <Filter>Header Files\dap</Filter>
+    </ClInclude>
+    <ClInclude Include="PythonProcessor.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -148,6 +148,7 @@
     <ClCompile Include="Debugger.cpp" />
     <ClCompile Include="Event.cpp" />
     <ClCompile Include="Log.cpp" />
+    <ClCompile Include="PythonProcessor.cpp" />
     <ClCompile Include="QSCore.cpp" />
     <ClCompile Include="qvm\QppQVM.cpp" />
     <ClCompile Include="Utils.cpp" />
@@ -177,6 +178,7 @@
     <ClInclude Include="interfaces\ifrontend.h" />
     <ClInclude Include="interfaces\iqvm.h" />
     <ClInclude Include="Log.h" />
+    <ClInclude Include="PythonProcessor.h" />
     <ClInclude Include="qvm\QppQVM.h" />
     <ClInclude Include="Typedefs.h" />
     <ClInclude Include="Utils.h" />
