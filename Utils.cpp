@@ -17,6 +17,20 @@
 #include "Log.h"
 #include <bitset>
 
+#include <iostream>
+#include <regex>
+
+#define QISKIT_VENV "C:\\work\\quantum\\qiskit"
+#define TEMP_FILE "tempPythonScript.py"
+
+#ifdef WIN32
+    #define PCLOSE _pclose
+    #define POPEN _popen
+#else
+    #define PCLOSE pclose
+    #define POPEN popen
+#endif
+
 using namespace std;
 
 // trim from start (in place)
@@ -89,7 +103,6 @@ int Utils::parseSourcePerLines(const std::string& source, std::vector<std::strin
     lines.clear();
 
     while (std::getline(sourceStream, line)) {
-        Utils::trim(line);
         if (line.empty())
             continue;
 
@@ -110,7 +123,6 @@ std::string  Utils::encode64(const std::string& val) {
     using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
     auto tmp = std::string(It(std::begin(val)), It(std::end(val)));
     return tmp.append((3 - val.size() % 3) % 3, '=');
- //   return val;
 }
 
 int Utils::fileExists(const std::string& filePath) {
@@ -184,7 +196,6 @@ int Utils::fileExists(const std::string& filePath) {
      return std::to_string(n);
  }
 
-#define TEMP_FILE "tempPythonScript.py"
 
 std::string Utils::executePythonCode(const std::string& sourceCode) {
     LOGI("%s", sourceCode.c_str());
@@ -197,10 +208,10 @@ std::string Utils::executePythonCode(const std::string& sourceCode) {
     char buffer[128];
     std::string result = "";
 
-    std::string cmd = "C:\\work\\quantum\\qiskit\\Scripts\\activate && python ";
+    std::string cmd = std::string(QISKIT_VENV) + "\\Scripts\\activate && python ";
     cmd += TEMP_FILE;
 
-    FILE* pipe = _popen(cmd.c_str(), "r");
+    FILE* pipe = POPEN(cmd.c_str(), "r");
     if (!pipe) {
         LOGE("popen() failed!");
         std::remove(TEMP_FILE);
@@ -212,19 +223,17 @@ std::string Utils::executePythonCode(const std::string& sourceCode) {
         }
     }
     catch (...) {
-        _pclose(pipe);
+        PCLOSE(pipe);
         std::remove(TEMP_FILE);
 
         return "";
     }
-    _pclose(pipe);
+    PCLOSE(pipe);
     std::remove(TEMP_FILE);
 
     return result;
  }
 
-#include <iostream>
-#include <regex>
 
 CodeType Utils::detectCodeType(const std::string& sourceCode) {
     if (containsPythonKeywords(sourceCode)) {
