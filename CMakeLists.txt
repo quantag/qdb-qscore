@@ -108,6 +108,7 @@ set(Source_Files
     "QSCore.cpp"
     "Utils.cpp"
     "WebFrontend.cpp"
+    "PythonProcessor.cpp"
 
     "ws/WSServer.cpp"
     "ws/WSListener.cpp"    
