@@ -20,8 +20,13 @@ private:
 	std::string getQuantumCircuitName(int line);
 	int findLastUsage(const std::string& item);
 	void removeAllPrints();
+	void removeAllByWord(const std::string& word);
 
-	bool validateLine(const std::string& line);
+	bool validateLine(const std::string& line, const std::string& wrd);
+	void removeComments();
+	void deleteLines(const std::vector<int>& lines);
+	int isOneLineCommentLine(const std::string& line);
+	int isMultiLineComment(const std::string& line);
 
 };
 
