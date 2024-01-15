@@ -3,6 +3,8 @@
 #include "Utils.h"
 #include "Log.h"
 
+#include <algorithm>
+
 PythonProcessor::PythonProcessor() {
 }
 
