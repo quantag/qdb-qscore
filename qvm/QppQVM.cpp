@@ -7,7 +7,7 @@
 #include "../Utils.h"
 
 #include "../WebFrontend.h"
-#include "../PythonProcessor.h"
+#include "../QiskitProcessor.h"
 
 #define DEMO_FILE "/home/qbit/qasm/file1.qasm"
 
@@ -15,7 +15,7 @@ QppQVM::QppQVM(WSServer* ws) : engine(NULL) {
 	this->frontend = new WebFrontend();
 	this->frontend->setWSServer(ws);
 	this->sourceCodeParsed = 0;
-	processor = new PythonProcessor();
+	processor = new QiskitProcessor();
 }
 
 QppQVM::~QppQVM() {
