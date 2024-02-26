@@ -1,7 +1,7 @@
 
 #include "TketProcessor.h"
 
-TketProcessor::TketProcessor() {
+TketProcessor::TketProcessor() : PythonProcessor(eTket) {
 
 }
 

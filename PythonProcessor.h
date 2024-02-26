@@ -3,15 +3,21 @@
 #include <vector>
 #include <string>
 
+#include "Typedefs.h"
+
 class PythonProcessor
 {
 public:
 	PythonProcessor();
+	PythonProcessor(PythonFramework fw);
 	virtual ~PythonProcessor();
 
 	std::string parsePythonToOpenQASM(const std::string& sourceCode);
 	static std::string combineVector(const std::vector<std::string>& lines);
 
+	PythonFramework getFramework() const {
+		return framework;
+	}
 protected:
 	std::vector<std::string> sourceLines;
 	bool importPresent(const std::string& module, const std::string& unit);
@@ -27,6 +33,8 @@ protected:
 	void deleteLines(const std::vector<int>& lines);
 	int isOneLineCommentLine(const std::string& line);
 	int isMultiLineComment(const std::string& line);
+
+	PythonFramework framework;
 
 };
 

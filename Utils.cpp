@@ -267,3 +267,13 @@ std::string Utils::vectorToString(const std::vector<int> data) {
     }
     return str;
 }
+
+PythonFramework Utils::detectPythonFramework(const std::string & src) {
+    if (src.find("qiskit") != std::string::npos)
+        return eQiskit;
+
+    if (src.find("pytket") != std::string::npos)
+        return eTket;
+
+    return eGeneric;
+}

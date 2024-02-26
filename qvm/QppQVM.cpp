@@ -8,6 +8,7 @@
 
 #include "../WebFrontend.h"
 #include "../QiskitProcessor.h"
+#include "../TketProcessor.h"
 
 #define DEMO_FILE "/home/qbit/qasm/file1.qasm"
 
@@ -57,14 +58,21 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 
 	switch (type) {
 	case CodeType::Python:
-		LOGI("Recognized Python source");
-		this->sourceCode = processor->parsePythonToOpenQASM(sourceCode);
-		break;
-	case CodeType::OpenQASM:
-		LOGI("Recognized OpenQASM source");
-		break;
-	default:
-		LOGE("Not recognized source code type");
+		{
+			LOGI("Recognized Python source");
+			PythonFramework framework = Utils::detectPythonFramework(sourceCode);
+			LOGI("Recognized Python framework: %d", framework);
+			//this->processor = 
+				updateProcessor(framework);
+
+			this->sourceCode = processor->parsePythonToOpenQASM(sourceCode);
+			break;
+		}
+		case CodeType::OpenQASM:
+			LOGI("Recognized OpenQASM source");
+			break;
+		default:
+			LOGE("Not recognized source code type");
 	}
 
 	int nLines = Utils::parseSourcePerLines(this->sourceCode, this->sourceCodePerLines);
@@ -89,6 +97,25 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	return ret;
 }
 
+
+void QppQVM::updateProcessor(PythonFramework framework) {
+	if (this->processor != NULL) {
+		if (this->processor->getFramework() == framework)
+			return;
+
+		delete processor;
+	}
+
+	switch (framework) {
+		case eQiskit:
+		case eGeneric:
+			this->processor = new QiskitProcessor();
+			break;
+		case eTket:
+			this->processor = new TketProcessor();
+			break;
+	}
+}
 
 int QppQVM::run(const std::string& fileName) {
 	LOGI("%s", fileName.c_str());

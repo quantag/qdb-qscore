@@ -27,6 +27,7 @@ public:
 	static matrix2d convertToMatrix2D(const qpp::cmat& eigenMatrix);
 //	static std::vector<std::complex<double>> getQubitStateVector(const QEngine& quantumSystem, int qubitIndex);
 //	static std::string parsePythonToOpenQASM(const std::string& sourceCode);
+	void updateProcessor(PythonFramework framework);
 
 private:
 	//QCircuit* circuit;
