@@ -111,6 +111,12 @@
     <ClCompile Include="PythonProcessor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="QiskitProcessor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TketProcessor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debugger.h">
@@ -195,6 +201,12 @@
       <Filter>Header Files\dap</Filter>
     </ClInclude>
     <ClInclude Include="PythonProcessor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="QiskitProcessor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TketProcessor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

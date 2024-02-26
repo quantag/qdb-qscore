@@ -149,8 +149,10 @@
     <ClCompile Include="Event.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="PythonProcessor.cpp" />
+    <ClCompile Include="QiskitProcessor.cpp" />
     <ClCompile Include="QSCore.cpp" />
     <ClCompile Include="qvm\QppQVM.cpp" />
+    <ClCompile Include="TketProcessor.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="WebFrontend.cpp" />
     <ClCompile Include="ws\WSListener.cpp" />
@@ -179,7 +181,9 @@
     <ClInclude Include="interfaces\iqvm.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="PythonProcessor.h" />
+    <ClInclude Include="QiskitProcessor.h" />
     <ClInclude Include="qvm\QppQVM.h" />
+    <ClInclude Include="TketProcessor.h" />
     <ClInclude Include="Typedefs.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="WebFrontend.h" />
