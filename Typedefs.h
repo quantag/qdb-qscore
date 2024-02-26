@@ -13,3 +13,15 @@ struct complexNumber {
 		this->b = im;
 	}
 };
+
+enum PythonFramework {
+	eGeneric = 0,
+	eQiskit = 1,
+	eTket = 2
+};
+
+enum class CodeType {
+	Python,
+	OpenQASM,
+	Unknown
+};

@@ -5,11 +5,7 @@
 
 #include "Typedefs.h"
 
-enum class CodeType {
-	Python,
-	OpenQASM,
-	Unknown
-};
+
 
 class Utils {
 public:
@@ -36,5 +32,7 @@ public:
 	static bool containsPythonKeywords(const std::string& sourceCode);
 	static bool containsOpenQASMKeywords(const std::string& sourceCode);
 	static std::string vectorToString(const std::vector<int> data);
+
+	static PythonFramework detectPythonFramework(const std::string& src);
 
 };

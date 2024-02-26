@@ -5,7 +5,11 @@
 
 #include <algorithm>
 
-PythonProcessor::PythonProcessor() {
+PythonProcessor::PythonProcessor() : framework (eGeneric) {
+}
+
+PythonProcessor::PythonProcessor(PythonFramework fw) : framework(fw) {
+
 }
 
 PythonProcessor::~PythonProcessor() {

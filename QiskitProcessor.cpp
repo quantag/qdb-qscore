@@ -1,7 +1,7 @@
 
 #include "QiskitProcessor.h"
 
-QiskitProcessor::QiskitProcessor() {
+QiskitProcessor::QiskitProcessor() : PythonProcessor(eQiskit) {
 
 }
 
