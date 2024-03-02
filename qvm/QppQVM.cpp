@@ -10,7 +10,8 @@
 #include "../QiskitProcessor.h"
 #include "../TketProcessor.h"
 
-#define DEMO_FILE "/home/qbit/qasm/file1.qasm"
+#define DEMO_FILE		"/home/qbit/qasm/file1.qasm"
+#define SOURCE_FILDER	"/var/dap/"
 
 QppQVM::QppQVM(WSServer* ws) : engine(NULL) {
 	this->frontend = new WebFrontend();
@@ -37,9 +38,21 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	std::string file = fileName;
 
 	if (!Utils::fileExists(file)) {
-		LOGI("File [%s] not exist, use demo file [%s]", fileName.c_str(), DEMO_FILE);
-		file = DEMO_FILE;
-		ret = 1;
+		// try to find on server folder
+		std::string serverFile = SOURCE_FILDER + file;
+
+		if (!Utils::fileExists(serverFile)) {
+			LOGI("Server File '%s' not exists", serverFile.c_str());
+
+			LOGI("File [%s] not exist, use demo file [%s]", fileName.c_str(), DEMO_FILE);
+			file = DEMO_FILE;
+			//ret = 1;
+		}
+		else {
+			LOGI("Server File '%s' exists", serverFile.c_str());
+			file = serverFile;
+		}
+
 	}
 	if (!Utils::fileExists(file) ) {
 		LOGI("File '%s' not exists", file.c_str());
@@ -57,22 +70,22 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	LOGI("Source code type: %d", type);
 
 	switch (type) {
-	case CodeType::Python:
-		{
-			LOGI("Recognized Python source");
-			PythonFramework framework = Utils::detectPythonFramework(sourceCode);
-			LOGI("Recognized Python framework: %d", framework);
-			//this->processor = 
-				updateProcessor(framework);
+		case CodeType::Python:
+			{
+				LOGI("Recognized Python source");
+				PythonFramework framework = Utils::detectPythonFramework(sourceCode);
+				LOGI("Recognized Python framework: %d", framework);
+				//this->processor = 
+					updateProcessor(framework);
 
-			this->sourceCode = processor->parsePythonToOpenQASM(sourceCode);
-			break;
-		}
-		case CodeType::OpenQASM:
-			LOGI("Recognized OpenQASM source");
-			break;
-		default:
-			LOGE("Not recognized source code type");
+				this->sourceCode = processor->parsePythonToOpenQASM(sourceCode);
+				break;
+			}
+			case CodeType::OpenQASM:
+				LOGI("Recognized OpenQASM source");
+				break;
+			default:
+				LOGE("Not recognized source code type");
 	}
 
 	int nLines = Utils::parseSourcePerLines(this->sourceCode, this->sourceCodePerLines);
