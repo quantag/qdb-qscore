@@ -39,7 +39,7 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 
 	if (!Utils::fileExists(file)) {
 		// try to find on server folder
-		std::string serverFile = SOURCE_FILDER + file;
+		std::string serverFile = SOURCE_FILDER + Utils::getFileNameFromFullPath(file);
 
 		if (!Utils::fileExists(serverFile)) {
 			LOGI("Server File '%s' not exists", serverFile.c_str());

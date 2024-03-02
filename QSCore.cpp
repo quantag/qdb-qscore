@@ -43,6 +43,7 @@ You may also notice that the locals contains a single variable for the currently
 
 int main(int argc, char *argv[]) {
     LOG_INIT(2, "qs-core.log");
+
     WSServer wsock;
 
 #ifdef OS_WINDOWS

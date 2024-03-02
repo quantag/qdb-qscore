@@ -34,5 +34,6 @@ public:
 	static std::string vectorToString(const std::vector<int> data);
 
 	static PythonFramework detectPythonFramework(const std::string& src);
-
+	static std::string getFileNameFromFullPath(const std::string& fullPath);
+		
 };
