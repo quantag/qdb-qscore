@@ -277,3 +277,19 @@ PythonFramework Utils::detectPythonFramework(const std::string & src) {
 
     return eGeneric;
 }
+
+std::string Utils::getFileNameFromFullPath(const std::string& fullPath) {
+    size_t p1 = fullPath.find_last_of('/');
+    if (p1 != std::string::npos) {
+        p1++;
+        return fullPath.substr(p1, fullPath.size() - p1);
+    }
+
+    p1 = fullPath.find_last_of('\\');
+    if (p1 != std::string::npos) {
+        p1++;
+        return fullPath.substr(p1, fullPath.size() - p1);
+    }
+
+    return fullPath;
+}
