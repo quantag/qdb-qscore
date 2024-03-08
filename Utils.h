@@ -34,5 +34,6 @@ public:
 
 	static PythonFramework detectPythonFramework(const std::string& src);
 	static std::string getFileNameFromFullPath(const std::string& fullPath);
-		
+	
+	static std::string execute(const std::string& cmd);
 };

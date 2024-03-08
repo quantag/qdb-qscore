@@ -213,11 +213,22 @@ std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramew
     tempFile << sourceCode;
     tempFile.close();
 
-    char buffer[128];
-    std::string result = "";
-
     std::string cmd = std::string(QISKIT_VENV) + " && python ";
     cmd += TEMP_FILE;
+
+    LOGI("cmd = '%s'", cmd.c_str());
+    std::string result = execute(cmd);
+
+#ifdef DELETE_TMP
+        std::remove(TEMP_FILE);
+#endif
+
+    return result;
+ }
+
+std::string Utils::execute(const std::string& cmd) {
+    char buffer[128];
+    std::string result = "";
 
     LOGI("cmd = '%s'", cmd.c_str());
 
@@ -225,9 +236,6 @@ std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramew
     if (!pipe) {
         LOGE("popen() failed!");
 
-#ifdef DELETE_TMP
-        std::remove(TEMP_FILE);
-#endif
         return "";
     }
     try {
@@ -237,18 +245,11 @@ std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramew
     }
     catch (...) {
         PCLOSE(pipe);
-#ifdef DELETE_TMP
-        std::remove(TEMP_FILE);
-#endif
         return "";
     }
     PCLOSE(pipe);
-
-#ifdef DELETE_TMP
-    std::remove(TEMP_FILE);
-#endif
     return result;
- }
+}
 
 
 CodeType Utils::detectCodeType(const std::string& sourceCode) {
