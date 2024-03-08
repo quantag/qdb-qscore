@@ -62,7 +62,7 @@ std::string TketProcessor::parsePythonToOpenQASM(const std::string& sourceCode) 
 	std::string updatedSource = combineVector(this->sourceLines);
 	LOGI("Updated sources:\n%s", updatedSource.c_str());
 
-	std::string out = Utils::executePythonCode(updatedSource);
+	std::string out = Utils::executePythonCode(updatedSource, eTket);
 	LOGI("%s", out.c_str());
 
 	return out;

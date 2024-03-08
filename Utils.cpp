@@ -20,8 +20,13 @@
 #include <iostream>
 #include <regex>
 
-#define QISKIT_VENV "C:\\work\\quantum\\qiskit"
-#define TEMP_FILE "tempPythonScript.py"
+#ifdef WIN32
+    #define QISKIT_VENV "C:\\work\\quantum\\qiskit\\Scripts\\activate"
+#else
+    #define QISKIT_VENV "/var/qiskit/bin/activate"
+#endif
+
+#define TEMP_FILE   "tempPythonScript.py"
 
 #ifdef WIN32
     #define PCLOSE _pclose
@@ -197,8 +202,8 @@ int Utils::fileExists(const std::string& filePath) {
  }
 
 
-std::string Utils::executePythonCode(const std::string& sourceCode) {
-    LOGI("%s", sourceCode.c_str());
+std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramework fr) {
+    LOGI("framework = %u, '%s'", fr, sourceCode.c_str());
 
     // Create a temporary file to store the Python code
     std::ofstream tempFile(TEMP_FILE);
@@ -208,7 +213,7 @@ std::string Utils::executePythonCode(const std::string& sourceCode) {
     char buffer[128];
     std::string result = "";
 
-    std::string cmd = std::string(QISKIT_VENV) + "\\Scripts\\activate && python ";
+    std::string cmd = std::string(QISKIT_VENV) + " && python ";
     cmd += TEMP_FILE;
 
     FILE* pipe = POPEN(cmd.c_str(), "r");
