@@ -22,11 +22,14 @@
 
 #ifdef WIN32
     #define QISKIT_VENV "C:\\work\\quantum\\qiskit\\Scripts\\activate"
+    #define TEMP_FILE   "tempPythonScript.py"
 #else
     #define QISKIT_VENV "source /var/qiskit/bin/activate"
+    #define TEMP_FILE   "/tmp/tempPythonScript.py"
 #endif
 
-#define TEMP_FILE   "tempPythonScript.py"
+#define DELETE_TMP
+
 
 #ifdef WIN32
     #define PCLOSE _pclose
@@ -201,7 +204,6 @@ int Utils::fileExists(const std::string& filePath) {
      return std::to_string(n);
  }
 
-//#define DELETE_TMP
 
 std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramework fr) {
     LOGI("framework = %u, '%s'", fr, sourceCode.c_str());
