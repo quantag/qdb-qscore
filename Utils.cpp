@@ -23,7 +23,7 @@
 #ifdef WIN32
     #define QISKIT_VENV "C:\\work\\quantum\\qiskit\\Scripts\\activate"
 #else
-    #define QISKIT_VENV "/var/qiskit/bin/activate"
+    #define QISKIT_VENV "source /var/qiskit/bin/activate"
 #endif
 
 #define TEMP_FILE   "tempPythonScript.py"
