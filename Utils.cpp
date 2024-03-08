@@ -201,6 +201,7 @@ int Utils::fileExists(const std::string& filePath) {
      return std::to_string(n);
  }
 
+//#define DELETE_TMP
 
 std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramework fr) {
     LOGI("framework = %u, '%s'", fr, sourceCode.c_str());
@@ -216,10 +217,15 @@ std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramew
     std::string cmd = std::string(QISKIT_VENV) + " && python ";
     cmd += TEMP_FILE;
 
+    LOGI("cmd = '%s'", cmd.c_str());
+
     FILE* pipe = POPEN(cmd.c_str(), "r");
     if (!pipe) {
         LOGE("popen() failed!");
+
+#ifdef DELETE_TMP
         std::remove(TEMP_FILE);
+#endif
         return "";
     }
     try {
@@ -229,13 +235,16 @@ std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramew
     }
     catch (...) {
         PCLOSE(pipe);
+#ifdef DELETE_TMP
         std::remove(TEMP_FILE);
-
+#endif
         return "";
     }
     PCLOSE(pipe);
-    std::remove(TEMP_FILE);
 
+#ifdef DELETE_TMP
+    std::remove(TEMP_FILE);
+#endif
     return result;
  }
 
