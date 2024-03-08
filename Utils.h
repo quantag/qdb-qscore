@@ -6,7 +6,6 @@
 #include "Typedefs.h"
 
 
-
 class Utils {
 public:
 
@@ -25,7 +24,7 @@ public:
 	static std::string toBinaryString(unsigned char val, size_t n);
 	static std::string intToString(int n);
 		
-	static std::string executePythonCode(const std::string& sourceCode);
+	static std::string executePythonCode(const std::string& sourceCode, PythonFramework fr);
 	static bool isOpenQASMCode(const std::string& code);
 
 	static CodeType detectCodeType(const std::string& sourceCode);
