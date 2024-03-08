@@ -44,6 +44,9 @@ You may also notice that the locals contains a single variable for the currently
 int main(int argc, char *argv[]) {
     LOG_INIT(2, "qs-core.log");
 
+    std::string rep = Utils::execute("python --version");
+    LOGI("'%s'", rep.c_str());
+
     WSServer wsock;
 
 #ifdef OS_WINDOWS
@@ -57,7 +60,6 @@ int main(int argc, char *argv[]) {
 	const dap::integer frameId = 200;
 	const dap::integer variablesReferenceId = 300;
 	const dap::integer sourceReferenceId = 400;
-
 
     // Callback handler for a socket connection to the server
     auto onClientConnected =
