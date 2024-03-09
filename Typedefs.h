@@ -25,3 +25,20 @@ enum class CodeType {
 	OpenQASM,
 	Unknown
 };
+
+struct CommandResult {
+	std::string output;
+	int exitstatus;
+
+	/*friend std::ostream& operator<<(std::ostream& os, const CommandResult& result) {
+		os << "command exitstatus: " << result.exitstatus << " output: " << result.output;
+		return os;
+	}
+	bool operator==(const CommandResult& rhs) const {
+		return output == rhs.output &&
+			exitstatus == rhs.exitstatus;
+	}
+	bool operator!=(const CommandResult& rhs) const {
+		return !(rhs == *this);
+	}*/
+};

@@ -36,4 +36,6 @@ public:
 	static std::string getFileNameFromFullPath(const std::string& fullPath);
 	
 	static std::string execute(const std::string& cmd);
+	static CommandResult exec2(const std::string& command);
+
 };

@@ -39,6 +39,8 @@
     #define POPEN popen
 #endif
 
+#include <array>
+
 using namespace std;
 
 // trim from start (in place)
@@ -217,7 +219,11 @@ std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramew
     cmd += TEMP_FILE;
 
     LOGI("cmd = '%s'", cmd.c_str());
-    std::string result = execute(cmd);
+    std::string result;
+    CommandResult comRes = exec2(cmd);
+    result = comRes.output;
+
+    LOGI("exit status = %d res = '%s'", comRes.exitstatus, comRes.output.c_str());
 
 #ifdef DELETE_TMP
         std::remove(TEMP_FILE);
@@ -248,9 +254,7 @@ std::string Utils::execute(const std::string& cmd) {
         return "";
     }
     PCLOSE(pipe);
-
     trim(result);
-
     return result;
 }
 
@@ -312,4 +316,31 @@ std::string Utils::getFileNameFromFullPath(const std::string& fullPath) {
     }
 
     return fullPath;
+}
+
+CommandResult Utils::exec2(const std::string& command) {
+    int exitcode = 255;
+    std::array<char, 1024> buffer{};
+    std::string result;
+#ifdef _WIN32
+#define popen _popen
+#define pclose _pclose
+#define WEXITSTATUS
+#endif
+    FILE* pipe = popen(command.c_str(), "r");
+    if (pipe == nullptr) {
+        throw std::runtime_error("popen() failed!");
+    }
+    try {
+        std::size_t bytesread;
+        while ((bytesread = fread(buffer.data(), sizeof(buffer.at(0)), sizeof(buffer), pipe)) != 0) {
+            result += std::string(buffer.data(), bytesread);
+        }
+    }
+    catch (...) {
+        pclose(pipe);
+        throw;
+    }
+    exitcode = WEXITSTATUS(pclose(pipe));
+    return CommandResult{ result, exitcode };
 }
