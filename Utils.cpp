@@ -219,11 +219,9 @@ std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramew
     cmd += TEMP_FILE;
 
     LOGI("cmd = '%s'", cmd.c_str());
-    std::string result;
-    CommandResult comRes = exec2(cmd);
-    result = comRes.output;
+    std::string result = execute(cmd);
 
-    LOGI("exit status = %d res = '%s'", comRes.exitstatus, comRes.output.c_str());
+    LOGI("res = '%s'", result.c_str());
 
 #ifdef DELETE_TMP
         std::remove(TEMP_FILE);
@@ -233,7 +231,7 @@ std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramew
  }
 
 std::string Utils::execute(const std::string& cmd) {
-    char buffer[128];
+    char buffer[1024];
     std::string result = "";
 
     LOGI("cmd = '%s'", cmd.c_str());
@@ -254,7 +252,7 @@ std::string Utils::execute(const std::string& cmd) {
         return "";
     }
     PCLOSE(pipe);
-    trim(result);
+//    trim(result);
     return result;
 }
 
