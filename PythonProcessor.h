@@ -4,6 +4,7 @@
 #include <string>
 
 #include "Typedefs.h"
+#include "RestClient.h"
 
 class PythonProcessor
 {
@@ -35,6 +36,6 @@ protected:
 	int isMultiLineComment(const std::string& line);
 
 	PythonFramework framework;
-
+	RestClient restClient;
 };
 

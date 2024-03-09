@@ -3,6 +3,8 @@
 #include "Log.h"
 #include "Utils.h"
 
+#include "RestClient.h"
+
 QiskitProcessor::QiskitProcessor() : PythonProcessor(eQiskit) {
 
 }
@@ -47,7 +49,7 @@ std::string QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode
 			int lastLine = findLastUsage(qcName);
 			if (lastLine > 0) {
 				LOGI("Last usage of QC '%s' on line %d", qcName.c_str(), lastLine);
-				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "print(qasm2.dumps(" + qcName + "))");
+				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "code777=qasm2.dumps(" + qcName + ")");
 			}
 		}
 	}
@@ -61,7 +63,8 @@ std::string QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode
 	std::string updatedSource = combineVector(this->sourceLines);
 	LOGI("Updated sources:\n%s", updatedSource.c_str());
 
-	std::string out = Utils::executePythonCode(updatedSource, eQiskit);
+//	std::string out = Utils::executePythonCode(updatedSource, eQiskit);
+	std::string out = restClient.execPythonCode(updatedSource);
 	LOGI("output: '%s'", out.c_str());
 
 	return out;
