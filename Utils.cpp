@@ -248,6 +248,9 @@ std::string Utils::execute(const std::string& cmd) {
         return "";
     }
     PCLOSE(pipe);
+
+    trim(result);
+
     return result;
 }
 

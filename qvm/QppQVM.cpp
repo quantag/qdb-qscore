@@ -75,8 +75,7 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 				LOGI("Recognized Python source");
 				PythonFramework framework = Utils::detectPythonFramework(sourceCode);
 				LOGI("Recognized Python framework: %d", framework);
-				//this->processor = 
-					updateProcessor(framework);
+				updateProcessor(framework);
 
 				this->sourceCode = processor->parsePythonToOpenQASM(sourceCode);
 				break;
