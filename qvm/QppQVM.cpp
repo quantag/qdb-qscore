@@ -26,8 +26,8 @@ QppQVM::~QppQVM() {
 	delete processor;
 }
 
-int QppQVM::loadSourceCode(const std::string& fileName) {
-	LOGI("[%s]", fileName.c_str());
+int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessionId) {
+	LOGI("[%s] [%s]", fileName.c_str(), sessionId.c_str());
 
 	int ret = 0;
 
@@ -39,7 +39,7 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 
 	if (!Utils::fileExists(file)) {
 		// try to find on server folder
-		std::string serverFile = SOURCE_FILDER + Utils::getFileNameFromFullPath(file);
+		std::string serverFile = SOURCE_FILDER + sessionId +"/" + Utils::getFileNameFromFullPath(file);
 
 		if (!Utils::fileExists(serverFile)) {
 			LOGI("Server File '%s' not exists", serverFile.c_str());
@@ -131,10 +131,10 @@ void QppQVM::updateProcessor(PythonFramework framework) {
 	}
 }
 
-int QppQVM::run(const std::string& fileName) {
-	LOGI("%s", fileName.c_str());
+int QppQVM::run(const std::string& fileName, const std::string& sessionId) {
+	LOGI("%s [%s]", fileName.c_str(), sessionId.c_str());
 
-	ASSERT( loadSourceCode(fileName) );
+	ASSERT( loadSourceCode(fileName, sessionId) );
 	LOGI("Loaded source code from [%s] parsed = %d", fileName.c_str(), this->sourceCodeParsed);
 
 	SAFE_DELETE(engine);
@@ -145,10 +145,10 @@ int QppQVM::run(const std::string& fileName) {
 	return 0;
 }
 
-int QppQVM::debug(const std::string& fileName) {
-	LOGI("%s", fileName.c_str());
+int QppQVM::debug(const std::string& fileName, const std::string& sessionId) {
+	LOGI("%s [%s]", fileName.c_str(), sessionId.c_str());
 
-	int ret = loadSourceCode(fileName);
+	int ret = loadSourceCode(fileName, sessionId);
 	if (ret != 0) {
 		LOGE("Error loading sources from [%s]", fileName.c_str());
 		return ret;

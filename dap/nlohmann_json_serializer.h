@@ -72,9 +72,10 @@ struct NlohmannDeserializer : public dap::Deserializer {
     return dap::Deserializer::deserialize(name, v);
   }
 
+  const nlohmann::json* const json;
+
  private:
   NlohmannDeserializer(const nlohmann::json*);
-  const nlohmann::json* const json;
   const bool ownsJson;
 };
 

@@ -27,15 +27,15 @@ void Debugger::continueDebugger() {
       }
 }
 
-int Debugger::launch(int isRun, const std::string& fileName) {
-    LOGI("noDebug = %d, file = [%s]", isRun, fileName.c_str());
+int Debugger::launch(int isRun, const std::string& fileName, const std::string &sessionId) {
+    LOGI("noDebug = %d, file = [%s] [%s]", isRun, fileName.c_str(), sessionId.c_str());
 
     int ret = 0;
     if (isRun) {
-        ret = qvm->run(fileName);
+        ret = qvm->run(fileName, sessionId);
     }
     else {
-        ret = qvm->debug(fileName);
+        ret = qvm->debug(fileName, sessionId);
     }
 
     if (ret==0) {

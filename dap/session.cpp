@@ -286,12 +286,19 @@ class SessionImpl : public dap::Session {
   };  // EventHandlers
 
   Payload processMessage(const std::string& str) {
+  //      LOGI("processMessage '%s'", str.c_str());
+
         auto d = dap::json::Deserializer(str);
         dap::string type;
         if (!d.field("type", &type)) {
           handlers.error("Message missing string 'type' field");
           return {};
         }
+
+        dap::string sessionId;
+      //  if (d.field("__sessionId", &sessionId)) {
+      //      LOGI("~~ session ID [%s]", sessionId.c_str());
+      //  }
 
         dap::integer sequence = 0;
         if (!d.field("seq", &sequence)) {

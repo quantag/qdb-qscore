@@ -16,9 +16,9 @@ public:
 	QppQVM(WSServer *ws);
 	~QppQVM();
 
-	int loadSourceCode(const std::string& fileName);
-	int run(const std::string& fileName);
-	int debug(const std::string& fileName);
+	int loadSourceCode(const std::string& fileName, const std::string& sessionId);
+	int run(const std::string& fileName, const std::string& sessionId);
+	int debug(const std::string& fileName, const std::string& sessionId);
 
 	int getSourceLines();
 	void stepForward();
