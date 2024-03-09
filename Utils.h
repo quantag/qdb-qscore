@@ -40,5 +40,7 @@ public:
 
 	static std::string findServerFile(const std::string& sessionFolder, const std::string& fileName);
 	static std::string getFileNameWithParent(const std::string& fullPath);
+	static std::string replaceChar(const std::string& input, char oldChar, char newChar);
+	static std::string lastFrom(const std::string& str, size_t n);
 
 };
