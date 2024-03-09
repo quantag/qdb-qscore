@@ -12,6 +12,7 @@ using json = nlohmann::json;
 
 RestClient::RestClient() : url(ENDPONT_URL) {
         curl_global_init(CURL_GLOBAL_ALL);
+        headers = curl_slist_append(headers, "Content-Type: application/json");
 }
 
 RestClient::~RestClient() {
@@ -31,6 +32,9 @@ std::string RestClient::doPost(const std::string& jsonData) {
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
             res = curl_easy_perform(curl);
             if (res != CURLE_OK) {
@@ -54,10 +58,17 @@ std::string RestClient::execPythonCode(const std::string& code) {
 
     std::string encoded = Utils::encode64(code);
     std::string req = "{\"src\":\"" + encoded + "\"}";
+    LOGI("req: '%s'", req.c_str());
 
     std::string res = doPost(req);
     LOGI("response '%s'", res.c_str());
 
-    json j = json::parse(res);
-    return j["res"];
+    try {
+        json j = json::parse(res);
+        return j["res"];
+    }
+    catch (...) {
+        LOGE("Error during parsing JSON response: '%s'", res.c_str());
+        return "";
+    }
 }
