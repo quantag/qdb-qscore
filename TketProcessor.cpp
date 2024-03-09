@@ -48,7 +48,7 @@ std::string TketProcessor::parsePythonToOpenQASM(const std::string& sourceCode) 
 			if (lastLine > 0) {
 				LOGI("Last usage of QC '%s' on line %d", qcName.c_str(), lastLine);
 				// qasm_str = circuit_to_qasm_str(circ, header="hqslib1")
-				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "print(circuit_to_qasm_str(" + qcName + ", header=\"hqslib1\"))");
+				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "code777=circuit_to_qasm_str(" + qcName + ", header=\"hqslib1\")");
 			}
 		}
 	}
@@ -62,7 +62,8 @@ std::string TketProcessor::parsePythonToOpenQASM(const std::string& sourceCode) 
 	std::string updatedSource = combineVector(this->sourceLines);
 	LOGI("Updated sources:\n%s", updatedSource.c_str());
 
-	std::string out = Utils::executePythonCode(updatedSource, eTket);
+	std::string out = restClient.execPythonCode(updatedSource);
+//	std::string out = Utils::executePythonCode(updatedSource, eTket);
 	LOGI("%s", out.c_str());
 
 	return out;
