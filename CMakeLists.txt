@@ -264,9 +264,10 @@ if(MSVC)
     endif()
 endif()
 
+target_link_libraries(${PROJECT_NAME} PRIVATE ${CURL_LIBRARIES} )
 
- target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
- set_target_properties( ${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+set_target_properties( ${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
