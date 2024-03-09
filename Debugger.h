@@ -22,7 +22,7 @@ class Debugger {
   // run() instructs the debugger to continue execution.
   void continueDebugger();
 
-  int launch(int isRun, const std::string& fileName);
+  int launch(int isRun, const std::string& fileName, const std::string& sessionId);
 
   // pause() instructs the debugger to pause execution.
   void pause();

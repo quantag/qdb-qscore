@@ -390,12 +390,13 @@ int main(int argc, char *argv[]) {
               // arguments. This example debugger does nothing with this request.
               // https://microsoft.github.io/debug-adapter-protocol/specification#Requests_Launch
         session->registerHandler([&](const dap::LaunchRequest& req) {
-            LOGI(" ~ [LaunchRequest] [%s]", req.program.value().c_str());
+            LOGI(" ~ [LaunchRequest] [%s] [%s]", req.program.value().c_str(), req.sessionId.has_value() ? req.sessionId.value().c_str() : "" );
            
             session->currentSourceFilePath = req.program.value();
+            session->sessionId = req.sessionId.has_value() ? req.sessionId.value().c_str() : "";
             bool isRun = req.noDebug.has_value();
 
-            int ok = debugger.launch(isRun, req.program.value());
+            int ok = debugger.launch(isRun, req.program.value(), session->sessionId);
             LOGI("QVM launch ret %d", ok);
             return dap::LaunchResponse();
         });

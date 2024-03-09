@@ -121,6 +121,7 @@ DAP_IMPLEMENT_STRUCT_TYPEINFO(LaunchRequest,
                               "launch",
                               DAP_FIELD(restart, "__restart"),
                               DAP_FIELD(program, "program"),
+                              DAP_FIELD(sessionId, "__sessionId"),
                               DAP_FIELD(noDebug, "noDebug"));
 
 DAP_IMPLEMENT_STRUCT_TYPEINFO(LoadedSourcesRequest, "loadedSources");

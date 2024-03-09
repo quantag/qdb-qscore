@@ -1198,6 +1198,7 @@ struct LaunchRequest : public Request {
   // debugging.
   optional<boolean> noDebug;
   optional<string> program;
+  optional<string> sessionId;
 };
 
 DAP_DECLARE_STRUCT_TYPEINFO(LaunchRequest);

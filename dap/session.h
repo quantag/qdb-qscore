@@ -142,6 +142,7 @@ class Session {
   virtual ~Session();
 
   std::string currentSourceFilePath;
+  std::string sessionId;
 
   // ErrorHandler is the type of callback function used for reporting protocol
   // errors.
