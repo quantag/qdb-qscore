@@ -38,4 +38,7 @@ public:
 	static std::string execute(const std::string& cmd);
 	static CommandResult exec2(const std::string& command);
 
+	static std::string findServerFile(const std::string& sessionFolder, const std::string& fileName);
+	static std::string getFileNameWithParent(const std::string& fullPath);
+
 };
