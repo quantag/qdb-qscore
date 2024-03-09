@@ -44,8 +44,10 @@ You may also notice that the locals contains a single variable for the currently
 int main(int argc, char *argv[]) {
     LOG_INIT(2, "qs-core.log");
 
-    std::string rep = Utils::execute("python --version");
-    LOGI("'%s'", rep.c_str());
+ //   std::string rep = Utils::execute("python --version");
+ //   LOGI("'%s'", rep.c_str());
+
+//    std::string te = Utils::getFileNameWithParent("c:\\work\\gitquantag\\qasm-adapter-vscode\\sampleWorkspace\\qiskit\\test1.py");
 
     WSServer wsock;
 

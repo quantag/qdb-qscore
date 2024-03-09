@@ -306,34 +306,27 @@ std::string Utils::getFileNameFromFullPath(const std::string& fullPath) {
         return fullPath.substr(p1, fullPath.size() - p1);
     }
 
-    p1 = fullPath.find_last_of('\\');
-    if (p1 != std::string::npos) {
-        p1++;
-        return fullPath.substr(p1, fullPath.size() - p1);
-    }
-
     return fullPath;
 }
 
-std::string Utils::getFileNameWithParent(const std::string& fullPath) {
+std::string Utils::lastFrom(const std::string& str, size_t n) {
+    return str.substr(n, str.size() - n);
+}
+
+std::string Utils::getFileNameWithParent(const std::string& _fullPath) {
+    std::string fullPath = replaceChar(_fullPath, '\\', '/');
+
     size_t p1 = fullPath.find_last_of('/');
-    size_t p2 = fullPath.find_last_of('\\');
-    size_t p = std::max(p1, p2);
+    if (p1 == std::string::npos)
+        return fullPath;
 
-    if (p != std::string::npos) {
-        p++; // Move past the last directory separator
-        size_t p3 = fullPath.find_last_of('/', p - 2);
-        size_t p4 = fullPath.find_last_of('\\', p - 2);
-        size_t p_parent = std::max(p3, p4);
+    size_t p2 = fullPath.substr(0, p1).find_last_of('/');
+    if (p2 == std::string::npos)
+        return lastFrom(fullPath, p1);
 
-        if (p_parent != std::string::npos) {
-            p_parent++; // Move past the previous directory separator
-            return fullPath.substr(p_parent);
-        }
-    }
-
-    return fullPath;
+    return lastFrom(fullPath, p2+1);
 }
+
 
 CommandResult Utils::exec2(const std::string& command) {
     int exitcode = 255;
@@ -362,7 +355,9 @@ CommandResult Utils::exec2(const std::string& command) {
     return CommandResult{ result, exitcode };
 }
 
-std::string Utils::findServerFile(const std::string& sessionFolder, const std::string& fileName) {
+std::string Utils::findServerFile(const std::string& sessionFolder, const std::string& _fileName) {
+    std::string fileName = replaceChar(_fileName, '\\', '/');
+
     std::string serverFile = sessionFolder + "/" + Utils::getFileNameFromFullPath(fileName);
 
     LOGI("trying [%s]", serverFile.c_str());
@@ -377,4 +372,14 @@ std::string Utils::findServerFile(const std::string& sessionFolder, const std::s
         return serverFile;
 
     return serverFile;
+}
+
+std::string Utils::replaceChar(const std::string& input, char oldChar, char newChar) {
+    std::string result = input;
+    for (char& c : result) {
+        if (c == oldChar) {
+            c = newChar;
+        }
+    }
+    return result;
 }
