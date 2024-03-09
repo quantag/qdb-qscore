@@ -95,6 +95,8 @@ int QppQVM::loadSourceCode(const std::string& fileName) {
 	LOGI("frontend.loadCode ret %d", ret1);
 
 	try {
+		LOGI("Trying to parse OpenQASM: '%s'", this->sourceCode.c_str());
+
 		std::istringstream stringStream(this->sourceCode);
 		circuit = std::make_unique<QCircuit>(qasm::read(stringStream));
 
