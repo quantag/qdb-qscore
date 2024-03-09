@@ -101,6 +101,8 @@ set(Header_Files__interfaces
 )
 source_group("Header Files\\interfaces" FILES ${Header_Files__interfaces})
 
+find_package(CURL REQUIRED)
+
 set(Source_Files
     "Debugger.cpp"
     "Log.cpp"
@@ -111,7 +113,7 @@ set(Source_Files
     "PythonProcessor.cpp"
     "QiskitProcessor.cpp"
     "TketProcessor.cpp"
-
+    "RestClient.cpp"
     "ws/WSServer.cpp"
     "ws/WSListener.cpp"    
     "ws/WSSession.cpp"
@@ -165,6 +167,7 @@ endif()
 ################################################################################
 # Include directories
 ################################################################################
+include_directories(${CURL_INCLUDE_DIR})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
             "${CMAKE_CURRENT_SOURCE_DIR}/third_party/boost/include/boost-1_82;"

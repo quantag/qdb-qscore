@@ -183,7 +183,6 @@ int Utils::fileExists(const std::string& filePath) {
      return res;
  }
 
-
  std::string Utils::toBinaryString(unsigned char val, size_t n) {
      // Use bitwise shift and bitwise OR to extract each bit of the value
      std::bitset<8> bits(val);
