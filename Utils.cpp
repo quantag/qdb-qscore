@@ -315,6 +315,26 @@ std::string Utils::getFileNameFromFullPath(const std::string& fullPath) {
     return fullPath;
 }
 
+std::string Utils::getFileNameWithParent(const std::string& fullPath) {
+    size_t p1 = fullPath.find_last_of('/');
+    size_t p2 = fullPath.find_last_of('\\');
+    size_t p = std::max(p1, p2);
+
+    if (p != std::string::npos) {
+        p++; // Move past the last directory separator
+        size_t p3 = fullPath.find_last_of('/', p - 2);
+        size_t p4 = fullPath.find_last_of('\\', p - 2);
+        size_t p_parent = std::max(p3, p4);
+
+        if (p_parent != std::string::npos) {
+            p_parent++; // Move past the previous directory separator
+            return fullPath.substr(p_parent);
+        }
+    }
+
+    return fullPath;
+}
+
 CommandResult Utils::exec2(const std::string& command) {
     int exitcode = 255;
     std::array<char, 1024> buffer{};
@@ -340,4 +360,21 @@ CommandResult Utils::exec2(const std::string& command) {
     }
     exitcode = WEXITSTATUS(pclose(pipe));
     return CommandResult{ result, exitcode };
+}
+
+std::string Utils::findServerFile(const std::string& sessionFolder, const std::string& fileName) {
+    std::string serverFile = sessionFolder + "/" + Utils::getFileNameFromFullPath(fileName);
+
+    LOGI("trying [%s]", serverFile.c_str());
+    if (Utils::fileExists(serverFile))
+        return serverFile;
+
+    // step 1 folder deep
+    serverFile = sessionFolder + "/" + Utils::getFileNameWithParent(fileName);
+    LOGI("trying [%s]", serverFile.c_str());
+
+    if (Utils::fileExists(serverFile))
+        return serverFile;
+
+    return serverFile;
 }
