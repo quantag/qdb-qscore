@@ -16,7 +16,7 @@ public:
 	QppQVM(WSServer *ws);
 	~QppQVM();
 
-	int loadSourceCode(const std::string& fileName, const std::string& sessionId);
+	int loadSourceCode(const std::string& fileName, const std::string& sessionId, std::string &errorMessage);
 	int run(const std::string& fileName, const std::string& sessionId);
 	int debug(const std::string& fileName, const std::string& sessionId);
 

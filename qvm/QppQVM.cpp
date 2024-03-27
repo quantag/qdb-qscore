@@ -10,6 +10,8 @@
 #include "../QiskitProcessor.h"
 #include "../TketProcessor.h"
 
+#include "../StdCapture.h"
+
 #define DEMO_FILE		"/home/qbit/qasm/file1.qasm"
 #define SOURCE_FILDER	"/var/dap/"
 
@@ -26,7 +28,7 @@ QppQVM::~QppQVM() {
 	delete processor;
 }
 
-int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessionId) {
+int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessionId, std::string& errorMessage) {
 	LOGI("[%s] [%s]", fileName.c_str(), sessionId.c_str());
 
 	int ret = 0;
@@ -95,6 +97,9 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	int ret1 = frontend->loadCode(this->sourceCode);
 	LOGI("frontend.loadCode ret %d", ret1);
 
+	StdCapture stdc;
+	stdc.BeginCapture();
+
 	try {
 		LOGI("Trying to parse OpenQASM: '%s'", this->sourceCode.c_str());
 
@@ -106,9 +111,13 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 		this->sourceCodeParsed = 1;
 	}
 	catch (...) {
-		LOGE("Error parsing OpenQASM from file %s. May be it is not OpenQASM", file.c_str());
+		LOGE("Error parsing OpenQASM from file [%s]. May be it is not OpenQASM", file.c_str());
 
 	}
+	stdc.EndCapture();
+	errorMessage = stdc.GetCapture().c_str();
+	//LOGI("-->> [%s] <<--", errm.c_str());
+
 	return ret;
 }
 
@@ -135,7 +144,9 @@ void QppQVM::updateProcessor(PythonFramework framework) {
 int QppQVM::run(const std::string& fileName, const std::string& sessionId) {
 	LOGI("%s [%s]", fileName.c_str(), sessionId.c_str());
 
-	ASSERT( loadSourceCode(fileName, sessionId) );
+	std::string errorMessage;
+
+	ASSERT( loadSourceCode(fileName, sessionId, errorMessage) );
 	LOGI("Loaded source code from [%s] parsed = %d", fileName.c_str(), this->sourceCodeParsed);
 
 	SAFE_DELETE(engine);
@@ -149,12 +160,17 @@ int QppQVM::run(const std::string& fileName, const std::string& sessionId) {
 int QppQVM::debug(const std::string& fileName, const std::string& sessionId) {
 	LOGI("%s [%s]", fileName.c_str(), sessionId.c_str());
 
-	int ret = loadSourceCode(fileName, sessionId);
+	std::string errorMessage;
+	int ret = loadSourceCode(fileName, sessionId, errorMessage);
 	if (ret != 0) {
-		LOGE("Error loading sources from [%s]", fileName.c_str());
+		LOGE("Error loading sources from [%s] [%s]", fileName.c_str(), errorMessage.c_str());
 		return ret;
 	}
 	LOGI("Loaded source code from [%s] parsed = %d", fileName.c_str(), this->sourceCodeParsed);
+
+	if (!this->sourceCodeParsed) {
+		LOGE("Source parse error [%s]", errorMessage.c_str());
+	}
 
 	SAFE_DELETE(engine);
 	if(this->circuit && this->sourceCodeParsed) {

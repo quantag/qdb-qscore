@@ -110,6 +110,7 @@ set(Source_Files
     "QSCore.cpp"
     "Utils.cpp"
     "WebFrontend.cpp"
+    "StdCapture.cpp"
     "PythonProcessor.cpp"
     "QiskitProcessor.cpp"
     "TketProcessor.cpp"
