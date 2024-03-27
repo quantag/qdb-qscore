@@ -14,7 +14,7 @@
 
 
 
-#define MAX_LOG_LEN		8000
+#define MAX_LOG_LEN		18000
 #define MAX_DATA_LEN	128
 
 /**
