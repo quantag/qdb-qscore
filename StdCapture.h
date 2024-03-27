@@ -1,9 +1,7 @@
 #pragma once
-#ifndef WIN32
-#include <unistd.h>
-#endif
-#include <fcntl.h>
-#include <stdio.h>
+
+
+
 #include <string>
 
 class StdCapture

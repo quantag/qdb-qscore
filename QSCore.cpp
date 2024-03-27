@@ -18,14 +18,11 @@
 #include "interfaces/iqvm.h"
 
 
-#ifdef _MSC_VER
-    #define OS_WINDOWS 1
-#endif
 
-#ifdef OS_WINDOWS
+#ifdef WIN32
     #include <fcntl.h>  // _O_BINARY
     #include <io.h>     // _setmode
-#endif              // OS_WINDOWS
+#endif
 
 #define DAP_SERVER_PORT     5555
 #define WS_SERVER_PORT      5556
@@ -51,12 +48,12 @@ int main(int argc, char *argv[]) {
 
     WSServer wsock;
 
-#ifdef OS_WINDOWS
+#ifdef WIN32
 	// Change stdin & stdout from text mode to binary mode.
 	// This ensures sequences of \r\n are not changed to \n.
 	_setmode(_fileno(stdin), _O_BINARY);
 	_setmode(_fileno(stdout), _O_BINARY);
-#endif  // OS_WINDOWS
+#endif 
 
 	const dap::integer threadId = 100;
 	const dap::integer frameId = 200;
