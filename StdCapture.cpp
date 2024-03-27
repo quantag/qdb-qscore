@@ -9,10 +9,15 @@
      #define close _close
      #define eof _eof
      #define read _read
+#else
+    #include <unistd.h>
 #endif
 
-StdCapture::StdCapture() : m_capturing(false), m_init(false), m_oldStdErr(0)
-{
+#include <fcntl.h>
+#include <stdio.h>
+
+StdCapture::StdCapture() : m_capturing(false), m_init(false), m_oldStdErr(0) {
+#ifdef WIN32
     m_pipe[READ] = 0;
     m_pipe[WRITE] = 0;
     if (_pipe(m_pipe, 65536, O_BINARY) == -1)
@@ -23,12 +28,12 @@ StdCapture::StdCapture() : m_capturing(false), m_init(false), m_oldStdErr(0)
         return;
 
     m_init = true;
+#endif
 }
 
-StdCapture::~StdCapture()
-{
-    if (m_capturing)
-    {
+StdCapture::~StdCapture() {
+#ifdef WIN32
+    if (m_capturing) {
         EndCapture();
     }
 
@@ -38,23 +43,21 @@ StdCapture::~StdCapture()
         close(m_pipe[READ]);
     if (m_pipe[WRITE] > 0)
         close(m_pipe[WRITE]);
+#endif
 }
 
-std::string StdCapture::GetCapture() const
-{
+std::string StdCapture::GetCapture() const {
     std::string::size_type idx = m_captured.find_last_not_of("\r\n");
-    if (idx == std::string::npos)
-    {
+    if (idx == std::string::npos) {
         return m_captured;
     }
-    else
-    {
+    else {
         return m_captured.substr(0, idx + 1);
     }
 }
 
-bool StdCapture::EndCapture()
-{
+bool StdCapture::EndCapture() {
+#ifdef WIN32
     if (!m_init)
         return false;
     if (!m_capturing)
@@ -69,12 +72,10 @@ bool StdCapture::EndCapture()
     const int bufSize = 1024;
     buf.resize(bufSize);
     int bytesRead = 0;
-    if (!eof(m_pipe[READ]))
-    {
+    if (!eof(m_pipe[READ])) {
         bytesRead = read(m_pipe[READ], &(*buf.begin()), bufSize);
     }
-    while (bytesRead == bufSize)
-    {
+    while (bytesRead == bufSize) {
         m_captured += buf;
         bytesRead = 0;
         if (!eof(m_pipe[READ]))
@@ -82,17 +83,17 @@ bool StdCapture::EndCapture()
             bytesRead = read(m_pipe[READ], &(*buf.begin()), bufSize);
         }
     }
-    if (bytesRead > 0)
-    {
+    if (bytesRead > 0) {
         buf.resize(bytesRead);
         m_captured += buf;
     }
     m_capturing = false;
+#endif
     return true;
 }
 
-void StdCapture::BeginCapture()
-{
+void StdCapture::BeginCapture() {
+#ifdef WIN32
     if (!m_init)
         return;
     if (m_capturing)
@@ -102,4 +103,5 @@ void StdCapture::BeginCapture()
 
     dup2(m_pipe[WRITE], fileno(stderr));
     m_capturing = true;
+#endif
 }
