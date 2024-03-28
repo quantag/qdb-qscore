@@ -13,7 +13,7 @@
 #include "../StdCapture.h"
 
 #define DEMO_FILE		"/home/qbit/qasm/file1.qasm"
-#define SOURCE_FILDER	"/var/dap/"
+#define SOURCE_FOLDER	"/var/dap/"
 
 QppQVM::QppQVM(WSServer* ws) : engine(NULL) {
 	this->frontend = new WebFrontend();
@@ -41,8 +41,17 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 
 	if (!Utils::fileExists(file)) {
 		// try to find on server folder
-		std::string sessionFolder = SOURCE_FILDER + sessionId;
-		std::string serverFile =  Utils::findServerFile(sessionFolder, file);
+		std::string defaultFolder = SOURCE_FOLDER + std::string("default");
+		std::string serverFile = Utils::findServerFile(defaultFolder, file);
+		if (Utils::fileExists(serverFile)) {
+			LOGI("Found Server File in default folder '%s'", serverFile.c_str());
+
+		}
+		else {
+			std::string sessionFolder = SOURCE_FOLDER + sessionId;
+			serverFile = Utils::findServerFile(sessionFolder, file);
+		}
+
 
 		if (!Utils::fileExists(serverFile)) {
 			LOGI("Server File '%s' not exists", serverFile.c_str());
@@ -55,8 +64,9 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 			LOGI("Server File '%s' exists", serverFile.c_str());
 			file = serverFile;
 		}
-
 	}
+
+
 	if (!Utils::fileExists(file) ) {
 		LOGI("File '%s' not exists", file.c_str());
 		return 1;
