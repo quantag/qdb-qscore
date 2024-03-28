@@ -10,7 +10,7 @@
 #include "../QiskitProcessor.h"
 #include "../TketProcessor.h"
 
-#include "../StdCapture.h"
+//#include "../StdCapture.h"
 
 #define DEMO_FILE		"/home/qbit/qasm/file1.qasm"
 #define SOURCE_FOLDER	"/var/dap/"
@@ -51,7 +51,6 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 			std::string sessionFolder = SOURCE_FOLDER + sessionId;
 			serverFile = Utils::findServerFile(sessionFolder, file);
 		}
-
 
 		if (!Utils::fileExists(serverFile)) {
 			LOGI("Server File '%s' not exists", serverFile.c_str());
@@ -107,8 +106,8 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	int ret1 = frontend->loadCode(this->sourceCode);
 	LOGI("frontend.loadCode ret %d", ret1);
 
-	StdCapture stdc;
-	stdc.BeginCapture();
+//	StdCapture stdc;
+//	stdc.BeginCapture();
 
 	try {
 		LOGI("Trying to parse OpenQASM: '%s'", this->sourceCode.c_str());
@@ -124,8 +123,8 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 		LOGE("Error parsing OpenQASM from file [%s]. May be it is not OpenQASM", file.c_str());
 
 	}
-	stdc.EndCapture();
-	errorMessage = stdc.GetCapture().c_str();
+//	stdc.EndCapture();
+//	errorMessage = stdc.GetCapture().c_str();
 	//LOGI("-->> [%s] <<--", errm.c_str());
 
 	return ret;
