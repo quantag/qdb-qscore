@@ -395,8 +395,22 @@ int main(int argc, char *argv[]) {
             session->sessionId = req.sessionId.has_value() ? req.sessionId.value().c_str() : "";
             bool isRun = req.noDebug.has_value();
 
-            int ok = debugger.launch(isRun, req.program.value(), session->sessionId);
-            LOGI("QVM launch ret %d", ok);
+            int ret = debugger.launch(isRun, req.program.value(), session->sessionId);
+            LOGI("QVM launch ret %d", ret);
+
+            if (ret!=0) {
+                LOGE("Launch was not OK [%s]", debugger.getLastErrorMessage().c_str());
+
+                // send OutputEvent with error message
+                dap::OutputEvent evnt;
+                evnt.data = debugger.getLastErrorMessage();
+                // 'console', 'important', 'stdout', 'stderr', 'telemetry'
+                evnt.category = "console";
+                evnt.output = debugger.getLastErrorMessage();
+                session->send(evnt);
+                // send evnt..
+            }
+
             return dap::LaunchResponse();
         });
 

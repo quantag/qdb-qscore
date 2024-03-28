@@ -39,6 +39,7 @@ public:
 	const std::vector<std::string>& getSourcePerLines() {
 		return sourceCodePerLines;
 	}
+	std::string errorMessage;
 
 protected:
 	std::string sourceCode;
