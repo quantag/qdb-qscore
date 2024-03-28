@@ -115,8 +115,13 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 		this->sourceCodeParsed = 1;
 	}
 	catch (qasmtools::parser::ParseError e) {
-		LOGE("Error parsing OpenQASM from file [%s]. [%s]", file.c_str(), e.what());
-		errorMessage = e.what();
+		LOGE("Error parsing OpenQASM from file [%s]. [%s]", file.c_str(), (e.what()!=NULL) ? e.what() : "");
+		errorMessage = (e.what() != NULL) ? e.what() : "Parsing error";
+	}
+	catch (...) {
+		// Catch any other type of exception
+		LOGE("Caught unknown exception");
+		errorMessage = "Unknown exception occurred";
 	}
 
 	return ret;
