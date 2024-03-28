@@ -10,7 +10,6 @@
 #include "../QiskitProcessor.h"
 #include "../TketProcessor.h"
 
-//#include "../StdCapture.h"
 
 #define DEMO_FILE		"/home/qbit/qasm/file1.qasm"
 #define SOURCE_FOLDER	"/var/dap/"
@@ -65,7 +64,6 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 		}
 	}
 
-
 	if (!Utils::fileExists(file) ) {
 		LOGI("File '%s' not exists", file.c_str());
 		return 1;
@@ -106,9 +104,6 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	int ret1 = frontend->loadCode(this->sourceCode);
 	LOGI("frontend.loadCode ret %d", ret1);
 
-//	StdCapture stdc;
-//	stdc.BeginCapture();
-
 	try {
 		LOGI("Trying to parse OpenQASM: '%s'", this->sourceCode.c_str());
 
@@ -119,13 +114,10 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 		LOGI("Created QCircuit from file '%s', nQubits = %u", file.c_str(), this->nQubits);
 		this->sourceCodeParsed = 1;
 	}
-	catch (...) {
-		LOGE("Error parsing OpenQASM from file [%s]. May be it is not OpenQASM", file.c_str());
-
+	catch (qasmtools::parser::ParseError e) {
+		LOGE("Error parsing OpenQASM from file [%s]. [%s]", file.c_str(), e.what());
+		errorMessage = e.what();
 	}
-//	stdc.EndCapture();
-//	errorMessage = stdc.GetCapture().c_str();
-	//LOGI("-->> [%s] <<--", errm.c_str());
 
 	return ret;
 }
@@ -169,7 +161,7 @@ int QppQVM::run(const std::string& fileName, const std::string& sessionId) {
 int QppQVM::debug(const std::string& fileName, const std::string& sessionId) {
 	LOGI("%s [%s]", fileName.c_str(), sessionId.c_str());
 
-	std::string errorMessage;
+	errorMessage = "";
 	int ret = loadSourceCode(fileName, sessionId, errorMessage);
 	if (ret != 0) {
 		LOGE("Error loading sources from [%s] [%s]", fileName.c_str(), errorMessage.c_str());
@@ -179,6 +171,7 @@ int QppQVM::debug(const std::string& fileName, const std::string& sessionId) {
 
 	if (!this->sourceCodeParsed) {
 		LOGE("Source parse error [%s]", errorMessage.c_str());
+		ret = 1;
 	}
 
 	SAFE_DELETE(engine);
@@ -188,7 +181,7 @@ int QppQVM::debug(const std::string& fileName, const std::string& sessionId) {
 		LOGI("Iterator initialized");
 	}
 
-	return 0;
+	return ret;
 }
 
 int QppQVM::getSourceLines() {

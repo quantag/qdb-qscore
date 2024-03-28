@@ -5,9 +5,10 @@
 #include <unordered_set>
 
 #include "Typedefs.h"
+#include "interfaces/iqvm.h"
 
 class WSServer;
-class IQVM;
+
 
 // Debugger holds the dummy debugger state and fires events to the EventHandler
 // passed to the constructor.
@@ -47,6 +48,10 @@ class Debugger {
 
   IQVM* getQVM() {
 	  return qvm;
+  }
+
+  std::string getLastErrorMessage() {
+	  return qvm->errorMessage;
   }
 
  private:

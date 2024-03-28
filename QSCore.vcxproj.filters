@@ -120,9 +120,6 @@
     <ClCompile Include="RestClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="StdCapture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debugger.h">
@@ -216,9 +213,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RestClient.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="StdCapture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
