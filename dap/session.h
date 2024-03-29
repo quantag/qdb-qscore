@@ -25,6 +25,7 @@
 
 
 class Debugger;
+class WSSession;
 
 namespace dap {
 
@@ -146,6 +147,8 @@ class Session {
 
   std::string currentSourceFilePath;
   Debugger* debugger;
+
+  void setWSSession(WSSession *ws);
 
   // ErrorHandler is the type of callback function used for reporting protocol
   // errors.

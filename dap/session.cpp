@@ -537,4 +537,12 @@ void Session::setSessionId(const std::string& id) {
     LOGI("[%s]", id.c_str());
     this->sessionId = id;
 }
+
+
+void Session::setWSSession(WSSession* ws) {
+    LOGI("setWSSession");
+    if (debugger) {
+        debugger->getQVM()->setWSSession(ws);
+    }
+}
 }  // namespace dap

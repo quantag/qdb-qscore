@@ -6,6 +6,8 @@
 #include <streambuf>
 #include <nlohmann/json.hpp>
 
+#include "../SessionStorage.h"
+
 
 using json = nlohmann::json;
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -99,6 +101,16 @@ void WSSession::setSessionId(const std::string& id) {
     LOGI("%s", id.c_str());
 
     this->sessionId = id;
+
+    SessionStorage& sessions = SessionStorage::getInstance();
+    dap::Session *session = sessions.findById(id);
+    if (session) {
+        LOGI("** Session [%s] found !! in Session Storage", id.c_str());
+        session->setWSSession(this);
+    }
+    else {
+        LOGE("** Session with id [%s] not found in SessionStorage", id.c_str());
+    }
 }
 
 void WSSession::on_write(beast::error_code ec, std::size_t bytes_transferred) {
