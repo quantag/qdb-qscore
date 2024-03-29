@@ -65,9 +65,9 @@ int main(int argc, char *argv[]) {
 
         auto session = dap::Session::create();
         // Event handlers from the Debugger.
-        auto onDebuggerEvent = [&](Debugger::EventEnum onEvent) {
+        auto onDebuggerEvent = [&](EventEnum onEvent) {
             switch (onEvent) {
-                case Debugger::EventEnum::Stepped: {
+                case EventEnum::Stepped: {
                     // The debugger has single-line stepped. Inform the client.
                     dap::StoppedEvent event;
                     event.reason = "step";
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
                     session->send(event);
                     break;
                 }
-                case Debugger::EventEnum::BreakpointHit: {
+                case EventEnum::BreakpointHit: {
                     // The debugger has hit a breakpoint. Inform the client.
                     dap::StoppedEvent event;
                     event.reason = "breakpoint";
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
                     session->send(event);
                     break;
                 }
-                case Debugger::EventEnum::Paused: {
+                case EventEnum::Paused: {
                     // The debugger has been suspended. Inform the client.
                     dap::StoppedEvent event;
                     event.reason = "pause";

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <mutex>
 #include <unordered_set>
 
@@ -12,37 +11,34 @@ class WSServer;
 
 class Debugger {
  public:
-  enum class EventEnum { BreakpointHit, Stepped, Paused };
-  using EventHandler = std::function<void(EventEnum)>;
+	Debugger(const EventHandler&, WSServer*);
+	~Debugger();
 
-  Debugger(const EventHandler&, WSServer*);
-  ~Debugger();
+	// run() instructs the debugger to continue execution.
+	void continueDebugger();
 
-  // run() instructs the debugger to continue execution.
-  void continueDebugger();
+	int launch(int isRun, const std::string& fileName, const std::string& sessionId);
 
-  int launch(int isRun, const std::string& fileName, const std::string& sessionId);
+	// pause() instructs the debugger to pause execution.
+	void pause();
 
-  // pause() instructs the debugger to pause execution.
-  void pause();
+	// currentLine() returns the currently executing line number.
+	int64_t currentLine();
 
-  // currentLine() returns the currently executing line number.
-  int64_t currentLine();
+	// stepForward() instructs the debugger to step forward one line.
+	void stepForward();
 
-  // stepForward() instructs the debugger to step forward one line.
-  void stepForward();
+	// clearBreakpoints() clears all set breakpoints.
+	void clearBreakpoints();
 
-  // clearBreakpoints() clears all set breakpoints.
-  void clearBreakpoints();
+	// addBreakpoint() sets a new breakpoint on the given line.
+	void addBreakpoint(int64_t line);
 
-  // addBreakpoint() sets a new breakpoint on the given line.
-  void addBreakpoint(int64_t line);
+	// Total number of newlines in source.
+	int64_t numSourceLines;
 
-  // Total number of newlines in source.
-  int64_t numSourceLines;
-
-  std::vector<complexNumber> getQVMVariables();
-  virtual size_t getQubitsCount() const;
+	std::vector<complexNumber> getQVMVariables();
+	virtual size_t getQubitsCount() const;
 
   IQVM* getQVM() {
 	  return qvm;
@@ -53,11 +49,9 @@ class Debugger {
   }
 
  private:
-  EventHandler onEvent;
-  std::mutex mutex;
-//  int64_t line = 1;
-  std::unordered_set<int64_t> breakpoints;
+	EventHandler onEvent;
+	std::mutex mutex;
+	std::unordered_set<int64_t> breakpoints;
 
-  IQVM* qvm;
-
+	IQVM* qvm;
 };
