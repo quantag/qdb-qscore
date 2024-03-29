@@ -15,7 +15,6 @@
 
 QppQVM::QppQVM() : engine(NULL) {
 	this->frontend = new WebFrontend();
-//	this->frontend->setWSServer(ws);
 	this->sourceCodeParsed = 0;
 	processor = new QiskitProcessor();
 }

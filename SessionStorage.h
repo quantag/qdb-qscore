@@ -11,6 +11,11 @@ public:
 	SessionStorage();
 	~SessionStorage();
 
+	static SessionStorage& getInstance() {
+		static SessionStorage instance; // Static instance created only once
+		return instance;
+	}
+
 	void add(const std::string& id, std::shared_ptr<dap::Session> session);
 	void remove(const std::string& id);
 	void removeLater(const std::string& id);

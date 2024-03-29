@@ -37,18 +37,11 @@ constexpr char sourceContent[] = R"(// !
 This is a synthetic source file provided by the DAP debugger.)";
 
 
-
 int main(int argc, char *argv[]) {
     LOG_INIT(2, "qs-core.log");
-    WSServer wsock;
-    SessionStorage sessions;
 
-#ifdef WIN32
-	// Change stdin & stdout from text mode to binary mode.
-	// This ensures sequences of \r\n are not changed to \n.
-	_setmode(_fileno(stdin), _O_BINARY);
-	_setmode(_fileno(stdout), _O_BINARY);
-#endif 
+    WSServer wsock;
+    SessionStorage &sessions = SessionStorage::getInstance();
 
 	const dap::integer threadId = 100;
 	const dap::integer frameId = 200;
@@ -476,5 +469,6 @@ int main(int argc, char *argv[]) {
     LOGI("Starting WS Server on [%s:%d]", wsHost, WS_SERVER_PORT);
    
     wsock.start(wsHost, WS_SERVER_PORT);
+
     return 0;
 }
