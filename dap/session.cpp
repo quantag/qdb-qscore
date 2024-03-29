@@ -33,25 +33,30 @@
 
 #include "../Log.h"
 
+
 namespace {
 
 class SessionImpl : public dap::Session {
  public:
-  void setOnInvalidData(dap::OnInvalidData onInvalidData_) override {
+    SessionImpl(WSServer* ws) {
+
+    }
+
+    void setOnInvalidData(dap::OnInvalidData onInvalidData_) override {
         this->onInvalidData = onInvalidData_;
-  }
+    }
 
-  void onError(const ErrorHandler& handler) override { handlers.put(handler); }
+    void onError(const ErrorHandler& handler) override { handlers.put(handler); }
 
-  void registerHandler(const dap::TypeInfo* typeinfo,
+    void registerHandler(const dap::TypeInfo* typeinfo,
                        const GenericRequestHandler& handler) override {
         handlers.put(typeinfo, handler);
-  }
+    }
 
-  void registerHandler(const dap::TypeInfo* typeinfo,
+    void registerHandler(const dap::TypeInfo* typeinfo,
                        const GenericEventHandler& handler) override {
         handlers.put(typeinfo, handler);
-  }
+    }
 
   void registerHandler(const dap::TypeInfo* typeinfo,
                        const GenericResponseSentHandler& handler) override {
@@ -518,9 +523,9 @@ Error::Error(const char* msg, ...) {
 
 Session::~Session() = default;
 
-std::unique_ptr<Session> Session::create() {
+std::unique_ptr<Session> Session::create(WSServer *ws) {
     LOGI("");
-    return std::unique_ptr<Session>(new SessionImpl());
+    return std::unique_ptr<Session>(new SessionImpl(ws));
 }
 
 }  // namespace dap
