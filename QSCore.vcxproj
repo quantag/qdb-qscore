@@ -154,6 +154,7 @@
     <ClCompile Include="QSCore.cpp" />
     <ClCompile Include="qvm\QppQVM.cpp" />
     <ClCompile Include="RestClient.cpp" />
+    <ClCompile Include="SessionStorage.cpp" />
     <ClCompile Include="TketProcessor.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="WebFrontend.cpp" />
@@ -186,6 +187,7 @@
     <ClInclude Include="QiskitProcessor.h" />
     <ClInclude Include="qvm\QppQVM.h" />
     <ClInclude Include="RestClient.h" />
+    <ClInclude Include="SessionStorage.h" />
     <ClInclude Include="TketProcessor.h" />
     <ClInclude Include="Typedefs.h" />
     <ClInclude Include="Utils.h" />

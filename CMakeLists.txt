@@ -114,6 +114,7 @@ set(Source_Files
     "QiskitProcessor.cpp"
     "TketProcessor.cpp"
     "RestClient.cpp"
+    "SessionStorage.cpp"
     "ws/WSServer.cpp"
     "ws/WSListener.cpp"    
     "ws/WSSession.cpp"

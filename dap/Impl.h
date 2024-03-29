@@ -3,6 +3,7 @@
 
 #include "network.h"
 #include "socket.h"
+//#include "session.h"
 
 #include <mutex>
 #include <thread>
@@ -17,8 +18,10 @@ class ServerImpl : public dap::net::Server {
             const OnConnect& onConnect) override;
 
         void stop() override;
-        int removeDeadThreads();
-        size_t getThreadsCount() const;
+ //       int removeDeadThreads();
+ //       size_t getThreadsCount() const;
+
+        // findSessionById(const std::string& sessionId);
 
     private:
         inline bool isRunning() const { return !stopped; }
@@ -30,7 +33,8 @@ class ServerImpl : public dap::net::Server {
         std::atomic<bool> stopped;
         OnError errorHandler;
 
-        std::vector<std::shared_ptr<std::thread>> threads;
+ //       std::vector<std::shared_ptr<std::thread>> threads;
+
 };
 
 

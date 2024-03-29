@@ -528,9 +528,13 @@ Error::Error(const char* msg, ...) {
 
 Session::~Session() = default;
 
-std::unique_ptr<Session> Session::create() {
+std::shared_ptr<Session> Session::create() {
     LOGI("");
-    return std::unique_ptr<Session>(new SessionImpl());
+    return std::shared_ptr<Session>(new SessionImpl());
 }
 
+void Session::setSessionId(const std::string& id) {
+    LOGI("[%s]", id.c_str());
+    this->sessionId = id;
+}
 }  // namespace dap

@@ -17,6 +17,7 @@
 #include "Typedefs.h"
 #include "interfaces/iqvm.h"
 
+#include "SessionStorage.h"
 
 
 #ifdef WIN32
@@ -40,6 +41,7 @@ This is a synthetic source file provided by the DAP debugger.)";
 int main(int argc, char *argv[]) {
     LOG_INIT(2, "qs-core.log");
     WSServer wsock;
+    SessionStorage sessions;
 
 #ifdef WIN32
 	// Change stdin & stdout from text mode to binary mode.
@@ -52,6 +54,7 @@ int main(int argc, char *argv[]) {
 	const dap::integer frameId = 200;
 	const dap::integer variablesReferenceId = 300;
 	const dap::integer sourceReferenceId = 400;
+
 
     // Callback handler for a socket connection to the server
     auto onClientConnected =
@@ -385,10 +388,14 @@ int main(int argc, char *argv[]) {
             LOGI(" ~ [LaunchRequest] [%s] [%s]", req.program.value().c_str(), req.sessionId.has_value() ? req.sessionId.value().c_str() : "" );
            
             session->currentSourceFilePath = req.program.value();
-            session->sessionId = req.sessionId.has_value() ? req.sessionId.value().c_str() : "";
-            bool isRun = req.noDebug.has_value();
 
-            int ret = session->debugger->launch(isRun, req.program.value(), session->sessionId);
+            session->setSessionId( req.sessionId.has_value() ? req.sessionId.value().c_str() : "" );
+            sessions.add(session->getSessionId(), session);
+            LOGI("Sessions in storage: %u", sessions.getSessionsCount());
+
+
+            bool isRun = req.noDebug.has_value();
+            int ret = session->debugger->launch(isRun, req.program.value(), session->getSessionId());
             LOGI("QVM launch ret %d", ret);
 
             if (ret!=0) {
@@ -415,6 +422,9 @@ int main(int argc, char *argv[]) {
            // if (request.terminateDebuggee.value(false)) {
                 terminate.fire();
            // }
+
+            sessions.remove(session->getSessionId());
+
             return dap::DisconnectResponse();
         });
 
