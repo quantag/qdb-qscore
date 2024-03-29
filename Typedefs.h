@@ -42,3 +42,8 @@ struct CommandResult {
 		return !(rhs == *this);
 	}*/
 };
+
+enum class EventEnum { BreakpointHit, Stepped, Paused };
+
+#include <functional>
+using EventHandler = std::function<void(EventEnum)>;
