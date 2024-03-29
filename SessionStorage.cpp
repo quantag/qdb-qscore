@@ -45,3 +45,27 @@ size_t SessionStorage::getSessionsCount() {
 
     return sessionMap.size();
 }
+
+void SessionStorage::removeLater(const std::string& id) {
+    LOGI("removeLater [%s]", id.c_str());
+
+    this->removeLaterSet.insert(id);
+}
+
+size_t SessionStorage::cleanup() {
+    LOGI("Cleanup. RemoveLater size: %u", this->removeLaterSet.size());
+    // Iterate over removeLaterSet and remove sessions from sessionMap
+    size_t removedCount = 0;
+    for (const auto& id : removeLaterSet) {
+        auto it = sessionMap.find(id);
+        if (it != sessionMap.end()) {
+            sessionMap.erase(it);
+            ++removedCount;
+        }
+    }
+
+    // Clear removeLaterSet after removing sessions
+    removeLaterSet.clear();
+
+    return removedCount;
+}
