@@ -21,9 +21,10 @@
 #include "typeinfo.h"
 #include "typeof.h"
 
-#include <functional>
+#include "../Typedefs.h"
 
 class WSServer;
+class Debugger;
 
 namespace dap {
 
@@ -145,6 +146,7 @@ class Session {
 
   std::string currentSourceFilePath;
   std::string sessionId;
+  Debugger* debugger;
 
   // ErrorHandler is the type of callback function used for reporting protocol
   // errors.
@@ -159,6 +161,9 @@ class Session {
 
   // Sets how the Session handles invalid data.
   virtual void setOnInvalidData(OnInvalidData) = 0;
+
+  virtual void createDebugger(const EventHandler& evnt) = 0;
+
 
   // onError() registers a error handler that will be called whenever a protocol
   // error is encountered.

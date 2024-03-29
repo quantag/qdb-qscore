@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
         };
 
         // Construct the debugger.
-        Debugger debugger(onDebuggerEvent, &wsock);
+        session->createDebugger(onDebuggerEvent);
 
         // Set the session to close on invalid data. This ensures that data received over the network
         // receives a baseline level of validation before being processed.
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]) {
                 source.name = Utils::getShortName(session->currentSourceFilePath);
 
                 dap::StackFrame frame;
-                frame.line = debugger.currentLine();
+                frame.line = session->debugger->currentLine();
                 frame.column = 1;
                 frame.name = "QuantumDebugger";
                 frame.id = frameId;
@@ -186,17 +186,17 @@ int main(int argc, char *argv[]) {
             [&](const dap::DisassemblyRequest& request)
             -> dap::ResponseOrError<dap::DisassemblyResponse> {
 
-                LOGI("[DisassemblyRequest] %d", debugger.numSourceLines);
+                LOGI("[DisassemblyRequest] %d", session->debugger->numSourceLines);
                 dap::DisassemblyResponse response;
 
-                if (debugger.getQVM()->isSourceCodeParsed()) {
+                if (session->debugger->getQVM()->isSourceCodeParsed()) {
                     int baseAddress = 100;
-                    for(int i=0; i< debugger.getQVM()->getSourcePerLines().size(); i++) {
+                    for(int i=0; i< session->debugger->getQVM()->getSourcePerLines().size(); i++) {
                         dap::DisassembledInstruction code;
 
                         code.address = Utils::intToString(baseAddress + i);
                         code.column = 1;
-                        code.instruction = debugger.getQVM()->getSourcePerLines().at(i);
+                        code.instruction = session->debugger->getQVM()->getSourcePerLines().at(i);
 
                         response.instructions.push_back(code);
                     }
@@ -252,11 +252,11 @@ int main(int argc, char *argv[]) {
                 /*
                 * add qubits here
                 */
-                std::vector<complexNumber> qubits = debugger.getQVMVariables();
+                std::vector<complexNumber> qubits = session->debugger->getQVMVariables();
                 unsigned char idx = 0;
                 for (complexNumber item : qubits) {
                     dap::Variable qubitVar;
-                    qubitVar.name = "|" + Utils::toBinaryString(idx, debugger.getQubitsCount()) + ">";
+                    qubitVar.name = "|" + Utils::toBinaryString(idx, session->debugger->getQubitsCount()) + ">";
                     qubitVar.value = Utils::complex2str(item);
                     qubitVar.type = "complex";
                     idx++;
@@ -273,7 +273,7 @@ int main(int argc, char *argv[]) {
         session->registerHandler([&](const dap::PauseRequest&) {
             LOGI("[PauseRequest]");
 
-            debugger.pause();
+            session->debugger->pause();
             return dap::PauseResponse();
             });
 
@@ -283,7 +283,7 @@ int main(int argc, char *argv[]) {
         session->registerHandler([&](const dap::ContinueRequest&) {
             LOGI("[ContinueRequest]");
 
-            debugger.continueDebugger();
+            session->debugger->continueDebugger();
             return dap::ContinueResponse();
             });
 
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
         session->registerHandler([&](const dap::NextRequest& req) {
             LOGI("*** [NextRequest] threadId=%d ***", req.threadId);
 
-            debugger.stepForward();
+            session->debugger->stepForward();
             return dap::NextResponse();
             });
         // The StepIn request instructs the debugger to step-in for a specific
@@ -303,7 +303,7 @@ int main(int argc, char *argv[]) {
             LOGI("[StepInRequest]");
 
             // Step-in treated as step-over as there's only one stack frame.
-            debugger.stepForward();
+            session->debugger->stepForward();
             return dap::StepInResponse();
             });
 
@@ -329,12 +329,12 @@ int main(int argc, char *argv[]) {
 
                 auto breakpoints = request.breakpoints.value({});
                 if (1) { //request.source.sourceReference.value(0) == sourceReferenceId) {
-                    debugger.clearBreakpoints();
+                    session->debugger->clearBreakpoints();
                     response.breakpoints.resize(breakpoints.size());
                     for (size_t i = 0; i < breakpoints.size(); i++) {
-                        debugger.addBreakpoint(breakpoints[i].line);
+                        session->debugger->addBreakpoint(breakpoints[i].line);
                         response.breakpoints[i].verified =
-                            breakpoints[i].line < debugger.numSourceLines;
+                            breakpoints[i].line < session->debugger->numSourceLines;
                     }
                 }
                 else {
@@ -389,18 +389,18 @@ int main(int argc, char *argv[]) {
             session->sessionId = req.sessionId.has_value() ? req.sessionId.value().c_str() : "";
             bool isRun = req.noDebug.has_value();
 
-            int ret = debugger.launch(isRun, req.program.value(), session->sessionId);
+            int ret = session->debugger->launch(isRun, req.program.value(), session->sessionId);
             LOGI("QVM launch ret %d", ret);
 
             if (ret!=0) {
-                LOGE("Launch was not OK [%s]", debugger.getLastErrorMessage().c_str());
+                LOGE("Launch was not OK [%s]", session->debugger->getLastErrorMessage().c_str());
 
                 // send OutputEvent with error message
                 dap::OutputEvent evnt;
-                evnt.data = debugger.getLastErrorMessage();
+                evnt.data = session->debugger->getLastErrorMessage();
                 // 'console', 'important', 'stdout', 'stderr', 'telemetry'
                 evnt.category = "console";
-                evnt.output = debugger.getLastErrorMessage();
+                evnt.output = session->debugger->getLastErrorMessage();
                 session->send(evnt);
                 // send evnt..
             }
@@ -441,7 +441,7 @@ int main(int argc, char *argv[]) {
 
         // Start the debugger in a paused state.
         // This sends a stopped event to the client.
-        debugger.pause();
+        session->debugger->pause();
 
         // Block until we receive a 'terminateDebuggee' request or encounter a
         // session error.
