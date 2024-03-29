@@ -10,12 +10,10 @@
 class WSServer;
 
 
-// Debugger holds the dummy debugger state and fires events to the EventHandler
-// passed to the constructor.
 class Debugger {
  public:
-  enum class Event { BreakpointHit, Stepped, Paused };
-  using EventHandler = std::function<void(Event)>;
+  enum class EventEnum { BreakpointHit, Stepped, Paused };
+  using EventHandler = std::function<void(EventEnum)>;
 
   Debugger(const EventHandler&, WSServer*);
   ~Debugger();
