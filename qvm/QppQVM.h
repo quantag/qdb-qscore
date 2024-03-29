@@ -7,13 +7,13 @@
 
 using namespace qpp;
 
-class WSServer;
+class WSSession;
 class IFrontend;
 class PythonProcessor;
 
 class QppQVM : public IQVM {
 public:
-	QppQVM(WSServer *ws);
+	QppQVM();
 	~QppQVM();
 
 	int loadSourceCode(const std::string& fileName, const std::string& sessionId, std::string &errorMessage);
@@ -22,6 +22,8 @@ public:
 
 	int getSourceLines();
 	void stepForward();
+
+	void setWSSession(WSSession* wsSession);
 
 	static std::vector<complexNumber> convertToStdVector(const qpp::ket& eigenVector);
 	static matrix2d convertToMatrix2D(const qpp::cmat& eigenMatrix);

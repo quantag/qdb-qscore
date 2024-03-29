@@ -4,10 +4,10 @@
 #include "Log.h"
 #include "qvm/QppQVM.h"
 
-Debugger::Debugger(const EventHandler& onEvent, WSServer* ws) : onEvent(onEvent), numSourceLines(0) {
+Debugger::Debugger(const EventHandler& onEvent) : onEvent(onEvent), numSourceLines(0) {
     LOGI("Debugger created");
 
-    qvm = new QppQVM(ws);
+    qvm = new QppQVM();
 }
 
 Debugger::~Debugger() {
@@ -46,7 +46,6 @@ int Debugger::launch(int isRun, const std::string& fileName, const std::string &
     }
     return ret;
 }
-
 
 void Debugger::pause() {
     LOGI("***");

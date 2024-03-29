@@ -1,12 +1,12 @@
 #include "WebFrontend.h"
 
 #include "Log.h"
-#include "ws/WSServer.h"
+#include "ws/WSSession.h"
 #include "Utils.h"
 
 
 WebFrontend::WebFrontend() {
-	this->wsServer = NULL;
+	this->wsSession = NULL;
 }
 
 WebFrontend::~WebFrontend() {
@@ -16,7 +16,7 @@ WebFrontend::~WebFrontend() {
 int WebFrontend::loadCode(const std::string& sourceCode) {
 	LOGI("");
 
-	if (!wsServer) return 1;
+	if (!wsSession) return 1;
 
 	nlohmann::json json;
 	json["command"] = "load";
@@ -27,10 +27,10 @@ int WebFrontend::loadCode(const std::string& sourceCode) {
 	return send(json);
 }
 
-
 void to_json(nlohmann::json& j, const complexNumber& c) {
 	j = nlohmann::json{ {"a", c.a}, {"b", c.b} };
 }
+
 void to_json(nlohmann::json& j, const matrix2d& matrix) {
 	for (const auto& row : matrix) {
 		j.push_back(row);
@@ -39,7 +39,7 @@ void to_json(nlohmann::json& j, const matrix2d& matrix) {
 
 int WebFrontend::updateState(const FrontState& state) {
 	LOGI("line = %d", state.currentLine);
-	if (!wsServer) return 1;
+	if (!wsSession) return 1;
 
 	nlohmann::json json;
 	json["command"] = "update";
@@ -51,9 +51,12 @@ int WebFrontend::updateState(const FrontState& state) {
 }
 
 int WebFrontend::send(const nlohmann::json& _data) {
+	if (!wsSession)
+		return 1;
+
 	std::string data = _data.dump();
 	LOGI("FRONTEND>> '%s'", data.c_str());
 
-	int res = wsServer->send(data);
-	return res;
+	wsSession->send(data);
+	return 0;
 }

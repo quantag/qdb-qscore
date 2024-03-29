@@ -1,7 +1,6 @@
 
 #include "QppQVM.h"
 
-
 #include "../Log.h"
 #include "../ws/WSServer.h"
 #include "../Utils.h"
@@ -14,9 +13,9 @@
 #define DEMO_FILE		"/home/qbit/qasm/file1.qasm"
 #define SOURCE_FOLDER	"/var/dap/"
 
-QppQVM::QppQVM(WSServer* ws) : engine(NULL) {
+QppQVM::QppQVM() : engine(NULL) {
 	this->frontend = new WebFrontend();
-	this->frontend->setWSServer(ws);
+//	this->frontend->setWSServer(ws);
 	this->sourceCodeParsed = 0;
 	processor = new QiskitProcessor();
 }
@@ -25,6 +24,11 @@ QppQVM::~QppQVM() {
 	SAFE_DELETE(engine);
 	SAFE_DELETE(frontend);
 	delete processor;
+}
+
+void QppQVM::setWSSession(WSSession* ws) {
+	LOGI("setWSSession");
+	this->frontend->setWSSession(ws);
 }
 
 int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessionId, std::string& errorMessage) {

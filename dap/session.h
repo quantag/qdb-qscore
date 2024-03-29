@@ -23,7 +23,7 @@
 
 #include "../Typedefs.h"
 
-class WSServer;
+
 class Debugger;
 
 namespace dap {
@@ -157,13 +157,12 @@ class Session {
   using ClosedHandler = std::function<void()>;
 
   // create() constructs and returns a new Session.
-  static std::unique_ptr<Session> create(WSServer* );
+  static std::unique_ptr<Session> create();
 
   // Sets how the Session handles invalid data.
   virtual void setOnInvalidData(OnInvalidData) = 0;
 
   virtual void createDebugger(const EventHandler& evnt) = 0;
-
 
   // onError() registers a error handler that will be called whenever a protocol
   // error is encountered.
