@@ -23,6 +23,8 @@
 
 #include <functional>
 
+class WSServer;
+
 namespace dap {
 
 // Forward declarations
@@ -153,7 +155,7 @@ class Session {
   using ClosedHandler = std::function<void()>;
 
   // create() constructs and returns a new Session.
-  static std::unique_ptr<Session> create();
+  static std::unique_ptr<Session> create(WSServer* );
 
   // Sets how the Session handles invalid data.
   virtual void setOnInvalidData(OnInvalidData) = 0;
