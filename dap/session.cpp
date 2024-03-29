@@ -32,14 +32,32 @@
 #include <vector>
 
 #include "../Log.h"
-
+#include "../Debugger.h"
 
 namespace {
 
 class SessionImpl : public dap::Session {
  public:
-    SessionImpl(WSServer* ws) {
+    SessionImpl(WSServer* _ws) : ws(_ws) {
+        dap::Session::debugger = 0;
+    }
 
+    ~SessionImpl() {
+        LOGI("Session closed");
+        inbox.close();
+        reader.close();
+        writer.close();
+        if (recvThread.joinable()) {
+            recvThread.join();
+        }
+        if (dispatchThread.joinable()) {
+            dispatchThread.join();
+        }
+        if (debugger) delete debugger;
+    }
+    void createDebugger(const EventHandler& evnt) override {
+        if (debugger) delete debugger;
+        debugger = new Debugger(evnt, ws);
     }
 
     void setOnInvalidData(dap::OnInvalidData onInvalidData_) override {
@@ -58,56 +76,55 @@ class SessionImpl : public dap::Session {
         handlers.put(typeinfo, handler);
     }
 
-  void registerHandler(const dap::TypeInfo* typeinfo,
-                       const GenericResponseSentHandler& handler) override {
+    void registerHandler(const dap::TypeInfo* typeinfo,
+                        const GenericResponseSentHandler& handler) override {
         handlers.put(typeinfo, handler);
-  }
+    }
 
-  std::function<void()> getPayload() override {
+    std::function<void()> getPayload() override {
         auto request = reader.read();
         if (request.size() > 0) {
-          if (auto payload = processMessage(request)) {
+            if (auto payload = processMessage(request)) {
             return payload;
-          }
+            }
         }
         return {};
-  }
+    }
 
-  void connect(const std::shared_ptr<dap::Reader>& r,
-               const std::shared_ptr<dap::Writer>& w) override {
+    void connect(const std::shared_ptr<dap::Reader>& r,
+                const std::shared_ptr<dap::Writer>& w) override {
         if (isBound.exchange(true)) {
-          handlers.error("Session::connect called twice");
-          return;
+            handlers.error("Session::connect called twice");
+            return;
         }
-
         reader = dap::ContentReader(r, this->onInvalidData);
         writer = dap::ContentWriter(w);
-  }
+    }
 
-  void startProcessingMessages( const ClosedHandler& onClose /* = {} */) override {
+    void startProcessingMessages( const ClosedHandler& onClose /* = {} */) override {
         if (isProcessingMessages.exchange(true)) {
-          handlers.error("Session::startProcessingMessages() called twice");
-          return;
+            handlers.error("Session::startProcessingMessages() called twice");
+            return;
         }
         recvThread = std::thread([this, onClose] {
-          while (reader.isOpen()) {
+            while (reader.isOpen()) {
             if (auto payload = getPayload()) {
-              inbox.put(std::move(payload));
+                inbox.put(std::move(payload));
             }
-          }
-          if (onClose) {
+            }
+            if (onClose) {
             onClose();
-          }
+            }
         });
 
     dispatchThread = std::thread([this] {
-          while (auto payload = inbox.take()) {
+            while (auto payload = inbox.take()) {
             payload.value()();
-          }
+            }
         });
-  }
+    }
 
-  bool send(const dap::TypeInfo* requestTypeInfo,
+    bool send(const dap::TypeInfo* requestTypeInfo,
             const dap::TypeInfo* responseTypeInfo,
             const void* request,
             const GenericResponseHandler& responseHandler) override {
@@ -116,48 +133,37 @@ class SessionImpl : public dap::Session {
 
     dap::json::Serializer s;
     if (!s.object([&](dap::FieldSerializer* fs) {
-          return fs->field("seq", dap::integer(seq)) &&
-                 fs->field("type", "request") &&
-                 fs->field("command", requestTypeInfo->name()) &&
-                 fs->field("arguments", [&](dap::Serializer* s) {
-                   return requestTypeInfo->serialize(s, request);
-                 });
+            return fs->field("seq", dap::integer(seq)) &&
+                    fs->field("type", "request") &&
+                    fs->field("command", requestTypeInfo->name()) &&
+                    fs->field("arguments", [&](dap::Serializer* s) {
+                    return requestTypeInfo->serialize(s, request);
+                    });
         })) {
-      return false;
+        return false;
     }
     return send(s.dump());
-  }
+    }
 
-  bool send(const dap::TypeInfo* typeinfo, const void* event) override {
+    bool send(const dap::TypeInfo* typeinfo, const void* event) override {
         dap::json::Serializer s;
         if (!s.object([&](dap::FieldSerializer* fs) {
-              return fs->field("seq", dap::integer(nextSeq++)) &&
-                     fs->field("type", "event") &&
-                     fs->field("event", typeinfo->name()) &&
-                     fs->field("body", [&](dap::Serializer* s) {
-                       return typeinfo->serialize(s, event);
-                     });
+                return fs->field("seq", dap::integer(nextSeq++)) &&
+                        fs->field("type", "event") &&
+                        fs->field("event", typeinfo->name()) &&
+                        fs->field("body", [&](dap::Serializer* s) {
+                        return typeinfo->serialize(s, event);
+                        });
             })) {
-          return false;
+            return false;
         }
         return send(s.dump());
-  }
-
-  ~SessionImpl() {
-        LOGI("Session closed");
-        inbox.close();
-        reader.close();
-        writer.close();
-        if (recvThread.joinable()) {
-            recvThread.join();
-        }
-        if (dispatchThread.joinable()) {
-            dispatchThread.join();
-        }
-  }
+    }
 
  private:
   using Payload = std::function<void()>;
+
+  WSServer* ws;
 
   class EventHandlers {
    public:

@@ -5,10 +5,13 @@
 #include "qvm/QppQVM.h"
 
 Debugger::Debugger(const EventHandler& onEvent, WSServer* ws) : onEvent(onEvent), numSourceLines(0) {
+    LOGI("Debugger created");
+
     qvm = new QppQVM(ws);
 }
 
 Debugger::~Debugger() {
+    LOGI("Debugger destroyed");
     delete qvm;
 }
 
