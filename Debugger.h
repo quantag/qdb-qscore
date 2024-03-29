@@ -6,12 +6,10 @@
 #include "Typedefs.h"
 #include "interfaces/iqvm.h"
 
-class WSServer;
-
 
 class Debugger {
  public:
-	Debugger(const EventHandler&, WSServer*);
+	Debugger(const EventHandler&);
 	~Debugger();
 
 	// run() instructs the debugger to continue execution.

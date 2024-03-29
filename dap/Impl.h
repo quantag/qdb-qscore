@@ -17,6 +17,8 @@ class ServerImpl : public dap::net::Server {
             const OnConnect& onConnect) override;
 
         void stop() override;
+        int removeDeadThreads();
+        size_t getThreadsCount() const;
 
     private:
         inline bool isRunning() const { return !stopped; }
@@ -27,6 +29,8 @@ class ServerImpl : public dap::net::Server {
         std::unique_ptr<dap::Socket> socket;
         std::atomic<bool> stopped;
         OnError errorHandler;
+
+        std::vector<std::shared_ptr<std::thread>> threads;
 };
 
 

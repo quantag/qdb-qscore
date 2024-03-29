@@ -27,14 +27,13 @@
 #define DAP_SERVER_PORT     5555
 #define WS_SERVER_PORT      5556
 
-#define LOCALHOST   "127.0.0.1"
+#define LOCALHOST           "127.0.0.1"
 
 
 
 // sourceContent holds the synthetic file source.
 constexpr char sourceContent[] = R"(// !
-This is a synthetic source file provided by the DAP debugger.
-You may also notice that the locals contains a single variable for the currently executing line number.)";
+This is a synthetic source file provided by the DAP debugger.)";
 
 
 
@@ -63,7 +62,7 @@ int main(int argc, char *argv[]) {
 
         LOGI("== DAP client CONNECTED ==");
 
-        auto session = dap::Session::create(&wsock);
+        auto session = dap::Session::create();
         // Event handlers from the Debugger.
         auto onDebuggerEvent = [&](EventEnum onEvent) {
             switch (onEvent) {
@@ -411,13 +410,13 @@ int main(int argc, char *argv[]) {
 
         // Handler for disconnect requests
         session->registerHandler([&](const dap::DisconnectRequest& request) {
-            LOGI("[DisconnectRequest]");
+            LOGI("[DisconnectRequest] %d", request.terminateDebuggee.value(false));
 
-            if (request.terminateDebuggee.value(false)) {
+           // if (request.terminateDebuggee.value(false)) {
                 terminate.fire();
-            }
+           // }
             return dap::DisconnectResponse();
-            });
+        });
 
         // The ConfigurationDone request is made by the client once all
         // configuration requests have been made. This example debugger uses
@@ -439,20 +438,23 @@ int main(int argc, char *argv[]) {
         threadStartedEvent.threadId = threadId;
         session->send(threadStartedEvent);
 
+        LOGI("== before debugger->pause()");
         // Start the debugger in a paused state.
         // This sends a stopped event to the client.
         session->debugger->pause();
+        LOGI("== before terminate.wait()");
 
         // Block until we receive a 'terminateDebuggee' request or encounter a
         // session error.
         terminate.wait();
-        };
+        LOGI("== DAP client DISCONNECTED ==");
+    };
 
     // Create the network server
-    auto server = dap::net::Server::create();
+    auto dapServer = dap::net::Server::create();
 
     const char* dapHost = (argc > 1) ? argv[1] : LOCALHOST;
-    server->start( dapHost, DAP_SERVER_PORT, onClientConnected);
+    dapServer->start( dapHost, DAP_SERVER_PORT, onClientConnected);
     LOGI("DAP Server started on [%s:%d]", dapHost, DAP_SERVER_PORT);
 
     const char* wsHost = (argc > 2) ? argv[2] : LOCALHOST;

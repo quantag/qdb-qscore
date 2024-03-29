@@ -38,7 +38,7 @@ namespace {
 
 class SessionImpl : public dap::Session {
  public:
-    SessionImpl(WSServer* _ws) : ws(_ws) {
+    SessionImpl() {
         dap::Session::debugger = 0;
     }
 
@@ -55,9 +55,10 @@ class SessionImpl : public dap::Session {
         }
         if (debugger) delete debugger;
     }
+
     void createDebugger(const EventHandler& evnt) override {
         if (debugger) delete debugger;
-        debugger = new Debugger(evnt, ws);
+        debugger = new Debugger(evnt);
     }
 
     void setOnInvalidData(dap::OnInvalidData onInvalidData_) override {
@@ -162,8 +163,6 @@ class SessionImpl : public dap::Session {
 
  private:
   using Payload = std::function<void()>;
-
-  WSServer* ws;
 
   class EventHandlers {
    public:
@@ -529,9 +528,9 @@ Error::Error(const char* msg, ...) {
 
 Session::~Session() = default;
 
-std::unique_ptr<Session> Session::create(WSServer *ws) {
+std::unique_ptr<Session> Session::create() {
     LOGI("");
-    return std::unique_ptr<Session>(new SessionImpl(ws));
+    return std::unique_ptr<Session>(new SessionImpl());
 }
 
 }  // namespace dap

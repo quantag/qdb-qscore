@@ -16,17 +16,17 @@ struct FrontState {
 };
 
 
-class WSServer;
+class WSSession;
 // interface to web frontend
 class IFrontend {
 public:
 	virtual int loadCode(const std::string &sourceCode) = 0;
 	virtual int updateState(const FrontState &state) = 0;
 
-	virtual void setWSServer(WSServer* ws) {
-		this->wsServer = ws;
+	virtual void setWSSession(WSSession* ws) {
+		this->wsSession = ws;
 	}
 
 protected:
-	WSServer* wsServer;
+	WSSession* wsSession;
 };
