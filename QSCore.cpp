@@ -392,6 +392,9 @@ int main(int argc, char *argv[]) {
             session->setSessionId( req.sessionId.has_value() ? req.sessionId.value().c_str() : "" );
             sessions.add(session->getSessionId(), session);
             LOGI("Sessions in storage: %u", sessions.getSessionsCount());
+            size_t cleaned = sessions.cleanup();
+            LOGI("Cleaned sessions: %u", cleaned);
+            LOGI("Sessions in storage after cleanup: %u", sessions.getSessionsCount());
 
             bool isRun = req.noDebug.has_value();
             int ret = session->debugger->launch(isRun, req.program.value(), session->getSessionId());
@@ -459,7 +462,7 @@ int main(int argc, char *argv[]) {
         terminate.wait();
         LOGI("== DAP client DISCONNECTED ==");
 
-        sessions.remove(session->getSessionId());
+        sessions.removeLater(session->getSessionId());
     };
 
     // Create the network server
