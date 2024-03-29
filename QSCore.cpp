@@ -393,7 +393,6 @@ int main(int argc, char *argv[]) {
             sessions.add(session->getSessionId(), session);
             LOGI("Sessions in storage: %u", sessions.getSessionsCount());
 
-
             bool isRun = req.noDebug.has_value();
             int ret = session->debugger->launch(isRun, req.program.value(), session->getSessionId());
             LOGI("QVM launch ret %d", ret);
@@ -423,7 +422,8 @@ int main(int argc, char *argv[]) {
                 terminate.fire();
            // }
 
-            sessions.remove(session->getSessionId());
+        //   later
+        //    sessions.remove(session->getSessionId());
 
             return dap::DisconnectResponse();
         });
@@ -458,6 +458,8 @@ int main(int argc, char *argv[]) {
         // session error.
         terminate.wait();
         LOGI("== DAP client DISCONNECTED ==");
+
+        sessions.remove(session->getSessionId());
     };
 
     // Create the network server
