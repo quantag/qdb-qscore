@@ -145,7 +145,6 @@ class Session {
   virtual ~Session();
 
   std::string currentSourceFilePath;
-  std::string sessionId;
   Debugger* debugger;
 
   // ErrorHandler is the type of callback function used for reporting protocol
@@ -157,7 +156,12 @@ class Session {
   using ClosedHandler = std::function<void()>;
 
   // create() constructs and returns a new Session.
-  static std::unique_ptr<Session> create();
+  static std::shared_ptr<Session> create();
+
+  void setSessionId(const std::string& id);
+  const std::string& getSessionId() const {
+      return this->sessionId;
+  }
 
   // Sets how the Session handles invalid data.
   virtual void setOnInvalidData(OnInvalidData) = 0;
@@ -343,6 +347,10 @@ class Session {
   // 'eventTypeInfo' is the type info for the event data structure.
   // 'event' is a pointer to the event data structure.
   virtual bool send(const TypeInfo* eventTypeInfo, const void* event) = 0;
+
+  protected:
+      std::string sessionId;
+
 };
 
 template <typename F, typename RequestType>
