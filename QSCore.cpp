@@ -40,12 +40,6 @@ You may also notice that the locals contains a single variable for the currently
 
 int main(int argc, char *argv[]) {
     LOG_INIT(2, "qs-core.log");
-
- //   std::string rep = Utils::execute("python --version");
- //   LOGI("'%s'", rep.c_str());
-
-//    std::string te = Utils::getFileNameWithParent("c:\\work\\gitquantag\\qasm-adapter-vscode\\sampleWorkspace\\qiskit\\test1.py");
-
     WSServer wsock;
 
 #ifdef WIN32
@@ -71,9 +65,9 @@ int main(int argc, char *argv[]) {
 
         auto session = dap::Session::create();
         // Event handlers from the Debugger.
-        auto onDebuggerEvent = [&](Debugger::Event onEvent) {
+        auto onDebuggerEvent = [&](Debugger::EventEnum onEvent) {
             switch (onEvent) {
-                case Debugger::Event::Stepped: {
+                case Debugger::EventEnum::Stepped: {
                     // The debugger has single-line stepped. Inform the client.
                     dap::StoppedEvent event;
                     event.reason = "step";
@@ -81,7 +75,7 @@ int main(int argc, char *argv[]) {
                     session->send(event);
                     break;
                 }
-                case Debugger::Event::BreakpointHit: {
+                case Debugger::EventEnum::BreakpointHit: {
                     // The debugger has hit a breakpoint. Inform the client.
                     dap::StoppedEvent event;
                     event.reason = "breakpoint";
@@ -89,7 +83,7 @@ int main(int argc, char *argv[]) {
                     session->send(event);
                     break;
                 }
-                case Debugger::Event::Paused: {
+                case Debugger::EventEnum::Paused: {
                     // The debugger has been suspended. Inform the client.
                     dap::StoppedEvent event;
                     event.reason = "pause";

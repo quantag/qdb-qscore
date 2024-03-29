@@ -21,7 +21,7 @@ void Debugger::continueDebugger() {
             if (breakpoints.count(l)) {
                   qvm->setCurrentLine( (int)l);
                   lock.unlock();
-                  onEvent(Event::BreakpointHit);
+                  onEvent(EventEnum::BreakpointHit);
                   return;
             }
       }
@@ -48,7 +48,7 @@ int Debugger::launch(int isRun, const std::string& fileName, const std::string &
 void Debugger::pause() {
     LOGI("***");
 
-    onEvent(Event::Paused);
+    onEvent(EventEnum::Paused);
 }
 
 int64_t Debugger::currentLine() {
@@ -65,7 +65,7 @@ void Debugger::stepForward() {
       qvm->stepForward();
 
       lock.unlock();
-      onEvent(Event::Stepped);
+      onEvent(EventEnum::Stepped);
 }
 
 void Debugger::clearBreakpoints() {
