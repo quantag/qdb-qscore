@@ -48,7 +48,6 @@ std::string PythonProcessor::getQuantumCircuitName(int line) {
 }
 
 
-
 void PythonProcessor::addImport(const std::string& module, const std::string& unit) {
 	sourceLines.insert(sourceLines.begin(), "from " + module + " import " + unit);
 }
@@ -73,6 +72,18 @@ bool PythonProcessor::importPresent(const std::string& module, const std::string
 		}
 	}
 	return false;
+}
+
+int PythonProcessor::findLastImportLine() {
+	int line = -1;
+	int cur = 0;
+	for (std::string& item : sourceLines) {
+		if (item.find("import") != std::string::npos) {
+			line = cur;
+		}
+		cur++;
+	}
+	return line;
 }
 
 void PythonProcessor::removeAllByWord(const std::string& wrd) {
