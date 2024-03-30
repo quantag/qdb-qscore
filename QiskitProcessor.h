@@ -9,7 +9,7 @@ public:
 
 protected:
 	virtual void findAllQuantumCircuitDeclarations(std::vector<int>& result);
-	virtual std::string parsePythonToOpenQASM(const std::string& sourceCode);
+	virtual std::string parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId);
 
 
 };

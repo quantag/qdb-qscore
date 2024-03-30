@@ -90,7 +90,7 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 				LOGI("Recognized Python framework: %d", framework);
 				updateProcessor(framework);
 
-				this->sourceCode = processor->parsePythonToOpenQASM(sourceCode);
+				this->sourceCode = processor->parsePythonToOpenQASM(sourceCode, sessionId);
 				break;
 			}
 			case CodeType::OpenQASM:

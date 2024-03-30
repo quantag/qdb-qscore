@@ -23,18 +23,13 @@ void QiskitProcessor::findAllQuantumCircuitDeclarations(std::vector<int>& result
 	}
 }
 
-std::string QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode) {
-	LOGI("QiskitProcessor: '%s'", sourceCode.c_str());
+std::string QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) {
+	LOGI("QiskitProcessor: '%s' [%s]", sourceCode.c_str(), sessionId.c_str());
 
 	Utils::parseSourcePerLines(sourceCode, sourceLines);
 	Utils::logSource(sourceLines);
 
-	//	this->removeComments();
 	this->removeAllPrints();
-	//	this->removeAllByWord("IBMQ");
-	//	this->removeAllByWord("provider");
-	//	this->removeAllByWord("job");
-	//	this->removeAllByWord("draw");
 
 	std::vector<int> linesWithQuantumCircuit;
 	findAllQuantumCircuitDeclarations(linesWithQuantumCircuit);
@@ -50,6 +45,7 @@ std::string QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode
 			if (lastLine > 0) {
 				LOGI("Last usage of QC '%s' on line %d", qcName.c_str(), lastLine);
 				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "code777=qasm2.dumps(" + qcName + ")");
+				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "" + qcName + ".draw(output='mpl', filename='"+sessionId+".png')");
 			}
 		}
 	}
