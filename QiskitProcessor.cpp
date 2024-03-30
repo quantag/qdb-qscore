@@ -5,6 +5,9 @@
 
 #include "RestClient.h"
 
+// where store generated circuit images on server
+#define SERVER_IMAGE_FOLDER		"/var/dap/images/"
+
 QiskitProcessor::QiskitProcessor() : PythonProcessor(eQiskit) {
 
 }
@@ -45,7 +48,7 @@ std::string QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode
 			if (lastLine > 0) {
 				LOGI("Last usage of QC '%s' on line %d", qcName.c_str(), lastLine);
 				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "code777=qasm2.dumps(" + qcName + ")");
-				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "" + qcName + ".draw(output='mpl', filename='"+sessionId+".png')");
+				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "" + qcName + std::string(".draw(output='mpl', filename='")+ SERVER_IMAGE_FOLDER+sessionId+".png')");
 			}
 		}
 	}
