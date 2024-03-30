@@ -1130,6 +1130,8 @@ struct InitializeRequest : public Request {
 
 DAP_DECLARE_STRUCT_TYPEINFO(InitializeRequest);
 
+
+
 // This event indicates that the debug adapter is ready to accept configuration
 // requests (e.g. `setBreakpoints`, `setExceptionBreakpoints`). A debug adapter
 // is expected to send this event when it is ready to accept configuration

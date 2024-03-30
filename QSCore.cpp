@@ -48,7 +48,6 @@ int main(int argc, char *argv[]) {
 	const dap::integer variablesReferenceId = 300;
 	const dap::integer sourceReferenceId = 400;
 
-
     // Callback handler for a socket connection to the server
     auto onClientConnected =
         [&](const std::shared_ptr<dap::ReaderWriter>& socket) {
@@ -110,11 +109,21 @@ int main(int argc, char *argv[]) {
             return response;
         });
 
+        session->registerHandler([](const dap::EvaluateRequest&) {
+            LOGI("[EvaluateRequest]");
+
+            dap::EvaluateResponse response;
+
+            response.result = "0";
+
+            return response;
+            });
+
         // Handle errors reported by the Session. These errors include protocol
       // parsing errors and receiving messages with no handler.
         session->onError([&](const char* msg) {         
             LOGE("dap::Session error: %s", msg);          
-            terminate.fire();
+          //  terminate.fire();
         });
 
         // When the Initialize response has been sent, we need to send the
@@ -469,6 +478,5 @@ int main(int argc, char *argv[]) {
     LOGI("Starting WS Server on [%s:%d]", wsHost, WS_SERVER_PORT);
    
     wsock.start(wsHost, WS_SERVER_PORT);
-
     return 0;
 }
