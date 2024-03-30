@@ -26,8 +26,8 @@ void TketProcessor::findAllQuantumCircuitDeclarations(std::vector<int>& result) 
 	}
 }
 
-std::string TketProcessor::parsePythonToOpenQASM(const std::string& sourceCode) {
-	LOGI("%s", sourceCode.c_str());
+std::string TketProcessor::parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) {
+	LOGI("%s [%s]", sourceCode.c_str(), sessionId.c_str());
 
 	Utils::parseSourcePerLines(sourceCode, sourceLines);
 	Utils::logSource(sourceLines);

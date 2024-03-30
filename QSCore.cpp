@@ -113,11 +113,9 @@ int main(int argc, char *argv[]) {
             LOGI("[EvaluateRequest]");
 
             dap::EvaluateResponse response;
-
             response.result = "0";
-
             return response;
-            });
+        });
 
         // Handle errors reported by the Session. These errors include protocol
       // parsing errors and receiving messages with no handler.
