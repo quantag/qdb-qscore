@@ -6,8 +6,9 @@
 #include "Typedefs.h"
 #include "RestClient.h"
 
-class PythonProcessor
-{
+#define SERVER_IMAGE_FOLDER		"/var/dap/images/"
+
+class PythonProcessor {
 public:
 	PythonProcessor();
 	PythonProcessor(PythonFramework fw);
@@ -34,6 +35,7 @@ protected:
 	void deleteLines(const std::vector<int>& lines);
 	int isOneLineCommentLine(const std::string& line);
 	int isMultiLineComment(const std::string& line);
+	int findLastImportLine();
 
 	PythonFramework framework;
 	RestClient restClient;

@@ -51,6 +51,10 @@ std::string TketProcessor::parsePythonToOpenQASM(const std::string& sourceCode, 
 				
 				//this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "code777=circuit_to_qasm_str(" + qcName + ", header=\"hqslib1\")");
 				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "code777=circuit_to_qasm_str(" + qcName + ")");
+
+				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, 
+					"s2f(render_circuit_as_html(" + qcName + std::string("),'") + SERVER_IMAGE_FOLDER + sessionId + ".html')");
+				 
 			}
 		}
 	}
@@ -58,14 +62,25 @@ std::string TketProcessor::parsePythonToOpenQASM(const std::string& sourceCode, 
 		LOGI("No QuantumCircuit declarations found");
 	}
 
+	int lastImportLine = findLastImportLine();
+	LOGI("Last import line: %d", lastImportLine);
+	if (lastImportLine < 0)
+		lastImportLine = 0;
+
+	this->sourceLines.insert(sourceLines.begin() + lastImportLine + 1, "def s2f(text, filename):");
+	this->sourceLines.insert(sourceLines.begin() + lastImportLine + 2, "    with open(filename, \"w\") as file:");
+	this->sourceLines.insert(sourceLines.begin() + lastImportLine + 3, "        file.write(text)");
+
 	if (!importPresent("pytket.qasm", "circuit_to_qasm_str"))
 		addImport("pytket.qasm", "circuit_to_qasm_str"); 
+
+	if (!importPresent("pytket.circuit.display", "render_circuit_as_html"))
+		addImport("pytket.circuit.display", "render_circuit_as_html");
 
 	std::string updatedSource = combineVector(this->sourceLines);
 	LOGI("Updated sources:\n%s", updatedSource.c_str());
 
 	std::string out = restClient.execPythonCode(updatedSource);
-//	std::string out = Utils::executePythonCode(updatedSource, eTket);
 	LOGI("rest api returned '%s'", out.c_str());
 
 	return out;

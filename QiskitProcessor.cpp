@@ -6,7 +6,6 @@
 #include "RestClient.h"
 
 // where store generated circuit images on server
-#define SERVER_IMAGE_FOLDER		"/var/dap/images/"
 
 QiskitProcessor::QiskitProcessor() : PythonProcessor(eQiskit) {
 
