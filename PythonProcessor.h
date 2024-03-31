@@ -21,6 +21,7 @@ public:
 	PythonFramework getFramework() const {
 		return framework;
 	}
+	ScriptExecResult renderOpenQASMCircuit(const std::string& sourceCode, const std::string& sessionId);
 protected:
 	std::vector<std::string> sourceLines;
 	bool importPresent(const std::string& module, const std::string& unit);

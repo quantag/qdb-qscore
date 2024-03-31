@@ -84,26 +84,34 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 
 	switch (type) {
 		case CodeType::Python:
-			{
-				LOGI("Recognized Python source");
-				PythonFramework framework = Utils::detectPythonFramework(sourceCode);
-				LOGI("Recognized Python framework: %d", framework);
-				updateProcessor(framework);
+		{
+			LOGI("Recognized Python source");
+			PythonFramework framework = Utils::detectPythonFramework(sourceCode);
+			LOGI("Recognized Python framework: %d", framework);
+			updateProcessor(framework);
 		
-				ScriptExecResult result = processor->parsePythonToOpenQASM(sourceCode, sessionId);
-				if (result.status!=0) {
-					LOGE(">>> Parser returned error in HTML format");
-					errorMessage = Utils::getPlainTextFromHTML(result.err);
-					return 1;
-				}
-				else {
-					this->sourceCode = result.res;
-				}
-				break;
+			ScriptExecResult result = processor->parsePythonToOpenQASM(sourceCode, sessionId);
+			if (result.status!=0) {
+				LOGE(">>> Parser returned error in HTML format");
+				errorMessage = Utils::getPlainTextFromHTML(result.err);
+				return 1;
 			}
-			case CodeType::OpenQASM:
-				LOGI("Recognized OpenQASM source");
-				break;
+			else {
+				this->sourceCode = result.res;
+			}
+			break;
+		}
+		case CodeType::OpenQASM:
+		{
+			LOGI("Recognized OpenQASM source");
+			ScriptExecResult result = processor->renderOpenQASMCircuit(sourceCode, sessionId);
+			if (result.status != 0) {
+				LOGE(">>> Render OpenQASM failed");
+				errorMessage = "Rendering OpenQASM circuit failed : " + result.err;
+				return 1;
+			}
+			break;
+		}
 			default:
 				LOGE("Not recognized source code type");
 	}

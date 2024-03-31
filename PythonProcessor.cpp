@@ -188,3 +188,29 @@ void PythonProcessor::deleteLines(const std::vector<int>& lines) {
 		sourceLines.erase(sourceLines.begin() + lines.at(i));
 	}
 }
+
+ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourceCode, const std::string& sessionId) {
+	LOGI("");
+
+	std::vector<std::string> qasmLines;
+	Utils::parseSourcePerLines(sourceCode, qasmLines);
+
+	sourceLines.clear();
+	sourceLines.push_back("from qiskit import QuantumCircuit");
+	sourceLines.push_back("import qiskit.qasm2");
+	sourceLines.push_back("src = '''");
+	for (std::string& line : qasmLines) {
+		sourceLines.push_back("    " + line);
+	}
+	sourceLines.push_back("'''");
+	sourceLines.push_back("qc=qiskit.qasm2.loads(src)");
+	sourceLines.push_back("qc.draw(output='mpl', filename='" + std::string(SERVER_IMAGE_FOLDER) + sessionId +".png')");
+
+	Utils::logSource(sourceLines);
+	std::string updatedSource = combineVector(this->sourceLines);
+	std::string out;
+	ScriptExecResult  result = restClient.execPythonCode(updatedSource);
+	LOGI("result status: %d", result.status);
+
+	return result;
+}
