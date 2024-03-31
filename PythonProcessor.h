@@ -14,7 +14,7 @@ public:
 	PythonProcessor(PythonFramework fw);
 	virtual ~PythonProcessor();
 
-	virtual std::string parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) = 0;
+	virtual ScriptExecResult parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) = 0;
 	static std::string combineVector(const std::vector<std::string>& lines);
 
 	PythonFramework getFramework() const {

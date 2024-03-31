@@ -25,7 +25,7 @@ void QiskitProcessor::findAllQuantumCircuitDeclarations(std::vector<int>& result
 	}
 }
 
-std::string QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) {
+ScriptExecResult QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) {
 	LOGI("QiskitProcessor: '%s' [%s]", sourceCode.c_str(), sessionId.c_str());
 
 	Utils::parseSourcePerLines(sourceCode, sourceLines);
@@ -67,8 +67,9 @@ std::string QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode
 	std::string updatedSource = combineVector(this->sourceLines);
 
 //	std::string out = Utils::executePythonCode(updatedSource, eQiskit);
-	std::string out = restClient.execPythonCode(updatedSource);
-	LOGI("output: '%s'", out.c_str());
+	std::string out;
+	ScriptExecResult  result = restClient.execPythonCode(updatedSource);
+	LOGI("result status: %d", result.status);
 
-	return out;
+	return result;
 }

@@ -1,15 +1,15 @@
 #pragma once
 
-#include <string>
+#include "Typedefs.h"
+
 
 class RestClient {
-public:
 public:
     RestClient();
     ~RestClient();
 
     std::string doPost(const std::string& jsonData);
-    std::string execPythonCode(const std::string& code);
+    ScriptExecResult execPythonCode(const std::string& code);
 
 private:
     static size_t writeCallback(void* contents, size_t size, size_t nmemb, std::string* output);
@@ -17,3 +17,4 @@ private:
     const std::string url;
     struct curl_slist* headers = NULL;
 };
+

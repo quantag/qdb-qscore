@@ -89,8 +89,16 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 				PythonFramework framework = Utils::detectPythonFramework(sourceCode);
 				LOGI("Recognized Python framework: %d", framework);
 				updateProcessor(framework);
-
-				this->sourceCode = processor->parsePythonToOpenQASM(sourceCode, sessionId);
+		
+				ScriptExecResult result = processor->parsePythonToOpenQASM(sourceCode, sessionId);
+				if (result.status!=0) {
+					LOGE(">>> Parser returned error in HTML format");
+					errorMessage = Utils::getPlainTextFromHTML(result.err);
+					return 1;
+				}
+				else {
+					this->sourceCode = result.res;
+				}
 				break;
 			}
 			case CodeType::OpenQASM:

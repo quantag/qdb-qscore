@@ -53,7 +53,7 @@ size_t RestClient::writeCallback(void* contents, size_t size, size_t nmemb, std:
         return size * nmemb;
 }
 
-std::string RestClient::execPythonCode(const std::string& code) {
+ScriptExecResult RestClient::execPythonCode(const std::string& code) {
     LOGI("'%s'", code.c_str());
 
     std::string encoded = Utils::encode64(code);
@@ -62,13 +62,25 @@ std::string RestClient::execPythonCode(const std::string& code) {
 
     std::string res = doPost(req);
     LOGI("response '%s'", res.c_str());
+    ScriptExecResult result;
 
     try {
         json j = json::parse(res);
-        return j["res"];
+        result.status = j["status"];
+        if (result.status != 0) {
+            result.err = j["err"];
+            LOGE("Remote script execution failed [%s]", result.err.c_str());
+        }
+        else {
+            std::string encodedRes = j["res"];
+            result.res = Utils::decode64(encodedRes);
+        }
+        return result;
     }
-    catch (...) {
+    catch (std::exception& e) {
         LOGE("Error during parsing JSON response: '%s'", res.c_str());
-        return "";
+        result.err = 3;
+        result.err = e.what();
+        return result;
     }
 }

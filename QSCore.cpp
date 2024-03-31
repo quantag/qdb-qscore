@@ -408,7 +408,7 @@ int main(int argc, char *argv[]) {
                 evnt.data = session->debugger->getLastErrorMessage();
                 // 'console', 'important', 'stdout', 'stderr', 'telemetry'
                 evnt.category = "console";
-                evnt.output = session->debugger->getLastErrorMessage();
+                evnt.output = "Error: " + session->debugger->getLastErrorMessage();
                 session->send(evnt);
                 // send evnt..
             }

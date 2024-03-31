@@ -135,6 +135,26 @@ std::string  Utils::encode64(const std::string& val) {
     return tmp.append((3 - val.size() % 3) % 3, '=');
 }
 
+std::string Utils::decode64(const std::string& val) {
+    using namespace boost::archive::iterators;
+    typedef transform_width<binary_from_base64<std::string::const_iterator>, 8, 6> It;
+
+    // Calculate the size of the decoded string
+    auto len = val.size();
+    size_t padding = 0;
+    if (len > 0 && val[len - 1] == '=')
+        padding++;
+    if (len > 1 && val[len - 2] == '=')
+        padding++;
+    size_t outLen = len * 3 / 4 - padding;
+
+    // Perform decoding
+    std::stringstream os;
+    std::copy(It(std::begin(val)), It(std::end(val)), std::ostream_iterator<char>(os));
+
+    // Return the decoded string
+    return os.str().substr(0, outLen);
+}
 int Utils::fileExists(const std::string& filePath) {
     std::ifstream file(filePath.c_str());
     return file.good() ? 1 : 0;
@@ -382,4 +402,15 @@ std::string Utils::replaceChar(const std::string& input, char oldChar, char newC
         }
     }
     return result;
+}
+
+std::string Utils::getPlainTextFromHTML(const std::string& html) {
+    // Regular expression to match HTML tags
+    std::regex tagRegex("<[^>]*>");
+
+    // Replace all HTML tags with an empty string
+    std::string plainText = std::regex_replace(html, tagRegex, "");
+
+    // Return the plain text
+    return plainText;
 }
