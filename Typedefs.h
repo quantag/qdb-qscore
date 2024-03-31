@@ -1,5 +1,9 @@
 #pragma once
 
+#include <string>
+#include <functional>
+
+
 // z = a + i*b
 // TODO: use std::complex instead
 struct complexNumber {
@@ -7,7 +11,6 @@ struct complexNumber {
 	double b;
 
 	complexNumber() { a = 0.; b = 0.; }
-
 	complexNumber(double real, double im) {
 		this->a = real;
 		this->b = im;
@@ -29,25 +32,17 @@ enum class CodeType {
 struct CommandResult {
 	std::string output;
 	int exitstatus;
-
-	/*friend std::ostream& operator<<(std::ostream& os, const CommandResult& result) {
-		os << "command exitstatus: " << result.exitstatus << " output: " << result.output;
-		return os;
-	}
-	bool operator==(const CommandResult& rhs) const {
-		return output == rhs.output &&
-			exitstatus == rhs.exitstatus;
-	}
-	bool operator!=(const CommandResult& rhs) const {
-		return !(rhs == *this);
-	}*/
 };
 
 enum class EventEnum { BreakpointHit, Stepped, Paused };
-
-#include <functional>
 using EventHandler = std::function<void(EventEnum)>;
 
 
 #define SAFE_DELETE(x)	if(x){delete x;x=0;}
 #define ASSERT(x)		if(x){return x;}
+
+struct ScriptExecResult {
+	int status;
+	std::string res;
+	std::string err;
+};

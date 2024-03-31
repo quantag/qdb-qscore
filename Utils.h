@@ -16,6 +16,8 @@ public:
 	static void logSource(const std::vector<std::string>& src);
 
 	static std::string  encode64(const std::string& val);
+	static std::string  decode64(const std::string& val);
+
 	static int fileExists(const std::string& filePath);
 
 	static std::string getShortName(const std::string& fileName);
@@ -42,5 +44,6 @@ public:
 	static std::string getFileNameWithParent(const std::string& fullPath);
 	static std::string replaceChar(const std::string& input, char oldChar, char newChar);
 	static std::string lastFrom(const std::string& str, size_t n);
+	static std::string getPlainTextFromHTML(const std::string& html);
 
 };
