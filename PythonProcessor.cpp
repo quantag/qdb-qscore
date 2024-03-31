@@ -205,6 +205,7 @@ ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourc
 	sourceLines.push_back("'''");
 	sourceLines.push_back("qc=qiskit.qasm2.loads(src)");
 	sourceLines.push_back("qc.draw(output='mpl', filename='" + std::string(SERVER_IMAGE_FOLDER) + sessionId +".png')");
+	sourceLines.push_back(std::string(BRIDGE_VAR) +"=0");
 
 	Utils::logSource(sourceLines);
 	std::string updatedSource = combineVector(this->sourceLines);
