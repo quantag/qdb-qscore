@@ -36,6 +36,8 @@ protected:
 	int isOneLineCommentLine(const std::string& line);
 	int isMultiLineComment(const std::string& line);
 	int findLastImportLine();
+	static std::string getPreSpaces(const std::string& str);
+	std::string getPreSpaces(int line);
 
 	PythonFramework framework;
 	RestClient restClient;
