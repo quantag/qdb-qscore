@@ -57,8 +57,9 @@ ScriptExecResult QiskitProcessor::parsePythonToOpenQASM(const std::string& sourc
 		LOGI("No QuantumCircuit declarations found");
 	}
 
-	if (!importPresent("qiskit", "qasm2"))
+	if (!importPresent("qiskit", "qasm2")) {
 		addImport("qiskit", "qasm2"); // "from qiskit import qasm2\n" + sourceCode;
+	}
 
 
 	LOGI("Updated sources:\n");

@@ -16,6 +16,7 @@ public:
 
 	virtual ScriptExecResult parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) = 0;
 	static std::string combineVector(const std::vector<std::string>& lines);
+	int findMathImport();
 
 	PythonFramework getFramework() const {
 		return framework;
