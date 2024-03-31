@@ -5,6 +5,11 @@
 #include <time.h>
 #include <stdarg.h>
 
+#include <ctime>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+
 #ifdef WIN32
 	#include <windows.h>
 	#include <direct.h>
@@ -58,23 +63,33 @@ void Logger::setFileName(const std::string& fileName) {
 	_filepath = fileName + ts;
 }
 
+std::string Logger::getCurrentTimestamp() {
+	// Get current time
+	auto now = std::chrono::system_clock::now();
+
+	// Convert to time_t
+	auto now_time_t = std::chrono::system_clock::to_time_t(now);
+	auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+	// Format time
+	std::tm* tm = std::localtime(&now_time_t);
+	std::ostringstream oss;
+	oss << std::put_time(tm, "%Y-%m-%d %H:%M:%S") << '.' << std::setfill('0') << std::setw(3) << now_ms.count();
+
+	return oss.str();
+}
+
+std::string Logger::buildLogLine(const std::string& funcName, const std::string& buf) {
+	std::string str = "[" + getCurrentTimestamp() + "]   [" + funcName + "] " + buf + "\n";
+	return str;
+}
 
 void Logger::logArgs(int level, const std::string &funcName, const char *format, va_list args) {
 	char buf[ MAX_LOG_LEN + 1 ];
 	/*int len =*/ vsnprintf( buf, MAX_LOG_LEN, format, args );
-
 	buf[ MAX_LOG_LEN ] = '\x0';
-	std::string str = "[";
 
-	time_t t = time( NULL );
-	struct tm *tmp = localtime( &t );
-	char ts[ 201 ] = { 0 };
-	strftime( ts, 200, "%Y-%m-%d %H:%M:%S", tmp );
-	str += ts;
-
-	str += "]   ["+funcName+"] ";
-	str += buf;
-	str += "\n";
+	std::string str = buildLogLine(funcName, buf);
 
 	if( _mode & LO_CONSOLE ) {
 #ifndef RUN_AS_SERVICE
