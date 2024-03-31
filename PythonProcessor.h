@@ -7,6 +7,7 @@
 #include "RestClient.h"
 
 #define SERVER_IMAGE_FOLDER		"/var/dap/images/"
+#define BRIDGE_VAR	"code777"
 
 class PythonProcessor {
 public:

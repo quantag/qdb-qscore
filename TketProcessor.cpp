@@ -50,7 +50,7 @@ ScriptExecResult TketProcessor::parsePythonToOpenQASM(const std::string& sourceC
 				// qasm_str = circuit_to_qasm_str(circ, header="hqslib1")
 				
 				//this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "code777=circuit_to_qasm_str(" + qcName + ", header=\"hqslib1\")");
-				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "code777=circuit_to_qasm_str(" + qcName + ")");
+				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, std::string(BRIDGE_VAR) + "=circuit_to_qasm_str(" + qcName + ")");
 
 				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, 
 					"s2f(render_circuit_as_html(" + qcName + std::string("),'") + SERVER_IMAGE_FOLDER + sessionId + ".html')");

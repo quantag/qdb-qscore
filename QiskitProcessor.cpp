@@ -48,7 +48,7 @@ ScriptExecResult QiskitProcessor::parsePythonToOpenQASM(const std::string& sourc
 				LOGI("Last usage of QC '%s' on line %d", qcName.c_str(), lastLine);
 				std::string spaces = getPreSpaces(lastLine);
 
-				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, spaces + "code777=qasm2.dumps(" + qcName + ")"); // if in function it will not work
+				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, spaces + std::string(BRIDGE_VAR) + "=qasm2.dumps(" + qcName + ")"); // if in function it will not work
 				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, spaces + qcName + std::string(".draw(output='mpl', filename='")+SERVER_IMAGE_FOLDER+sessionId+".png')");
 			}
 		}
