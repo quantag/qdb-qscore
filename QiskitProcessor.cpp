@@ -46,8 +46,10 @@ std::string QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode
 			int lastLine = findLastUsage(qcName);
 			if (lastLine > 0) {
 				LOGI("Last usage of QC '%s' on line %d", qcName.c_str(), lastLine);
-				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "code777=qasm2.dumps(" + qcName + ")");
-				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, "" + qcName + std::string(".draw(output='mpl', filename='")+ SERVER_IMAGE_FOLDER+sessionId+".png')");
+				std::string spaces = getPreSpaces(lastLine);
+
+				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, spaces + "code777=qasm2.dumps(" + qcName + ")"); // if in function it will not work
+				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, spaces + qcName + std::string(".draw(output='mpl', filename='")+ SERVER_IMAGE_FOLDER+sessionId+".png')");
 			}
 		}
 	}
@@ -58,8 +60,11 @@ std::string QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode
 	if (!importPresent("qiskit", "qasm2"))
 		addImport("qiskit", "qasm2"); // "from qiskit import qasm2\n" + sourceCode;
 
+
+	LOGI("Updated sources:\n");
+	Utils::logSource(sourceLines);
+
 	std::string updatedSource = combineVector(this->sourceLines);
-	LOGI("Updated sources:\n%s", updatedSource.c_str());
 
 //	std::string out = Utils::executePythonCode(updatedSource, eQiskit);
 	std::string out = restClient.execPythonCode(updatedSource);

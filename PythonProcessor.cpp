@@ -16,7 +16,6 @@ PythonProcessor::~PythonProcessor() {
 }
 
 
-
 std::string PythonProcessor::combineVector(const std::vector<std::string>& lines) {
 	std::string res = "";
 	for (const std::string& line : lines) {
@@ -34,6 +33,23 @@ int PythonProcessor::findLastUsage(const std::string& item) {
 			return i;
 	}
 	return -1;
+}
+
+
+std::string PythonProcessor::getPreSpaces(const std::string& str) {
+	std::string spaces;
+	for (char c : str) {
+		if (c == ' ' || c == '\t') {
+			spaces += c;
+		}
+		else {
+			break;
+		}
+	}
+	return spaces;
+}
+std::string PythonProcessor::getPreSpaces(int line) {
+	return getPreSpaces(this->sourceLines.at(line));
 }
 
 std::string PythonProcessor::getQuantumCircuitName(int line) {
