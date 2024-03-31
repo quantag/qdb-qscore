@@ -63,9 +63,10 @@ public:
 	const std::string& getFileName() const { return _filepath; }
 	void setFileName(const std::string& fileName);
 
-
 protected:
 	void	logArgs(int level,  const std::string &funcName, const char* format, va_list args);
+	std::string buildLogLine(const std::string& funcName, const std::string& buf);
+	std::string getCurrentTimestamp();
 
 private:
 // Members
