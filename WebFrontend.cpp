@@ -46,6 +46,7 @@ int WebFrontend::updateState(const FrontState& state) {
 
 	json["line"] = state.currentLine;
 	json["states"] = state.states;
+	json["code"] = state.code;
 
 	return send(json);
 }
