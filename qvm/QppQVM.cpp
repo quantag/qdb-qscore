@@ -224,7 +224,7 @@ void QppQVM::stepForward() {
 	if (mIt != circuit->end()) {
 		LOGI("Executing next line.. %d", this->currentState.currentLine);
 		this->currentState.currentLine ++;
-		this->currentState.code = this->sourceCode;
+		this->currentState.code = Utils::encode64( this->sourceCode );
 
 		if(this->getSourceLines()>0)
 			this->currentState.currentLine %= this->getSourceLines();
