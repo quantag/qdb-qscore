@@ -34,6 +34,7 @@
 #include "../Log.h"
 #include "../Debugger.h"
 
+
 namespace {
 
 class SessionImpl : public dap::Session {
@@ -509,6 +510,17 @@ class SessionImpl : public dap::Session {
       std::atomic<uint32_t> nextSeq = {1};
       std::mutex sendMutex;
       dap::OnInvalidData onInvalidData = dap::kIgnore;
+
+   void sendOutputMessage(const std::string& msg) {
+          if (!this->debugger) return;
+
+          dap::OutputEvent evnt;
+          evnt.data = debugger->getLastErrorMessage();
+          // 'console', 'important', 'stdout', 'stderr', 'telemetry'
+          evnt.category = "console";
+          evnt.output = msg;
+          Session::send(evnt);
+   }
 };
 
 }  // anonymous namespace

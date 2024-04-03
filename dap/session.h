@@ -34,9 +34,6 @@ struct Request;
 struct Response;
 struct Event;
 
-////////////////////////////////////////////////////////////////////////////////
-// Error
-////////////////////////////////////////////////////////////////////////////////
 
 // Error represents an error message in response to a DAP request.
 struct Error {
@@ -50,9 +47,6 @@ struct Error {
   std::string message;  // empty represents success.
 };
 
-////////////////////////////////////////////////////////////////////////////////
-// ResponseOrError<T>
-////////////////////////////////////////////////////////////////////////////////
 
 // ResponseOrError holds either the response to a DAP request or an error
 // message.
@@ -103,9 +97,6 @@ ResponseOrError<T>& ResponseOrError<T>::operator=(ResponseOrError&& other) {
   return *this;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Session
-////////////////////////////////////////////////////////////////////////////////
 
 // An enum flag that controls how the Session handles invalid data.
 enum OnInvalidData {
@@ -166,9 +157,10 @@ class Session {
       return this->sessionId;
   }
 
+  virtual void sendOutputMessage(const std::string& msg) = 0;
+
   // Sets how the Session handles invalid data.
   virtual void setOnInvalidData(OnInvalidData) = 0;
-
   virtual void createDebugger(const EventHandler& evnt) = 0;
 
   // onError() registers a error handler that will be called whenever a protocol
@@ -243,13 +235,6 @@ class Session {
                    const ClosedHandler& onClose);
   inline void bind(const std::shared_ptr<ReaderWriter>& readerWriter,
                    const ClosedHandler& onClose);
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Note:
-  // Methods and members below this point are for advanced usage, and are more
-  // likely to change signature than the methods above.
-  // The methods above this point should be sufficient for most use cases.
-  //////////////////////////////////////////////////////////////////////////////
 
   // connect() connects this Session to an endpoint.
   // connect() can only be called once. Repeated calls will raise an error, but
@@ -356,123 +341,126 @@ class Session {
 
 };
 
+template <typename F, typename T>
+Session::IsEvent<T> Session::registerHandler(F&& handler) {
+    auto cb = [handler](const void* args) {
+        handler(*reinterpret_cast<const T*>(args));
+        };
+    const TypeInfo* typeinfo = TypeOf<T>::type();
+    registerHandler(typeinfo, cb);
+}
+
 template <typename F, typename RequestType>
-Session::IsRequestHandlerWithoutCallback<F> Session::registerHandler(
-    F&& handler) {
-  using ResponseType = typename RequestType::Response;
-  const TypeInfo* typeinfo = TypeOf<RequestType>::type();
-  registerHandler(typeinfo,
-                  [handler](const void* args,
-                            const RequestHandlerSuccessCallback& onSuccess,
-                            const RequestHandlerErrorCallback& onError) {
-                    ResponseOrError<ResponseType> res =
-                        handler(*reinterpret_cast<const RequestType*>(args));
-                    if (res.error) {
-                      onError(TypeOf<ResponseType>::type(), res.error);
-                    } else {
-                      onSuccess(TypeOf<ResponseType>::type(), &res.response);
-                    }
-                  });
+Session::IsRequestHandlerWithoutCallback<F> Session::registerHandler(F&& handler) {
+    using ResponseType = typename RequestType::Response;
+    const TypeInfo* typeinfo = TypeOf<RequestType>::type();
+    registerHandler(typeinfo,
+        [handler](const void* args,
+            const RequestHandlerSuccessCallback& onSuccess,
+            const RequestHandlerErrorCallback& onError) {
+                ResponseOrError<ResponseType> res =
+                    handler(*reinterpret_cast<const RequestType*>(args));
+                if (res.error) {
+                    onError(TypeOf<ResponseType>::type(), res.error);
+                }
+                else {
+                    onSuccess(TypeOf<ResponseType>::type(), &res.response);
+                }
+        });
 }
 
 template <typename F, typename RequestType, typename ResponseType>
-Session::IsRequestHandlerWithCallback<F, ResponseType> Session::registerHandler(
-    F&& handler) {
-  using CallbackType = ParamType<F, 1>;
-  registerHandler(
-      TypeOf<RequestType>::type(),
-      [handler](const void* args,
-                const RequestHandlerSuccessCallback& onSuccess,
-                const RequestHandlerErrorCallback&) {
-        CallbackType responseCallback = [onSuccess](const ResponseType& res) {
-          onSuccess(TypeOf<ResponseType>::type(), &res);
-        };
-        handler(*reinterpret_cast<const RequestType*>(args), responseCallback);
-      });
+Session::IsRequestHandlerWithCallback<F, ResponseType> Session::registerHandler(F&& handler) {
+    using CallbackType = ParamType<F, 1>;
+    registerHandler(
+        TypeOf<RequestType>::type(),
+        [handler](const void* args,
+            const RequestHandlerSuccessCallback& onSuccess,
+            const RequestHandlerErrorCallback&) {
+                CallbackType responseCallback = [onSuccess](const ResponseType& res) {
+                    onSuccess(TypeOf<ResponseType>::type(), &res);
+                    };
+                handler(*reinterpret_cast<const RequestType*>(args), responseCallback);
+        });
 }
 
 template <typename F, typename RequestType, typename ResponseType>
 Session::IsRequestHandlerWithCallback<F, ResponseOrError<ResponseType>>
 Session::registerHandler(F&& handler) {
-  using CallbackType = ParamType<F, 1>;
-  registerHandler(
-      TypeOf<RequestType>::type(),
-      [handler](const void* args,
-                const RequestHandlerSuccessCallback& onSuccess,
-                const RequestHandlerErrorCallback& onError) {
-        CallbackType responseCallback =
-            [onError, onSuccess](const ResponseOrError<ResponseType>& res) {
-              if (res.error) {
-                onError(TypeOf<ResponseType>::type(), res.error);
-              } else {
-                onSuccess(TypeOf<ResponseType>::type(), &res.response);
-              }
-            };
-        handler(*reinterpret_cast<const RequestType*>(args), responseCallback);
-      });
-}
-
-template <typename F, typename T>
-Session::IsEvent<T> Session::registerHandler(F&& handler) {
-  auto cb = [handler](const void* args) {
-    handler(*reinterpret_cast<const T*>(args));
-  };
-  const TypeInfo* typeinfo = TypeOf<T>::type();
-  registerHandler(typeinfo, cb);
+    using CallbackType = ParamType<F, 1>;
+    registerHandler(
+        TypeOf<RequestType>::type(),
+        [handler](const void* args,
+            const RequestHandlerSuccessCallback& onSuccess,
+            const RequestHandlerErrorCallback& onError) {
+                CallbackType responseCallback =
+                    [onError, onSuccess](const ResponseOrError<ResponseType>& res) {
+                    if (res.error) {
+                        onError(TypeOf<ResponseType>::type(), res.error);
+                    }
+                    else {
+                        onSuccess(TypeOf<ResponseType>::type(), &res.response);
+                    }
+                    };
+                handler(*reinterpret_cast<const RequestType*>(args), responseCallback);
+        });
 }
 
 template <typename F, typename T>
 void Session::registerSentHandler(F&& handler) {
-  auto cb = [handler](const void* response, const Error* error) {
-    if (error != nullptr) {
-      handler(ResponseOrError<T>(*error));
-    } else {
-      handler(ResponseOrError<T>(*reinterpret_cast<const T*>(response)));
-    }
-  };
-  const TypeInfo* typeinfo = TypeOf<T>::type();
-  registerHandler(typeinfo, cb);
+    auto cb = [handler](const void* response, const Error* error) {
+        if (error != nullptr) {
+            handler(ResponseOrError<T>(*error));
+        }
+        else {
+            handler(ResponseOrError<T>(*reinterpret_cast<const T*>(response)));
+        }
+        };
+    const TypeInfo* typeinfo = TypeOf<T>::type();
+    registerHandler(typeinfo, cb);
 }
 
 template <typename T, typename>
 future<ResponseOrError<typename T::Response>> Session::send(const T& request) {
-  using Response = typename T::Response;
-  promise<ResponseOrError<Response>> promise;
-  auto sent = send(TypeOf<T>::type(), TypeOf<Response>::type(), &request,
-                   [=](const void* result, const Error* error) {
-                     if (error != nullptr) {
-                       promise.set_value(ResponseOrError<Response>(*error));
-                     } else {
-                       promise.set_value(ResponseOrError<Response>(
-                           *reinterpret_cast<const Response*>(result)));
-                     }
-                   });
-  if (!sent) {
-    promise.set_value(Error("Failed to send request"));
-  }
-  return promise.get_future();
+    using Response = typename T::Response;
+    promise<ResponseOrError<Response>> promise;
+    auto sent = send(TypeOf<T>::type(), TypeOf<Response>::type(), &request,
+        [=](const void* result, const Error* error) {
+            if (error != nullptr) {
+                promise.set_value(ResponseOrError<Response>(*error));
+            }
+            else {
+                promise.set_value(ResponseOrError<Response>(
+                    *reinterpret_cast<const Response*>(result)));
+            }
+        });
+    if (!sent) {
+        promise.set_value(Error("Failed to send request"));
+    }
+    return promise.get_future();
+}
+
+
+void Session::bind(const std::shared_ptr<dap::Reader>& r,
+    const std::shared_ptr<dap::Writer>& w,
+    const ClosedHandler& onClose = {}) {
+    connect(r, w);
+    startProcessingMessages(onClose);
+}
+
+void Session::bind(const std::shared_ptr<ReaderWriter>& rw,
+    const ClosedHandler& onClose = {}) {
+    bind(rw, rw, onClose);
 }
 
 template <typename T, typename>
 void Session::send(const T& event) {
-  const TypeInfo* typeinfo = TypeOf<T>::type();
-  send(typeinfo, &event);
+    const TypeInfo* typeinfo = TypeOf<T>::type();
+    send(typeinfo, &event);
 }
 
 void Session::connect(const std::shared_ptr<ReaderWriter>& rw) {
-  connect(rw, rw);
-}
-
-void Session::bind(const std::shared_ptr<dap::Reader>& r,
-                   const std::shared_ptr<dap::Writer>& w,
-                   const ClosedHandler& onClose = {}) {
-  connect(r, w);
-  startProcessingMessages(onClose);
-}
-
-void Session::bind(const std::shared_ptr<ReaderWriter>& rw,
-                   const ClosedHandler& onClose = {}) {
-  bind(rw, rw, onClose);
+    connect(rw, rw);
 }
 
 }  // namespace dap

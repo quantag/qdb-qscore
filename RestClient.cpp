@@ -8,11 +8,14 @@
 
 using json = nlohmann::json;
 
-#define ENDPONT_URL "https://cryspprod3.quantag-it.com:444/api3/dec"
+RestClient::RestClient() : url(PYTHON_EXECUTER_ENDPONT_URL) {
+    curl_global_init(CURL_GLOBAL_ALL);
+    headers = curl_slist_append(headers, "Content-Type: application/json");
+}
 
-RestClient::RestClient() : url(ENDPONT_URL) {
-        curl_global_init(CURL_GLOBAL_ALL);
-        headers = curl_slist_append(headers, "Content-Type: application/json");
+RestClient::RestClient(const char* _url) : url(_url) {
+    curl_global_init(CURL_GLOBAL_ALL);
+    headers = curl_slist_append(headers, "Content-Type: application/json");
 }
 
 RestClient::~RestClient() {
@@ -53,7 +56,7 @@ size_t RestClient::writeCallback(void* contents, size_t size, size_t nmemb, std:
         return size * nmemb;
 }
 
-ScriptExecResult RestClient::execPythonCode(const std::string& code) {
+ScriptExecResult RestClient::execCode(const std::string& code) {
     LOGI("'%s'", code.c_str());
 
     std::string encoded = Utils::encode64(code);
@@ -84,3 +87,4 @@ ScriptExecResult RestClient::execPythonCode(const std::string& code) {
         return result;
     }
 }
+

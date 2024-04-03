@@ -31,10 +31,8 @@
 #define LOCALHOST           "127.0.0.1"
 
 
-
 // sourceContent holds the synthetic file source.
-constexpr char sourceContent[] = R"(// !
-This is a synthetic source file provided by the DAP debugger.)";
+constexpr char sourceContent[] = R"(// OpenQASM 3.0;)";
 
 
 int main(int argc, char *argv[]) {
@@ -402,15 +400,10 @@ int main(int argc, char *argv[]) {
 
             if (ret!=0) {
                 LOGE("Launch was not OK [%s]", session->debugger->getLastErrorMessage().c_str());
+                session->sendOutputMessage("Error: " + session->debugger->getLastErrorMessage());
 
-                // send OutputEvent with error message
-                dap::OutputEvent evnt;
-                evnt.data = session->debugger->getLastErrorMessage();
-                // 'console', 'important', 'stdout', 'stderr', 'telemetry'
-                evnt.category = "console";
-                evnt.output = "Error: " + session->debugger->getLastErrorMessage();
-                session->send(evnt);
-                // send evnt..
+            } else{
+                session->sendOutputMessage("Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]");
             }
 
             return dap::LaunchResponse();

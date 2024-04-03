@@ -45,5 +45,11 @@ public:
 	static std::string replaceChar(const std::string& input, char oldChar, char newChar);
 	static std::string lastFrom(const std::string& str, size_t n);
 	static std::string getPlainTextFromHTML(const std::string& html);
+	static std::string getPreSpaces(const std::string& str);
+	static int getLastLineWithoutPrespaces(const std::vector<std::string>& lines);
+	static std::vector<std::string> cutArray(const std::vector<std::string>& lines, int endLine);
+	static std::string combineVector(const std::vector<std::string>& lines);
+	static std::vector<std::string> removePreSpaces(const std::vector<std::string>& lines, const std::string& preSpace);
+
 
 };

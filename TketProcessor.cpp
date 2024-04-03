@@ -77,10 +77,10 @@ ScriptExecResult TketProcessor::parsePythonToOpenQASM(const std::string& sourceC
 	if (!importPresent("pytket.circuit.display", "render_circuit_as_html"))
 		addImport("pytket.circuit.display", "render_circuit_as_html");
 
-	std::string updatedSource = combineVector(this->sourceLines);
+	std::string updatedSource = Utils::combineVector(this->sourceLines);
 	LOGI("Updated sources:\n%s", updatedSource.c_str());
 
-	ScriptExecResult out = restClient.execPythonCode(updatedSource);
+	ScriptExecResult out = restClient.execCode(updatedSource);
 	LOGI("rest api returned status '%d'", out.status);
 
 	return out;

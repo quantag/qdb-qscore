@@ -7,7 +7,7 @@
 #include "RestClient.h"
 
 #define SERVER_IMAGE_FOLDER		"/var/dap/images/"
-#define BRIDGE_VAR	"code777"
+#define BRIDGE_VAR				"code777"
 
 class PythonProcessor {
 public:
@@ -16,13 +16,13 @@ public:
 	virtual ~PythonProcessor();
 
 	virtual ScriptExecResult parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) = 0;
-	static std::string combineVector(const std::vector<std::string>& lines);
 	int findMathImport();
 
 	PythonFramework getFramework() const {
 		return framework;
 	}
 	ScriptExecResult renderOpenQASMCircuit(const std::string& sourceCode, const std::string& sessionId);
+
 protected:
 	std::vector<std::string> sourceLines;
 	bool importPresent(const std::string& module, const std::string& unit);
@@ -39,7 +39,6 @@ protected:
 	int isOneLineCommentLine(const std::string& line);
 	int isMultiLineComment(const std::string& line);
 	int findLastImportLine();
-	static std::string getPreSpaces(const std::string& str);
 	std::string getPreSpaces(int line);
 
 	PythonFramework framework;

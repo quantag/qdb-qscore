@@ -10,6 +10,8 @@ public:
 	virtual int run(const std::string& fileName, const std::string& sessionId) = 0;
 	virtual int debug(const std::string& fileName, const std::string& sessionId) = 0;
 
+	virtual std::string getQVMName() = 0;
+
 	virtual int getSourceLines() = 0;
 	virtual void stepForward() = 0;
 	virtual void setWSSession(WSSession* wsSession) = 0;

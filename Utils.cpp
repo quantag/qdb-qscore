@@ -414,3 +414,65 @@ std::string Utils::getPlainTextFromHTML(const std::string& html) {
     // Return the plain text
     return plainText;
 }
+
+std::string Utils::getPreSpaces(const std::string& str) {
+    std::string spaces;
+    for (char c : str) {
+        if (c == ' ' || c == '\t') {
+            spaces += c;
+        }
+        else {
+            break;
+        }
+    }
+    return spaces;
+}
+
+int Utils::getLastLineWithoutPrespaces(const std::vector<std::string> &lines) {
+    int endLine = 0;
+
+    for (const std::string& line : lines) {
+        if (Utils::getPreSpaces(line).empty()) {
+            return endLine;
+        }
+        endLine++;
+    }
+    return endLine;
+}
+
+std::vector<std::string> Utils::cutArray(const std::vector<std::string>& lines, int endLine) {
+    if (endLine >= 0 && endLine < lines.size()) {
+        return std::vector<std::string>(lines.begin(), lines.begin() + endLine + 1);
+    }
+    else {
+        // If endLine is out of range, return empty vector or throw an exception
+        return std::vector<std::string>();
+    }
+}
+
+std::string Utils::combineVector(const std::vector<std::string>& lines) {
+    std::string res = "";
+    for (const std::string& line : lines) {
+        res += line + "\n";
+    }
+    return res;
+}
+
+std::vector<std::string> Utils::removePreSpaces(const std::vector<std::string>& lines, const std::string& preSpace) {
+    std::vector<std::string> result;
+
+    // Iterate over each line in the input vector
+    for (const std::string& line : lines) {
+        // Check if the line starts with the specified preSpace
+        if (line.find(preSpace) == 0) {
+            // If it does, remove the preSpace and add the modified line to the result vector
+            result.push_back(line.substr(preSpace.length()));
+        }
+        else {
+            // If it doesn't, just add the original line to the result vector
+            result.push_back(line);
+        }
+    }
+
+    return result;
+}
