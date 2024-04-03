@@ -16,13 +16,7 @@ PythonProcessor::~PythonProcessor() {
 }
 
 
-std::string PythonProcessor::combineVector(const std::vector<std::string>& lines) {
-	std::string res = "";
-	for (const std::string& line : lines) {
-		res += line + "\n";
-	}
-	return res;
-}
+
 
 int PythonProcessor::findLastUsage(const std::string& item) {
 	std::string str = item + ".";
@@ -36,20 +30,8 @@ int PythonProcessor::findLastUsage(const std::string& item) {
 }
 
 
-std::string PythonProcessor::getPreSpaces(const std::string& str) {
-	std::string spaces;
-	for (char c : str) {
-		if (c == ' ' || c == '\t') {
-			spaces += c;
-		}
-		else {
-			break;
-		}
-	}
-	return spaces;
-}
 std::string PythonProcessor::getPreSpaces(int line) {
-	return getPreSpaces(this->sourceLines.at(line));
+	return Utils::getPreSpaces(this->sourceLines.at(line));
 }
 
 std::string PythonProcessor::getQuantumCircuitName(int line) {
@@ -77,7 +59,7 @@ int PythonProcessor::findMathImport() {
 void PythonProcessor::addImport(const std::string& module, const std::string& unit) {
 	int line = findMathImport();
 
-	sourceLines.insert(sourceLines.begin() + line + 1, "from " + module + " import " + unit);
+	sourceLines.insert(sourceLines.begin() + line + 1, "from " + module + " import " + unit); // crash
 }
 
 bool PythonProcessor::importPresent(const std::string& module, const std::string& unit) {
@@ -208,9 +190,9 @@ ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourc
 	sourceLines.push_back(std::string(BRIDGE_VAR) +"=0");
 
 	Utils::logSource(sourceLines);
-	std::string updatedSource = combineVector(this->sourceLines);
+	std::string updatedSource = Utils::combineVector(this->sourceLines);
 	std::string out;
-	ScriptExecResult  result = restClient.execPythonCode(updatedSource);
+	ScriptExecResult  result = restClient.execCode(updatedSource);
 	LOGI("result status: %d", result.status);
 
 	return result;

@@ -85,3 +85,4 @@ void ServerImpl::stopWithLock() {
         thread.join();
     }
 }
+

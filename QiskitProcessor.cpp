@@ -63,11 +63,10 @@ ScriptExecResult QiskitProcessor::parsePythonToOpenQASM(const std::string& sourc
 
 	LOGI("Updated sources:\n");
 	Utils::logSource(sourceLines);
-	std::string updatedSource = combineVector(this->sourceLines);
+	std::string updatedSource = Utils::combineVector(this->sourceLines);
 
-//	std::string out = Utils::executePythonCode(updatedSource, eQiskit);
 	std::string out;
-	ScriptExecResult  result = restClient.execPythonCode(updatedSource);
+	ScriptExecResult  result = restClient.execCode(updatedSource);
 	LOGI("result status: %d", result.status);
 
 	return result;

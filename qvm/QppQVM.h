@@ -20,6 +20,11 @@ public:
 	int run(const std::string& fileName, const std::string& sessionId);
 	int debug(const std::string& fileName, const std::string& sessionId);
 
+	virtual std::string getQVMName() {
+		return "QPP 1.0";
+	}
+
+
 	int getSourceLines();
 	void stepForward();
 

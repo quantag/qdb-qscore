@@ -46,3 +46,7 @@ struct ScriptExecResult {
 	std::string res;
 	std::string err;
 };
+
+#define PYTHON_EXECUTER_ENDPONT_URL     "https://cryspprod3.quantag-it.com:444/api3/dec"
+#define QUA_COMPILER_ENDPONT_URL		"https://cryspprod3.quantag-it.com:444/api4/compile"
+#define QUA_EXECUTOR_ENDPONT_URL		"https://cryspprod3.quantag-it.com:444/api5/run"
