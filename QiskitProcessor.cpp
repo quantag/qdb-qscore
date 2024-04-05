@@ -58,7 +58,7 @@ ScriptExecResult QiskitProcessor::parsePythonToOpenQASM(const std::string& sourc
 	}
 
 	if (!importPresent("qiskit", "qasm2")) {
-		addImport("qiskit", "qasm2"); // "from qiskit import qasm2\n" + sourceCode;
+		addImport("qiskit", "qasm2");
 	}
 
 	LOGI("Updated sources:\n");
