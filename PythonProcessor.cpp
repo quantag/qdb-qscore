@@ -58,8 +58,9 @@ int PythonProcessor::findMathImport() {
 
 void PythonProcessor::addImport(const std::string& module, const std::string& unit) {
 	int line = findMathImport();
+	int offset = line + 1; // if -1 -> will be 0, begin
 
-	sourceLines.insert(sourceLines.begin() + line + 1, "from " + module + " import " + unit); // crash
+	sourceLines.insert(sourceLines.begin() + offset, "from " + module + " import " + unit); // crash
 }
 
 bool PythonProcessor::importPresent(const std::string& module, const std::string& unit) {
