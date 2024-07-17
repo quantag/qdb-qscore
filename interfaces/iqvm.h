@@ -16,7 +16,6 @@ public:
 	virtual void stepForward() = 0;
 	virtual void setWSSession(WSSession* wsSession) = 0;
 
-
 	virtual int getCurrentLine() const {
 		return currentState.currentLine;
 	}
@@ -47,11 +46,16 @@ public:
 
 protected:
 	std::string sourceCode;
+
+	// original not changed source code received by VM.
+	// we need to track currentLine on this code
+	// can be OpenQASM or Python code
+	std::string originalSourceCode;
+	std::vector<CodeLine> originalParsedCode;
 	std::vector<std::string> sourceCodePerLines;
 
 	FrontState currentState;
 	size_t nQubits;
 
 	int sourceCodeParsed;
-
 };

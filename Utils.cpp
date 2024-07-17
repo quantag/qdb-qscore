@@ -278,13 +278,13 @@ std::string Utils::execute(const std::string& cmd) {
 
 CodeType Utils::detectCodeType(const std::string& sourceCode) {
     if (containsPythonKeywords(sourceCode)) {
-        return CodeType::Python;
+        return CodeType::ePython;
     }
     else if (containsOpenQASMKeywords(sourceCode)) {
-        return CodeType::OpenQASM;
+        return CodeType::eOpenQASM;
     }
     else {
-        return CodeType::Unknown;
+        return CodeType::eUnknown;
     }
 }
 
@@ -475,4 +475,173 @@ std::vector<std::string> Utils::removePreSpaces(const std::vector<std::string>& 
     }
 
     return result;
+}
+
+bool Utils::isCommentLine(const std::string& line, bool& inBlockComment) {
+    // Remove leading whitespace from the line
+    size_t firstNonWhitespace = line.find_first_not_of(" \t");
+
+    // If the line is empty or contains only whitespace, consider it as a comment
+    if (firstNonWhitespace == std::string::npos) {
+        return true;
+    }
+
+    // Check for multi-line comments
+    if (inBlockComment) {
+        // Check if the block comment ends in this line
+        if (line.find("*/", firstNonWhitespace) != std::string::npos ||
+            line.find("\"\"\"", firstNonWhitespace) != std::string::npos) {
+            inBlockComment = false;
+        }
+        return true;
+    }
+    else {
+        // Check if a block comment starts in this line
+        if (line.find("/*", firstNonWhitespace) != std::string::npos ||
+            line.find("\"\"\"", firstNonWhitespace) != std::string::npos) {
+            inBlockComment = true;
+            // Check if the block comment ends in the same line
+            if (line.find("*/", firstNonWhitespace + 2) != std::string::npos ||
+                line.find("\"\"\"", firstNonWhitespace + 3) != std::string::npos) {
+                inBlockComment = false;
+            }
+            return true;
+        }
+    }
+
+    // Check if the first non-whitespace character is '#' or if it starts with "//"
+    if (line[firstNonWhitespace] == '#' ||
+        (line.length() > firstNonWhitespace + 1 && line.substr(firstNonWhitespace, 2) == "//")) {
+        return true; // It's a comment line
+    }
+    else {
+        return false; // It's not a comment line
+    }
+}
+
+
+void Utils::detectCommentLines(const std::vector<std::string>& lines, std::vector<int>& data) {
+    // Clear the data vector to ensure it is empty before starting
+    data.clear();
+
+    // Variable to track if we are inside a block comment
+    bool inBlockComment = false;
+
+    // Iterate through each line in the provided vector
+    for (const auto& line : lines) {
+        // Use the helper method to determine if the line is a comment
+        if (isCommentLine(line, inBlockComment)) {
+            data.push_back(0); // It's a comment line
+        }
+        else {
+            data.push_back(1); // It's not a comment line
+        }
+    }
+}
+
+
+int Utils::getNextLine(int currentLine, const std::vector<CodeLine>& lines, int type) {
+    // Check if currentLine is within valid range
+    if (currentLine < 0  || currentLine >= lines.size()) {
+        return 0; // Invalid input
+    }
+
+    // Iterate through the lines starting from currentLine + 1
+    for (int i = currentLine + 1; i < lines.size(); ++i) {
+        if (lines[i].type == type) { // Check if it's a code line
+            return i; // Return the index of the next code line
+        }
+    }
+
+    // No more code lines found
+    return 0;
+}
+
+int Utils::getFirstLine(const std::vector<CodeLine>& lines, int type) {
+    // Iterate through the lines starting from currentLine + 1
+    for (int i = 0; i < lines.size(); ++i) {
+        if (lines[i].type == type) { // Check if it's a code line
+            return i; // Return the index of the next code line
+        }
+    }
+
+    // No more code lines found
+    return 0;
+}
+
+// Method to parse code into a vector of CodeLine
+void Utils::parseCode(const std::string& code, std::vector<CodeLine>& parsedCode, CodeType type) {
+    // Clear the parsedCode vector to ensure it is empty before starting
+    parsedCode.clear();
+
+    // Variable to track if we are inside a block comment
+    bool inBlockComment = false;
+
+    // Create a string stream from the code to read it line by line
+    std::istringstream stream(code);
+    std::string line;
+
+    // Iterate through each line in the code
+    while (std::getline(stream, line)) {
+        CodeLine codeLine;
+        codeLine.line = line;
+        if (isCommentLine(line, inBlockComment)) {
+            codeLine.type = 0; // It's a comment line
+        }
+        else {
+            codeLine.type = 1; // It's a code line
+            if (isExecutable(line, type) || type==CodeType::ePython)
+                codeLine.type = 2;
+        }
+        parsedCode.push_back(codeLine);
+    }
+}
+
+int Utils::isExecutable(const std::string& line, CodeType type) {
+    switch (type) {
+    case CodeType::ePython:
+        return 0;
+    case CodeType::eOpenQASM:
+        return isExecutableLineOpenQASM(line);
+    }
+    return 0;
+}
+
+void Utils::logSourceCode(const std::vector<CodeLine>& code) {
+    for (size_t i = 0; i < code.size(); i++) {
+        LOGI("line %u. [%s] [%d]", i, code.at(i).line.c_str(), code.at(i).type);
+
+    }
+}
+
+int Utils::isExecutableLineOpenQASM(const std::string& line) {
+    // Remove leading and trailing whitespace from the line
+    size_t firstNonWhitespace = line.find_first_not_of(" \t");
+    if (firstNonWhitespace == std::string::npos) {
+        return 0; // Line is empty or contains only whitespace
+    }
+
+    std::string trimmedLine = line.substr(firstNonWhitespace);
+    size_t lastNonWhitespace = trimmedLine.find_last_not_of(" \t");
+    trimmedLine = trimmedLine.substr(0, lastNonWhitespace + 1);
+
+    // Check if the line is a comment
+    if (trimmedLine[0] == '/' && trimmedLine[1] == '/') {
+        return 0; // It's a comment line
+    }
+
+    // Check if the line is a declaration or directive
+    if (trimmedLine.rfind("OPENQASM", 0) == 0 || // Starts with "OPENQASM"
+        trimmedLine.rfind("include", 0) == 0 ||  // Starts with "include"
+        trimmedLine.rfind("qreg", 0) == 0 ||     // Starts with "qreg"
+        trimmedLine.rfind("creg", 0) == 0 ||     // Starts with "creg"
+        trimmedLine.rfind("gate", 0) == 0 ||     // Starts with "gate"
+        trimmedLine.rfind("opaque", 0) == 0 ||   // Starts with "opaque"
+        trimmedLine.rfind("measure", 0) == 0 ||  // Starts with "measure"
+        trimmedLine.rfind("reset", 0) == 0) {    // Starts with "reset"
+        return 0; // It's a non-executable line
+    }
+
+    // All other lines are considered executable actions
+    return 1;
 }

@@ -27,7 +27,7 @@ public:
 	static std::string intToString(int n);
 		
 	static std::string executePythonCode(const std::string& sourceCode, PythonFramework fr);
-	static bool isOpenQASMCode(const std::string& code);
+//	static bool isOpenQASMCode(const std::string& code);
 
 	static CodeType detectCodeType(const std::string& sourceCode);
 	static bool containsPythonKeywords(const std::string& sourceCode);
@@ -51,5 +51,16 @@ public:
 	static std::string combineVector(const std::vector<std::string>& lines);
 	static std::vector<std::string> removePreSpaces(const std::vector<std::string>& lines, const std::string& preSpace);
 
+	static void detectCommentLines(const std::vector<std::string>& lines, std::vector<int> &data);
+	static int  getNextLine(int currentLine, const std::vector<CodeLine>& lines, int type);
+	static int  getFirstLine(const std::vector<CodeLine>& lines, int type);
+
+	static bool isCommentLine(const std::string& line, bool& inBlockComment);
+
+	static void parseCode(const std::string& code, std::vector<CodeLine>& parsedCode, CodeType type);
+	static void logSourceCode(const std::vector<CodeLine>& parsedCode);
+
+	static int isExecutable(const std::string& line, CodeType type);
+	static int isExecutableLineOpenQASM(const std::string& line);
 
 };
