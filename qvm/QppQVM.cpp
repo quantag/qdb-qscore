@@ -79,11 +79,20 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	sourceCode = Utils::loadFile(file);
 	LOGI("Loaded %u bytes from [%s]", sourceCode.size(), file.c_str());
 
+	// store original sources
+	this->originalSourceCode = sourceCode;
+
 	CodeType type = Utils::detectCodeType(sourceCode);
 	LOGI("Source code type: %d", type);
 
+	Utils::parseCode(sourceCode, originalParsedCode, type);
+//	Utils::logSourceCode(originalParsedCode);
+
+
+
+
 	switch (type) {
-		case CodeType::Python:
+		case CodeType::ePython:
 		{
 			LOGI("Recognized Python source");
 			PythonFramework framework = Utils::detectPythonFramework(sourceCode);
@@ -101,7 +110,7 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 			}
 			break;
 		}
-		case CodeType::OpenQASM:
+		case CodeType::eOpenQASM:
 		{
 			LOGI("Recognized OpenQASM source");
 			ScriptExecResult result = processor->renderOpenQASMCircuit(sourceCode, sessionId);
@@ -119,7 +128,7 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	int nLines = Utils::parseSourcePerLines(this->sourceCode, this->sourceCodePerLines);
 	LOGI("Parsed lines: %d", nLines);
 
-	this->currentState.currentLine = 0;
+	this->currentState.currentLine = Utils::getFirstLine(this->originalParsedCode, 2) + 1;
 	int ret1 = frontend->loadCode(this->sourceCode);
 	LOGI("frontend.loadCode ret %d", ret1);
 
@@ -223,11 +232,19 @@ void QppQVM::stepForward() {
 
 	if (mIt != circuit->end()) {
 		LOGI("Executing next line.. %d", this->currentState.currentLine);
-		this->currentState.currentLine ++;
+		
+		//this->currentState.currentLine ++; // if comments, then skip them.. 
+
+		Utils::logSourceCode(originalParsedCode);
+		LOGI("currentLine before getNextLine = %d", this->currentState.currentLine);
+		this->currentState.currentLine = Utils::getNextLine(this->currentState.currentLine - 1, this->originalParsedCode, 2) + 1; // in UI line numbers starts from 1..
+		LOGI("currentLine after getNextLine = %d", this->currentState.currentLine);
+
 		this->currentState.code = Utils::encode64( this->sourceCode );
 
-		if(this->getSourceLines()>0)
-			this->currentState.currentLine %= this->getSourceLines();
+	//	if(this->getSourceLines()>0)
+	//		this->currentState.currentLine %= this->getSourceLines();
+
 
 		try {
 			engine->execute( mIt++ ); // crash

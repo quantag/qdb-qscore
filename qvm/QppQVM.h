@@ -27,7 +27,6 @@ public:
 
 	int getSourceLines();
 	void stepForward();
-
 	void setWSSession(WSSession* wsSession);
 
 	static std::vector<complexNumber> convertToStdVector(const qpp::ket& eigenVector);

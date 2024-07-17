@@ -181,7 +181,6 @@ int main(int argc, char *argv[]) {
                 return response;
             });
 
-
         session->registerHandler(
             [&](const dap::DisassemblyRequest& request)
             -> dap::ResponseOrError<dap::DisassemblyResponse> {
