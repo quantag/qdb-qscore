@@ -7,7 +7,7 @@
 
 typedef std::vector< std::vector<complexNumber>>  matrix2d;
 
-// current state show on frontent
+// current state show on frontend
 struct FrontState {
 	int currentLine;
 
