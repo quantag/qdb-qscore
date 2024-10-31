@@ -294,7 +294,7 @@ int main(int argc, char *argv[]) {
 
             auto execTime = session->debugger->stepForward();
             if (execTime != 0) {
-                session->sendOutputMessage(std::string("Step execution time: ") + std::to_string(execTime) + std::string(" ms"));
+                session->sendOutputMessage(std::string("Step execution time: ") + std::to_string(execTime) + std::string(" ms\n"));
             }
 
             return dap::NextResponse();
@@ -403,10 +403,10 @@ int main(int argc, char *argv[]) {
 
             if (ret!=0) {
                 LOGE("Launch was not OK [%s]", session->debugger->getLastErrorMessage().c_str());
-                session->sendOutputMessage("Error: " + session->debugger->getLastErrorMessage());
+                session->sendOutputMessage("Error: " + session->debugger->getLastErrorMessage() +"\n");
 
             } else{
-                session->sendOutputMessage("Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]");
+                session->sendOutputMessage("Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]\n");
             }
 
             return dap::LaunchResponse();
