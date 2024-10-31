@@ -13,7 +13,7 @@ public:
 	virtual std::string getQVMName() = 0;
 
 	virtual int getSourceLines() = 0;
-	virtual void stepForward() = 0;
+	virtual long long stepForward() = 0;
 	virtual void setWSSession(WSSession* wsSession) = 0;
 
 	virtual int getCurrentLine() const {

@@ -88,9 +88,6 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	Utils::parseCode(sourceCode, originalParsedCode, type);
 //	Utils::logSourceCode(originalParsedCode);
 
-
-
-
 	switch (type) {
 		case CodeType::ePython:
 		{
@@ -222,17 +219,17 @@ int QppQVM::getSourceLines() {
 }
 
 // Execute next line
-void QppQVM::stepForward() {
+long long QppQVM::stepForward() {
 	LOGI("");
 
 	if (!circuit || !this->sourceCodeParsed) {
 		LOGI("Source code not parsed. Simulate. Line = %d", ++this->currentState.currentLine);
-		return;
+		return 0;
 	}
 
 	if (mIt != circuit->end()) {
 		LOGI("Executing next line.. %d", this->currentState.currentLine);
-		
+
 		//this->currentState.currentLine ++; // if comments, then skip them.. 
 
 		Utils::logSourceCode(originalParsedCode);
@@ -247,6 +244,7 @@ void QppQVM::stepForward() {
 
 
 		try {
+			auto start = std::chrono::high_resolution_clock::now();
 			engine->execute( mIt++ ); // crash
 
 			qpp::ket psi = engine->get_psi();
@@ -257,6 +255,11 @@ void QppQVM::stepForward() {
 
 			int ret1 = frontend->updateState(currentState);
 			LOGI("frontend.updateState ret %d", ret1);
+
+			auto stop = std::chrono::high_resolution_clock::now();
+			auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+			LOGI( "Execution time: %ld ms", duration.count());
+			return duration.count();
 		}
 		catch (...) {
 			LOGE("Error executing next line");
@@ -265,6 +268,7 @@ void QppQVM::stepForward() {
 	else {
 		LOGI("Reached end of circuit..");
 	}
+	return 0;
 }
 
 // Convert qpp::ket to std::vector<complexNumber>

@@ -292,7 +292,11 @@ int main(int argc, char *argv[]) {
         session->registerHandler([&](const dap::NextRequest& req) {
             LOGI("*** [NextRequest] threadId=%d ***", req.threadId);
 
-            session->debugger->stepForward();
+            auto execTime = session->debugger->stepForward();
+            if (execTime != 0) {
+                session->sendOutputMessage(std::string("Step execution time: ") + std::to_string(execTime) + std::string(" ms"));
+            }
+
             return dap::NextResponse();
             });
         // The StepIn request instructs the debugger to step-in for a specific
