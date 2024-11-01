@@ -55,3 +55,8 @@ struct CodeLine {
 	std::string line;
 	int type; // 0 = comment, 1 = info, 2 = executable
 };
+
+#define ERR_OK			0
+#define ERR_NOFILE		1
+#define ERR_DEMOFILE	2
+#define ERR_PARSEERROR	3

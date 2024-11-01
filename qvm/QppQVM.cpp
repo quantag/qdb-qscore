@@ -33,7 +33,7 @@ void QppQVM::setWSSession(WSSession* ws) {
 int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessionId, std::string& errorMessage) {
 	LOGI("[%s] [%s]", fileName.c_str(), sessionId.c_str());
 
-	int ret = 0;
+	int ret = ERR_OK;
 
 	this->sourceCodeParsed = 0;
 	this->sourceCodePerLines.clear();
@@ -59,7 +59,7 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 
 			LOGI("File [%s] not exist, use demo file [%s]", fileName.c_str(), DEMO_FILE);
 			file = DEMO_FILE;
-			//ret = 1;
+			ret = ERR_DEMOFILE;
 		}
 		else {
 			LOGI("Server File '%s' exists", serverFile.c_str());
@@ -69,11 +69,11 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 
 	if (!Utils::fileExists(file) ) {
 		LOGI("File '%s' not exists", file.c_str());
-		return 1;
+		return ERR_NOFILE;
 	}
 	else {
 		LOGI("File '%s' exist !", file.c_str());
-		ret = 0;
+		ret = ERR_OK;
 	}
 
 	sourceCode = Utils::loadFile(file);
@@ -185,7 +185,7 @@ int QppQVM::run(const std::string& fileName, const std::string& sessionId) {
 		engine = QEngine::instance(*circuit); // create an engine out of a quantum circuit
 		engine->execute();
 	}
-	return 0;
+	return ERR_OK;
 }
 
 int QppQVM::debug(const std::string& fileName, const std::string& sessionId) {
@@ -193,7 +193,7 @@ int QppQVM::debug(const std::string& fileName, const std::string& sessionId) {
 
 	errorMessage = "";
 	int ret = loadSourceCode(fileName, sessionId, errorMessage);
-	if (ret != 0) {
+	if (ret == ERR_NOFILE) {
 		LOGE("Error loading sources from [%s] [%s]", fileName.c_str(), errorMessage.c_str());
 		return ret;
 	}
@@ -201,7 +201,7 @@ int QppQVM::debug(const std::string& fileName, const std::string& sessionId) {
 
 	if (!this->sourceCodeParsed) {
 		LOGE("Source parse error [%s]", errorMessage.c_str());
-		ret = 1;
+		ret = ERR_PARSEERROR;
 	}
 
 	SAFE_DELETE(engine);

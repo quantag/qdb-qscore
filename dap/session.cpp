@@ -518,7 +518,7 @@ class SessionImpl : public dap::Session {
           evnt.data = debugger->getLastErrorMessage();
           // 'console', 'important', 'stdout', 'stderr', 'telemetry'
           evnt.category = "console";
-          evnt.output = msg;
+          evnt.output = msg + "\n";
           Session::send(evnt);
    }
 };
