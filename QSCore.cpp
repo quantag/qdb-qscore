@@ -294,7 +294,7 @@ int main(int argc, char *argv[]) {
 
             auto execTime = session->debugger->stepForward();
             if (execTime != 0) {
-                session->sendOutputMessage(std::string("Step execution time: ") + std::to_string(execTime) + std::string(" ms\n"));
+                session->sendOutputMessage(std::string("Step execution time: ") + std::to_string(execTime) + std::string(" ms"));
             }
 
             return dap::NextResponse();
@@ -401,13 +401,17 @@ int main(int argc, char *argv[]) {
             int ret = session->debugger->launch(isRun, req.program.value(), session->getSessionId());
             LOGI("QVM launch ret %d", ret);
 
-            if (ret!=0) {
-                LOGE("Launch was not OK [%s]", session->debugger->getLastErrorMessage().c_str());
-                session->sendOutputMessage("Error: " + session->debugger->getLastErrorMessage() +"\n");
-
-            } else{
-                session->sendOutputMessage("Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]\n");
+            std::string msg;
+            switch (ret) {
+                case ERR_DEMOFILE:
+                    msg = "Using demo file to launch";
+                    break;
+                case ERR_OK:
+                    msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]";
+                default:
+                    msg = "Error : " + session->debugger->getLastErrorMessage();
             }
+            session->sendOutputMessage(msg);
 
             return dap::LaunchResponse();
         });

@@ -33,7 +33,7 @@ void Debugger::continueDebugger() {
 int Debugger::launch(int isRun, const std::string& fileName, const std::string &sessionId) {
     LOGI("noDebug = %d, file = [%s] [%s]", isRun, fileName.c_str(), sessionId.c_str());
 
-    int ret = 0;
+    int ret = ERR_OK;
     if (isRun) {
         ret = qvm->run(fileName, sessionId);
     }
@@ -41,7 +41,7 @@ int Debugger::launch(int isRun, const std::string& fileName, const std::string &
         ret = qvm->debug(fileName, sessionId);
     }
 
-    if (ret==0) {
+    if (ret==ERR_OK) {
         this->numSourceLines = qvm->getSourceLines();
     }
     return ret;
