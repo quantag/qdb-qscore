@@ -73,7 +73,7 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	}
 	else {
 		LOGI("File '%s' exist !", file.c_str());
-		ret = ERR_OK;
+		if(ret!= ERR_DEMOFILE) ret = ERR_OK;
 	}
 
 	sourceCode = Utils::loadFile(file);
@@ -193,6 +193,7 @@ int QppQVM::debug(const std::string& fileName, const std::string& sessionId) {
 
 	errorMessage = "";
 	int ret = loadSourceCode(fileName, sessionId, errorMessage);
+	LOGI("loadSourceCode ret %d", ret);
 	if (ret == ERR_NOFILE) {
 		LOGE("Error loading sources from [%s] [%s]", fileName.c_str(), errorMessage.c_str());
 		return ret;
