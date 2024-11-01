@@ -404,7 +404,7 @@ int main(int argc, char *argv[]) {
             std::string msg;
             switch (ret) {
                 case ERR_DEMOFILE:
-                    msg = "Using demo file to launch";
+                    msg = "Using demo file to launch QVM [" + session->debugger->getQVM()->getQVMName() + "]";
                     break;
                 case ERR_OK:
                     msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]";
