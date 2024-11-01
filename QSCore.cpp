@@ -408,8 +408,10 @@ int main(int argc, char *argv[]) {
                     break;
                 case ERR_OK:
                     msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]";
+                    break;
                 default:
-                    msg = "Error : " + session->debugger->getLastErrorMessage();
+                    msg = "Error :" + session->debugger->getLastErrorMessage();
+                
             }
             session->sendOutputMessage(msg);
 
