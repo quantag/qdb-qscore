@@ -65,4 +65,6 @@ public:
 	static std::string getCodeTypeName(CodeType type);
 	static std::string getPythonFrameworkName(PythonFramework type);
 
+	static std::string getCpuInfo();
+
 };

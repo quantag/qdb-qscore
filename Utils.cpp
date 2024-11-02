@@ -663,3 +663,60 @@ std::string Utils::getPythonFrameworkName(PythonFramework type) {
     }
     return "?";
 }
+
+#ifdef _WIN32
+#include <intrin.h>  // For __cpuid intrinsic on Windows
+
+std::string Utils::getCpuInfo() {
+    // Get the CPU brand string
+    std::array<int, 4> cpuInfo;
+    std::array<char, 48> brand;
+    __cpuid(cpuInfo.data(), 0x80000002);
+    memcpy(brand.data(), cpuInfo.data(), sizeof(cpuInfo));
+    __cpuid(cpuInfo.data(), 0x80000003);
+    memcpy(brand.data() + 16, cpuInfo.data(), sizeof(cpuInfo));
+    __cpuid(cpuInfo.data(), 0x80000004);
+    memcpy(brand.data() + 32, cpuInfo.data(), sizeof(cpuInfo));
+    std::string cpuType(brand.data());
+
+    // Get architecture type (basic check based on intrinsics)
+    std::string architecture;
+    __cpuid(cpuInfo.data(), 1);
+    if ((cpuInfo[3] & (1 << 23)) != 0) {  // Check if MMX is supported
+        architecture = "x86";
+    }
+    if ((cpuInfo[3] & (1 << 30)) != 0) {  // Check if Intel 64-bit extensions are supported
+        architecture = "x64";
+    }
+
+    return "CPU Type: " + cpuType + "\nArchitecture: " + architecture;
+}
+
+#else  // Assume Linux/Unix
+#include <fstream>
+
+std::string Utils::getCpuInfo() {
+    std::ifstream cpuinfo("/proc/cpuinfo");
+    std::string line;
+    std::string cpuType;
+    std::string architecture;
+
+    while (std::getline(cpuinfo, line)) {
+        if (line.find("model name") != std::string::npos) {
+            cpuType = line.substr(line.find(":") + 2);
+        }
+        else if (line.find("architecture") != std::string::npos) {
+            architecture = line.substr(line.find(":") + 2);
+        }
+    }
+
+    if (architecture.empty()) { // Fallback for some Linux distributions
+        std::ifstream archInfo("/proc/sys/kernel/osrelease");
+        if (archInfo.good()) {
+            architecture = "x86_64";  // Default if no architecture entry in /proc/cpuinfo
+        }
+    }
+
+    return "CPU Type: " + cpuType + "\nArchitecture: " + architecture;
+}
+#endif
