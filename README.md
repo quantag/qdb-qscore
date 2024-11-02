@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-__sudo apt-get install cmake build-essential libcurl4-gnutls-dev__
+__sudo apt-get install cmake build-essential libcurl4-gnutls-dev libboost-all-dev__
 
 ## Build
 
