@@ -481,6 +481,7 @@ int main(int argc, char *argv[]) {
     const char* dapHost = (argc > 1) ? argv[1] : LOCALHOST;
     dapServer->start( dapHost, DAP_SERVER_PORT, onClientConnected);
     LOGI("DAP Server started on [%s:%d]", dapHost, DAP_SERVER_PORT);
+    LOGI("CPU: [%s]", Utils::getCpuInfo().c_str());
 
     const char* wsHost = (argc > 2) ? argv[2] : LOCALHOST;
     LOGI("Starting WS Server on [%s:%d]", wsHost, WS_SERVER_PORT);
