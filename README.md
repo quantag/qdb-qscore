@@ -2,19 +2,19 @@
 
 ## Prerequisites
 
-** sudo apt-get install cmake build-essential libcurl4-gnutls-dev **
+__sudo apt-get install cmake build-essential libcurl4-gnutls-dev__
 
 ## Build
 
-** git clone https://github.com/qunatag/qdb-qscore **
+__git clone https://github.com/qunatag/qdb-qscore__
 
-** cd qdb-qscore/build **
+__cd qdb-qscore/build__
 
-** cmake .. **
+__cmake ..__
 
-** make **
+__make__
 
 ## Run
 
-** ./QSCore **
+__./QSCore__
 
