@@ -409,16 +409,16 @@ int main(int argc, char *argv[]) {
                     break;
                 case ERR_OK:
                 {
-                    msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]\nCode type:"
-                        + std::to_string((int)status.codeType);
+                    msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]\nCode type: "
+                        + Utils::getCodeTypeName(status.codeType);
 
                     if (status.codeType == ePython) {
-                        msg += std::string("\n") + "Python Framework: " + std::to_string(status.pythonFramework);
+                        msg += std::string("\n") + "Python Framework: " + Utils::getPythonFrameworkName(status.pythonFramework);
                     }
                     break;
                 }
                 default:
-                    msg = "Error :" + session->debugger->getLastErrorMessage();
+                    msg = "Error :" + status.errorMessage;
                 
             }
             session->sendOutputMessage(msg);

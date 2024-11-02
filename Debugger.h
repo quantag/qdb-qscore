@@ -43,7 +43,7 @@ class Debugger {
   }
 
   std::string getLastErrorMessage() {
-	  return qvm->errorMessage;
+	  return qvm->_errorMessage;
   }
 
  private:

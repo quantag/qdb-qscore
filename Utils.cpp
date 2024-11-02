@@ -645,3 +645,21 @@ int Utils::isExecutableLineOpenQASM(const std::string& line) {
     // All other lines are considered executable actions
     return 1;
 }
+
+std::string Utils::getCodeTypeName(CodeType type) {
+    switch (type) {
+        case ePython: return "Python";
+        case eOpenQASM: return "OpenQASM";
+        case eUnknown: return "Unknown";
+    }
+    return "?";
+}
+
+std::string Utils::getPythonFrameworkName(PythonFramework type) {
+    switch (type) {
+        case eGeneric:  return "Generic";
+        case eQiskit:   return "Qiskit";
+        case eTket:     return "pyTket";
+    }
+    return "?";
+}

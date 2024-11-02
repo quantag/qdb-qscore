@@ -103,7 +103,7 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 			ScriptExecResult result = processor->parsePythonToOpenQASM(sourceCode, sessionId);
 			if (result.status!=0) {
 				LOGE(">>> Parser returned error in HTML format");
-				errorMessage = Utils::getPlainTextFromHTML(result.err);
+				status.errorMessage = Utils::getPlainTextFromHTML(result.err);
 				return 1;
 			}
 			else {
@@ -117,7 +117,7 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 			ScriptExecResult result = processor->renderOpenQASMCircuit(sourceCode, sessionId);
 			if (result.status != 0) {
 				LOGE(">>> Render OpenQASM failed");
-				errorMessage = "Rendering OpenQASM circuit failed : " + result.err;
+				status.errorMessage = "Rendering OpenQASM circuit failed : " + result.err;
 				return 1;
 			}
 			break;
@@ -145,12 +145,12 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	}
 	catch (qasmtools::parser::ParseError e) {
 		LOGE("Error parsing OpenQASM from file [%s]. [%s]", file.c_str(), (e.what()!=NULL) ? e.what() : "");
-		errorMessage = (e.what() != NULL) ? e.what() : "Parsing error";
+		status.errorMessage = (e.what() != NULL) ? e.what() : "Parsing error";
 	}
 	catch (...) {
 		// Catch any other type of exception
 		LOGE("Caught unknown exception");
-		errorMessage = "Unknown exception occurred";
+		status.errorMessage = "Unknown exception occurred";
 	}
 
 	return ret;
@@ -193,17 +193,16 @@ int QppQVM::run(const std::string& fileName, const std::string& sessionId, Launc
 int QppQVM::debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
 	LOGI("%s [%s]", fileName.c_str(), sessionId.c_str());
 
-
 	int ret = loadSourceCode(fileName, sessionId, status);
 	LOGI("loadSourceCode ret %d", ret);
 	if (ret == ERR_NOFILE) {
-		LOGE("Error loading sources from [%s] [%s]", fileName.c_str(), errorMessage.c_str());
+		LOGE("Error loading sources from [%s] [%s]", fileName.c_str(), status.errorMessage.c_str());
 		return ret;
 	}
 	LOGI("Loaded source code from [%s] parsed = %d", fileName.c_str(), this->sourceCodeParsed);
 
 	if (!this->sourceCodeParsed) {
-		LOGE("Source parse error [%s]", errorMessage.c_str());
+		LOGE("Source parse error [%s]", status.errorMessage.c_str());
 		ret = ERR_PARSEERROR;
 	}
 
