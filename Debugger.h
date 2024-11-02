@@ -15,7 +15,7 @@ class Debugger {
 	// run() instructs the debugger to continue execution.
 	void continueDebugger();
 
-	int launch(int isRun, const std::string& fileName, const std::string& sessionId);
+	int launch(int isRun, const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
 
 	// pause() instructs the debugger to pause execution.
 	void pause();

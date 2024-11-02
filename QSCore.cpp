@@ -398,7 +398,8 @@ int main(int argc, char *argv[]) {
             LOGI("Sessions in storage after cleanup: %u", sessions.getSessionsCount());
 
             bool isRun = req.noDebug.has_value();
-            int ret = session->debugger->launch(isRun, req.program.value(), session->getSessionId());
+            LaunchStatus status;
+            int ret = session->debugger->launch(isRun, req.program.value(), session->getSessionId(), status);
             LOGI("QVM launch ret %d", ret);
 
             std::string msg;
@@ -407,8 +408,15 @@ int main(int argc, char *argv[]) {
                     msg = "Using demo file to launch QVM [" + session->debugger->getQVM()->getQVMName() + "]";
                     break;
                 case ERR_OK:
-                    msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]";
+                {
+                    msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]\nCode type:"
+                        + std::to_string((int)status.codeType);
+
+                    if (status.codeType == ePython) {
+                        msg += std::string("\n") + "Python Framework: " + std::to_string(status.pythonFramework);
+                    }
                     break;
+                }
                 default:
                     msg = "Error :" + session->debugger->getLastErrorMessage();
                 

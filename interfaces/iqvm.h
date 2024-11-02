@@ -6,9 +6,9 @@
 // interface to QVM
 class IQVM {
 public:
-	virtual int loadSourceCode(const std::string& fileName, const std::string& sessionId, std::string& errorMessage) = 0;
-	virtual int run(const std::string& fileName, const std::string& sessionId) = 0;
-	virtual int debug(const std::string& fileName, const std::string& sessionId) = 0;
+	virtual int loadSourceCode(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) = 0;
+	virtual int run(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) = 0;
+	virtual int debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) = 0;
 
 	virtual std::string getQVMName() = 0;
 

@@ -16,12 +16,12 @@ public:
 	QppQVM();
 	~QppQVM();
 
-	int loadSourceCode(const std::string& fileName, const std::string& sessionId, std::string &errorMessage);
-	int run(const std::string& fileName, const std::string& sessionId);
-	int debug(const std::string& fileName, const std::string& sessionId);
+	int loadSourceCode(const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
+	int run(const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
+	int debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
 
 	virtual std::string getQVMName() {
-		return "QPP 1.0.2";
+		return "QPP 1.0.3";
 	}
 
 

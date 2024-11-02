@@ -30,7 +30,7 @@ void QppQVM::setWSSession(WSSession* ws) {
 	this->frontend->setWSSession(ws);
 }
 
-int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessionId, std::string& errorMessage) {
+int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
 	LOGI("[%s] [%s]", fileName.c_str(), sessionId.c_str());
 
 	int ret = ERR_OK;
@@ -60,8 +60,12 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 			LOGI("File [%s] not exist, use demo file [%s]", fileName.c_str(), DEMO_FILE);
 			file = DEMO_FILE;
 			ret = ERR_DEMOFILE;
+
+			status.serverFileFound = 0;
 		}
 		else {
+			status.serverFileFound = 1;
+
 			LOGI("Server File '%s' exists", serverFile.c_str());
 			file = serverFile;
 		}
@@ -82,19 +86,19 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	// store original sources
 	this->originalSourceCode = sourceCode;
 
-	CodeType type = Utils::detectCodeType(sourceCode);
-	LOGI("Source code type: %d", type);
+	status.codeType = Utils::detectCodeType(sourceCode);
+	LOGI("Source code type: %d", status.codeType);
 
-	Utils::parseCode(sourceCode, originalParsedCode, type);
+	Utils::parseCode(sourceCode, originalParsedCode, status.codeType);
 //	Utils::logSourceCode(originalParsedCode);
 
-	switch (type) {
+	switch (status.codeType) {
 		case CodeType::ePython:
 		{
 			LOGI("Recognized Python source");
-			PythonFramework framework = Utils::detectPythonFramework(sourceCode);
-			LOGI("Recognized Python framework: %d", framework);
-			updateProcessor(framework);
+			status.pythonFramework = Utils::detectPythonFramework(sourceCode);
+			LOGI("Recognized Python framework: %d", status.pythonFramework);
+			updateProcessor(status.pythonFramework);
 		
 			ScriptExecResult result = processor->parsePythonToOpenQASM(sourceCode, sessionId);
 			if (result.status!=0) {
@@ -172,12 +176,10 @@ void QppQVM::updateProcessor(PythonFramework framework) {
 	}
 }
 
-int QppQVM::run(const std::string& fileName, const std::string& sessionId) {
+int QppQVM::run(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
 	LOGI("%s [%s]", fileName.c_str(), sessionId.c_str());
 
-	std::string errorMessage;
-
-	ASSERT( loadSourceCode(fileName, sessionId, errorMessage) );
+	ASSERT( loadSourceCode(fileName, sessionId, status) );
 	LOGI("Loaded source code from [%s] parsed = %d", fileName.c_str(), this->sourceCodeParsed);
 
 	SAFE_DELETE(engine);
@@ -188,11 +190,11 @@ int QppQVM::run(const std::string& fileName, const std::string& sessionId) {
 	return ERR_OK;
 }
 
-int QppQVM::debug(const std::string& fileName, const std::string& sessionId) {
+int QppQVM::debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
 	LOGI("%s [%s]", fileName.c_str(), sessionId.c_str());
 
-	errorMessage = "";
-	int ret = loadSourceCode(fileName, sessionId, errorMessage);
+
+	int ret = loadSourceCode(fileName, sessionId, status);
 	LOGI("loadSourceCode ret %d", ret);
 	if (ret == ERR_NOFILE) {
 		LOGE("Error loading sources from [%s] [%s]", fileName.c_str(), errorMessage.c_str());
