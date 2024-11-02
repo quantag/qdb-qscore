@@ -415,6 +415,8 @@ int main(int argc, char *argv[]) {
                     if (status.codeType == ePython) {
                         msg += std::string("\n") + "Python Framework: " + Utils::getPythonFrameworkName(status.pythonFramework);
                     }
+
+                    msg += "\n" + Utils::getCpuInfo();
                     break;
                 }
                 default:
