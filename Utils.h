@@ -62,5 +62,7 @@ public:
 
 	static int isExecutable(const std::string& line, CodeType type);
 	static int isExecutableLineOpenQASM(const std::string& line);
+	static std::string getCodeTypeName(CodeType type);
+	static std::string getPythonFrameworkName(PythonFramework type);
 
 };
