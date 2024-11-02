@@ -23,7 +23,7 @@ enum PythonFramework {
 	eTket = 2
 };
 
-enum class CodeType {
+enum CodeType {
 	ePython,
 	eOpenQASM,
 	eUnknown
@@ -60,3 +60,11 @@ struct CodeLine {
 #define ERR_NOFILE		1
 #define ERR_DEMOFILE	2
 #define ERR_PARSEERROR	3
+
+struct LaunchStatus {
+	int serverFileFound;
+	std::string errorMessage;
+
+	CodeType codeType;
+	PythonFramework pythonFramework;
+};
