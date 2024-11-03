@@ -60,7 +60,7 @@ int64_t Debugger::currentLine() {
     return qvm->getCurrentLine();
 }
 
-long long Debugger::stepForward() {
+double Debugger::stepForward() {
       LOGI("*** line = %d, numSourceLines = %d", qvm->getCurrentLine(), numSourceLines);
 
       std::unique_lock<std::mutex> lock(mutex);

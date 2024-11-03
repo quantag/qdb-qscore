@@ -24,7 +24,7 @@ class Debugger {
 	int64_t currentLine();
 
 	// stepForward() instructs the debugger to step forward one line.
-	long long stepForward();
+	double stepForward();
 
 	// clearBreakpoints() clears all set breakpoints.
 	void clearBreakpoints();
