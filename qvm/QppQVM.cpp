@@ -34,6 +34,8 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	LOGI("[%s] [%s]", fileName.c_str(), sessionId.c_str());
 
 	int ret = ERR_OK;
+	status.pythonFramework = eUnknownFramework;
+	status.codeType = eUnknown;
 
 	this->sourceCodeParsed = 0;
 	this->sourceCodePerLines.clear();

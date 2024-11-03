@@ -20,7 +20,8 @@ struct complexNumber {
 enum PythonFramework {
 	eGeneric = 0,
 	eQiskit = 1,
-	eTket = 2
+	eTket = 2,
+	eUnknownFramework = 100
 };
 
 enum CodeType {
