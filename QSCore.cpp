@@ -20,6 +20,7 @@
 #include "SessionStorage.h"
 
 #include "qvm/QppQVM.h"
+#include "ConfigLoader.h"
 
 
 #ifdef WIN32
@@ -31,6 +32,7 @@
 #define WS_SERVER_PORT      5556
 
 #define LOCALHOST           "127.0.0.1"
+#define CONFIG_FILE         "QSCore.ini"
 
 
 // sourceContent holds the synthetic file source.
@@ -39,6 +41,18 @@ constexpr char sourceContent[] = R"(// OpenQASM 3.0;)";
 
 int main(int argc, char *argv[]) {
     LOG_INIT(2, "qs-core.log");
+
+    ConfigLoader cfg;
+    if (cfg.load(CONFIG_FILE)) {
+        LOGI("Loaded config file from '%s'", CONFIG_FILE);
+        LOGI("Render circuit: %s", cfg.getValue(RENDER_CIRCUIT_KEY).c_str());
+        LOGI("Demo file path: %s", cfg.getValue(DEMO_FILE_KEY).c_str());
+        LOGI("Source folder path: %s", cfg.getValue(SOURCE_FOLDER_KEY).c_str());
+
+    }
+    else {
+        LOGI("Could not load configuration file %s", CONFIG_FILE);
+    }
 
     WSServer wsock;
     SessionStorage &sessions = SessionStorage::getInstance();
@@ -490,7 +504,7 @@ int main(int argc, char *argv[]) {
         if (!strcmp(argv[1], "file")) {
             if (argc > 2) {
                 // launch file specified in command line
-                QppQVM qvm;
+                QppQVM qvm(&cfg);
                 LaunchStatus status;
 
                 LOGI("Executing one file [%s]", argv[2]);
