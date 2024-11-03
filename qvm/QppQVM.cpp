@@ -9,14 +9,22 @@
 #include "../QiskitProcessor.h"
 #include "../TketProcessor.h"
 
+#include "../ConfigLoader.h"
 
-#define DEMO_FILE		"/home/qbit/qasm/file1.qasm"
-#define SOURCE_FOLDER	"/var/dap/"
 
-QppQVM::QppQVM() : engine(NULL) {
+
+QppQVM::QppQVM() : engine(nullptr) {
 	this->frontend = new WebFrontend();
 	this->sourceCodeParsed = 0;
 	processor = new QiskitProcessor();
+	this->cfg = nullptr;
+}
+
+QppQVM::QppQVM(ConfigLoader* cfg) : engine(nullptr) {
+	this->frontend = new WebFrontend();
+	this->sourceCodeParsed = 0;
+	processor = new QiskitProcessor();
+	this->cfg = cfg;
 }
 
 QppQVM::~QppQVM() {
@@ -43,16 +51,21 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	sourceCode = "";
 	std::string file = fileName;
 
+	std::string sourceFolder = SOURCE_FOLDER;
+	if (cfg) {
+		sourceFolder = cfg->getSourceFolder();
+	}
+
 	if (!Utils::fileExists(file)) {
 		// try to find on server folder
-		std::string defaultFolder = SOURCE_FOLDER + std::string("default");
+		std::string defaultFolder = sourceFolder + std::string("default");
 		std::string serverFile = Utils::findServerFile(defaultFolder, file);
 		if (Utils::fileExists(serverFile)) {
 			LOGI("Found Server File in default folder '%s'", serverFile.c_str());
 
 		}
 		else {
-			std::string sessionFolder = SOURCE_FOLDER + sessionId;
+			std::string sessionFolder = sourceFolder + sessionId;
 			serverFile = Utils::findServerFile(sessionFolder, file);
 		}
 
@@ -60,7 +73,13 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 			LOGI("Server File '%s' not exists", serverFile.c_str());
 
 			LOGI("File [%s] not exist, use demo file [%s]", fileName.c_str(), DEMO_FILE);
-			file = DEMO_FILE;
+			if (cfg) {
+				file = cfg->getDemoFile();
+			}
+			else {
+				file = DEMO_FILE;
+			}
+
 			ret = ERR_DEMOFILE;
 
 			status.serverFileFound = 0;
@@ -92,7 +111,6 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 	LOGI("Source code type: %d", status.codeType);
 
 	Utils::parseCode(sourceCode, originalParsedCode, status.codeType);
-//	Utils::logSourceCode(originalParsedCode);
 
 	switch (status.codeType) {
 		case CodeType::ePython:
@@ -116,11 +134,21 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 		case CodeType::eOpenQASM:
 		{
 			LOGI("Recognized OpenQASM source");
-			ScriptExecResult result = processor->renderOpenQASMCircuit(sourceCode, sessionId);
-			if (result.status != 0) {
-				LOGE(">>> Render OpenQASM failed");
-				status.errorMessage = "Rendering OpenQASM circuit failed : " + result.err;
-				return 1;
+
+			bool renderCircuit = true;
+			if (cfg) {
+				renderCircuit = cfg->isRenderCircuit();
+			}
+			if (!renderCircuit) {
+				LOGI("Circuit rendering disabled in config");
+			}
+			else {
+				ScriptExecResult result = processor->renderOpenQASMCircuit(sourceCode, sessionId);
+				if (result.status != 0) {
+					LOGE(">>> Render OpenQASM failed");
+					status.errorMessage = "Rendering OpenQASM circuit failed : " + result.err;
+					return 1;
+				}
 			}
 			break;
 		}

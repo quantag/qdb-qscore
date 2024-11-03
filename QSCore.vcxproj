@@ -164,6 +164,7 @@
     <ClCompile Include="ws\WSSession.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ConfigLoader.h" />
     <ClInclude Include="dap\any.h" />
     <ClInclude Include="dap\dap.h" />
     <ClInclude Include="dap\future.h" />

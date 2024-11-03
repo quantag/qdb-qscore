@@ -10,10 +10,12 @@ using namespace qpp;
 class WSSession;
 class IFrontend;
 class PythonProcessor;
+class ConfigLoader;
 
 class QppQVM : public IQVM {
 public:
 	QppQVM();
+	QppQVM(ConfigLoader *cfg);
 	~QppQVM();
 
 	int loadSourceCode(const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
@@ -21,7 +23,7 @@ public:
 	int debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
 
 	virtual std::string getQVMName() {
-		return "QPP 1.0.6";
+		return "QPP 1.0.8";
 	}
 
 
@@ -47,4 +49,5 @@ private:
 	void setCurrentState(const qpp::ket& psi);
 
 	PythonProcessor* processor;
+	ConfigLoader* cfg;
 };
