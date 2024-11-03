@@ -479,32 +479,43 @@ int main(int argc, char *argv[]) {
         sessions.removeLater(session->getSessionId());
     };
 
+
+
+
     if (argc > 1) {
-        // launch file specified in command line
-        QppQVM qvm;
-        LaunchStatus status;
 
-        LOGI("Executing one file [%s]", argv[1]);
-        auto start = std::chrono::high_resolution_clock::now();
+        if (!strcmp(argv[1], "server")) {
+            LOGI("Server mode");
+        } else
+        if (!strcmp(argv[1], "file")) {
+            if (argc > 2) {
+                // launch file specified in command line
+                QppQVM qvm;
+                LaunchStatus status;
 
-        int ret = qvm.run(argv[1], "", status);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        LOGI("Execution time: %ld ms", duration.count());
-        LOGI("ret %d, codeType %d, framework %d", ret, status.codeType, status.pythonFramework);
+                LOGI("Executing one file [%s]", argv[2]);
+                auto start = std::chrono::high_resolution_clock::now();
 
-        return 0;
+                int ret = qvm.run(argv[2], "", status);
+                auto stop = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+                LOGI("Execution time: %ld ms", duration.count());
+                LOGI("ret %d, codeType %d, framework %d", ret, status.codeType, status.pythonFramework);
+
+                return 0;
+            }
+        }
     }
 
     // Create the network server
     auto dapServer = dap::net::Server::create();
 
-    const char* dapHost = /* (argc > 1) ? argv[1] :*/ LOCALHOST;
+    const char* dapHost =  (argc > 2) ? argv[2] : LOCALHOST;
     dapServer->start( dapHost, DAP_SERVER_PORT, onClientConnected);
     LOGI("DAP Server started on [%s:%d]", dapHost, DAP_SERVER_PORT);
     LOGI("CPU: [%s]", Utils::getCpuInfo().c_str());
 
-    const char* wsHost = /* (argc > 2) ? argv[2] :*/ LOCALHOST;
+    const char* wsHost =  (argc > 3) ? argv[3] : LOCALHOST;
     LOGI("Starting WS Server on [%s:%d]", wsHost, WS_SERVER_PORT);
    
     wsock.start(wsHost, WS_SERVER_PORT);
