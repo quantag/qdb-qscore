@@ -71,7 +71,6 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 
 		if (!Utils::fileExists(serverFile)) {
 			LOGI("Server File '%s' not exists", serverFile.c_str());
-
 			LOGI("File [%s] not exist, use demo file [%s]", fileName.c_str(), DEMO_FILE);
 			if (cfg) {
 				file = cfg->getDemoFile();
@@ -251,7 +250,7 @@ int QppQVM::getSourceLines() {
 }
 
 // Execute next line
-long long QppQVM::stepForward() {
+double QppQVM::stepForward() {
 	LOGI("");
 
 	if (!circuit || !this->sourceCodeParsed) {
@@ -276,7 +275,7 @@ long long QppQVM::stepForward() {
 
 
 		try {
-			auto start = std::chrono::high_resolution_clock::now();
+			auto start = std::chrono::steady_clock::now();
 			engine->execute( mIt++ ); // crash
 
 			qpp::ket psi = engine->get_psi();
@@ -288,9 +287,12 @@ long long QppQVM::stepForward() {
 			int ret1 = frontend->updateState(currentState);
 			LOGI("frontend.updateState ret %d", ret1);
 
-			auto stop = std::chrono::high_resolution_clock::now();
-			auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-			LOGI( "Execution time: %ld ms", duration.count());
+			auto stop = std::chrono::steady_clock::now();
+			// auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
+			auto duration = std::chrono::duration<double>(stop - start);
+			double timeSec = duration.count();
+
+			LOGI("Execution time: (%f sec)", timeSec);
 			return duration.count();
 		}
 		catch (...) {

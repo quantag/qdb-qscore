@@ -310,7 +310,7 @@ int main(int argc, char *argv[]) {
 
             auto execTime = session->debugger->stepForward();
             if (execTime != 0) {
-                session->sendOutputMessage(std::string("Step execution time: ") + std::to_string(execTime) + std::string(" ms"));
+                session->sendOutputMessage(std::string("Step execution time: ") + std::to_string(execTime) + std::string(" s"));
             }
 
             return dap::NextResponse();
@@ -440,7 +440,6 @@ int main(int argc, char *argv[]) {
                 
             }
             session->sendOutputMessage(msg);
-
             return dap::LaunchResponse();
         });
 
@@ -494,10 +493,7 @@ int main(int argc, char *argv[]) {
     };
 
 
-
-
     if (argc > 1) {
-
         if (!strcmp(argv[1], "server")) {
             LOGI("Server mode");
         } else
@@ -508,12 +504,14 @@ int main(int argc, char *argv[]) {
                 LaunchStatus status;
 
                 LOGI("Executing one file [%s]", argv[2]);
-                auto start = std::chrono::high_resolution_clock::now();
+                auto start = std::chrono::steady_clock::now();
 
                 int ret = qvm.run(argv[2], "", status);
-                auto stop = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-                LOGI("Execution time: %ld ms", duration.count());
+                auto stop = std::chrono::steady_clock::now();
+                auto duration = std::chrono::duration<double>(stop - start);
+                double timeSec = duration.count();
+             
+                LOGI("Execution time: (%f sec)", timeSec);
                 LOGI("ret %d, codeType %d, framework %d", ret, status.codeType, status.pythonFramework);
 
                 return 0;

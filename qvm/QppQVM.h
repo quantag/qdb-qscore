@@ -23,12 +23,12 @@ public:
 	int debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
 
 	virtual std::string getQVMName() {
-		return "QPP 1.0.8";
+		return "QPP 1.0.9";
 	}
 
 
 	int getSourceLines();
-	long long stepForward();
+	double stepForward();
 	void setWSSession(WSSession* wsSession);
 
 	static std::vector<complexNumber> convertToStdVector(const qpp::ket& eigenVector);
