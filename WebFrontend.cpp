@@ -6,7 +6,7 @@
 
 
 WebFrontend::WebFrontend() {
-	this->wsSession = NULL;
+	this->wsSession = nullptr;
 }
 
 WebFrontend::~WebFrontend() {

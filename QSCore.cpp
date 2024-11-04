@@ -51,12 +51,13 @@ int main(int argc, char *argv[]) {
 
     // initialize logger with required log level
     LOG_INIT(logLevel, "qs-core.log");
+    LOG(logLevel, "logLevel = %d", logLevel);
 
     if (configLoaded) {
         LOGI("Loaded config file from '%s'", CONFIG_FILE);
-        LOGI("Render circuit: %s", cfg.getValue(RENDER_CIRCUIT_KEY).c_str());
-        LOGI("Demo file path: %s", cfg.getValue(DEMO_FILE_KEY).c_str());
-        LOGI("Source folder path: %s", cfg.getValue(SOURCE_FOLDER_KEY).c_str());
+        LOGI("Render circuit: %d", cfg.isRenderCircuit());
+        LOGI("Demo file path: %s", cfg.getDemoFile().c_str());
+        LOGI("Source folder path: %s", cfg.getSourceFolder().c_str());
 
     }
     else {

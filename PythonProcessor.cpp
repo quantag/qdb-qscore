@@ -16,8 +16,6 @@ PythonProcessor::~PythonProcessor() {
 }
 
 
-
-
 int PythonProcessor::findLastUsage(const std::string& item) {
 	std::string str = item + ".";
 	for (int i = (int)this->sourceLines.size() - 1; i >= 0; i--) {
