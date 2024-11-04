@@ -57,14 +57,14 @@ size_t RestClient::writeCallback(void* contents, size_t size, size_t nmemb, std:
 }
 
 ScriptExecResult RestClient::execCode(const std::string& code) {
-    LOGI("'%s'", code.c_str());
+    LOGD("'%s'", code.c_str());
 
     std::string encoded = Utils::encode64(code);
     std::string req = "{\"src\":\"" + encoded + "\"}";
-    LOGI("req: '%s'", req.c_str());
+    LOGD("req: '%s'", req.c_str());
 
     std::string res = doPost(req);
-    LOGI("response '%s'", res.c_str());
+    LOGD("response '%s'", res.c_str());
     ScriptExecResult result;
 
     try {

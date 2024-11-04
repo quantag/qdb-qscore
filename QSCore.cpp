@@ -277,7 +277,7 @@ int main(int argc, char *argv[]) {
                     idx++;
                     response.variables.push_back(qubitVar);
 
-                    LOGI( "adding variable %s", qubitVar.name.c_str() );
+                    LOGD( "adding variable %s", qubitVar.name.c_str() );
                 }
 
                 return response;
@@ -433,6 +433,13 @@ int main(int argc, char *argv[]) {
                     }
 
                     msg += "\n" + Utils::getCpuInfo();
+                    msg += "\nOpenMP ";
+#ifdef QPP_OPENMP
+                    msg += "enabled\n";
+#else
+                    msg += "disabled\n";
+#endif
+
                     break;
                 }
                 default:
