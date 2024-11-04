@@ -124,7 +124,7 @@ int Utils::parseSourcePerLines(const std::string& source, std::vector<std::strin
 
 void Utils::logSource(const std::vector<std::string>& src) {
     for (int i = 0; i < src.size(); i++) {
-        LOGI("line %d. [%s]", i, src.at(i).c_str());
+        LOGD("line %d. [%s]", i, src.at(i).c_str());
     }
 }
 
