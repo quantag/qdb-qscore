@@ -206,7 +206,7 @@ void QppQVM::updateProcessor(PythonFramework framework) {
 }
 
 int QppQVM::run(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
-	LOGI("%s [%s]", fileName.c_str(), sessionId.c_str());
+	LOGI("%s sessionId = [%s]", fileName.c_str(), sessionId.c_str());
 
 	ASSERT( loadSourceCode(fileName, sessionId, status) );
 	LOGI("Loaded source code from [%s] parsed = %d", fileName.c_str(), this->sourceCodeParsed);
@@ -220,7 +220,7 @@ int QppQVM::run(const std::string& fileName, const std::string& sessionId, Launc
 }
 
 int QppQVM::debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
-	LOGI("%s [%s]", fileName.c_str(), sessionId.c_str());
+	LOGI("%s sessionId = [%s]", fileName.c_str(), sessionId.c_str());
 
 	int ret = loadSourceCode(fileName, sessionId, status);
 	LOGI("loadSourceCode ret %d", ret);

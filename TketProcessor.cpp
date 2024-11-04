@@ -5,16 +5,14 @@
 #include "Utils.h"
 
 TketProcessor::TketProcessor() : PythonProcessor(eTket) {
-
 }
 
 TketProcessor::~TketProcessor() {
-
 }
 
 /**
-from pytket.circuit import Circuit
-c = Circuit(3, 2)
+	from pytket.circuit import Circuit
+	c = Circuit(3, 2)
 */
 void TketProcessor::findAllQuantumCircuitDeclarations(std::vector<int>& result) {
 	int n = 0;

@@ -5,11 +5,9 @@
 
 
 SessionStorage::SessionStorage() {
-
 }
 
 SessionStorage::~SessionStorage() {
-
 }
 
 void SessionStorage::add(const std::string& id, std::shared_ptr<dap::Session> session) {
@@ -37,6 +35,7 @@ dap::Session* SessionStorage::findById(const std::string& id) {
     if (it != sessionMap.end()) {
         return it->second.get(); // Return raw pointer
     }
+
     return nullptr; // Session not found
 }
 
