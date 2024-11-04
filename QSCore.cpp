@@ -40,10 +40,19 @@ constexpr char sourceContent[] = R"(// OpenQASM 3.0;)";
 
 
 int main(int argc, char *argv[]) {
-    LOG_INIT(2, "qs-core.log");
-
     ConfigLoader cfg;
-    if (cfg.load(CONFIG_FILE)) {
+
+    // first load config to read log level
+    bool configLoaded = cfg.load(CONFIG_FILE);
+    int logLevel = 2;
+    if (configLoaded) {
+        logLevel = cfg.getLogLevel();
+    }
+
+    // initialize logger with required log level
+    LOG_INIT(logLevel, "qs-core.log");
+
+    if (configLoaded) {
         LOGI("Loaded config file from '%s'", CONFIG_FILE);
         LOGI("Render circuit: %s", cfg.getValue(RENDER_CIRCUIT_KEY).c_str());
         LOGI("Demo file path: %s", cfg.getValue(DEMO_FILE_KEY).c_str());

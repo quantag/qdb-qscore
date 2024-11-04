@@ -9,6 +9,7 @@
 #define RENDER_CIRCUIT_KEY      "render.circuit"
 #define DEMO_FILE_KEY           "demo.file"
 #define SOURCE_FOLDER_KEY       "source.folder"
+#define LOG_LEVEL_KEY           "log.level"
 
 #define DEMO_FILE		"/home/qbit/qasm/file1.qasm"
 #define SOURCE_FOLDER	"/var/dap/"
@@ -53,6 +54,14 @@ public:
                 return false;
         }
         return true;
+    }
+
+    int getLogLevel() {
+        std::string val = getValue(LOG_LEVEL_KEY);
+        if (!val.empty()) {
+            return atoi(val.c_str());
+        }
+        return 2;
     }
 
     std::string getSourceFolder() {
