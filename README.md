@@ -26,7 +26,7 @@ To measure performace execute it with 'test':
 ./QSCore test [<folder with .qasm files>] [<output file name>]
 ```
 It will excute .qasm files from specified folder one by one and write executions times to JSON file with CPU information. 
-If data folder not specified './data' is used. If output file name not specified 'results.json' used.
+If data folder not specified '../data/qasm' will be used. If output file name not specified 'results.json' used.
 
 ## Configuration (Optionally)
 
