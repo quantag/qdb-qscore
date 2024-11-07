@@ -5,6 +5,7 @@ urls=(
     "https://quantag-it.com/pub/libs/qpp.tar.gz"
     "https://quantag-it.com/pub/libs/json.tar.gz"
     "https://quantag-it.com/pub/libs/eigen.tar.gz"
+    "https://quantag-it.com/pub/libs/boost.tar.gz"
 )
 
 # Specify the target directory where files will be unpacked
