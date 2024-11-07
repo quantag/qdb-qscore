@@ -538,9 +538,10 @@ int main(int argc, char *argv[]) {
         else if (!strcmp(argv[1], "test")) {
             LOGI("Test performance mode");
             std::vector<std::string> testFiles;
-            int res = Utils::getFilesInFolder("data/qasm", testFiles);
+            std::string dataFolder = argc > 2 ? argv[2] : "data";
+            int res = Utils::getFilesInFolder(  dataFolder, testFiles);
             if (res != 0) {
-                LOGI("Can not open folder with test data");
+                LOGI("Can not open folder [%s] with test data", dataFolder.c_str());
                 return 0;
             }
             LOGI("Found %u files in test data folder", testFiles.size());
@@ -550,7 +551,7 @@ int main(int argc, char *argv[]) {
                 double timeSec = runQasmFile(&cfg, file);
                 results[file] = timeSec;
             }
-            Utils::saveResultsToJson(results, (argc>2)  ? argv[2] : "results.json");
+            Utils::saveResultsToJson(results, (argc>3)  ? argv[3] : "results.json");
 
             return 0;
         }
