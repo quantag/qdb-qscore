@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "Typedefs.h"
 
@@ -66,5 +67,8 @@ public:
 	static std::string getPythonFrameworkName(PythonFramework type);
 
 	static std::string getCpuInfo();
+	static int getFilesInFolder(const std::string& folderPath, std::vector<std::string>& files);
+
+	static int saveResultsToJson(const std::map<std::string, double>& results, const std::string& filePath);
 
 };
