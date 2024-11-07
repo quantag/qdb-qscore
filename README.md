@@ -23,9 +23,10 @@ To start QSCore in default server mode just execute it without command line argu
 To measure performace execute it with 'test':
 
 ```
-./QSCore test
+./QSCore test [<folder with .qasm files>] [<output file name>]
 ```
 It fill excute .qsm file from folder data/test one by one and write results in file results.json
+If data folder not specified './data' is used. If output file name not specified 'results.json' used.
 
 ## Configuration (Optionally)
 
