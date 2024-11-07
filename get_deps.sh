@@ -11,9 +11,6 @@ urls=(
 # Specify the target directory where files will be unpacked
 target_dir="third_party"
 
-# Create the target directory if it doesn't exist
-#mkdir -p "$target_dir"
-
 # Loop through each URL to download and unzip the files
 for url in "${urls[@]}"; do
     # Get the file name from the URL
