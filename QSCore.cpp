@@ -538,7 +538,7 @@ int main(int argc, char *argv[]) {
         else if (!strcmp(argv[1], "test")) {
             LOGI("Test performance mode");
             std::vector<std::string> testFiles;
-            std::string dataFolder = argc > 2 ? argv[2] : "../data/qasm";
+            std::string dataFolder = argc > 2 ? argv[2] : "../test/qasm";
             int res = Utils::getFilesInFolder(  dataFolder, testFiles);
             if (res != 0) {
                 LOGI("Can not open folder [%s] with test data", dataFolder.c_str());
