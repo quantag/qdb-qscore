@@ -15,9 +15,17 @@ git clone https://github.com/quantag/qdb-qscore.git && cd qdb-qscore && ./get_de
 
 ## Run
 
+To start QSCore in default server mode just execute it without command line arguments
 ```
 ./QSCore
 ```
+
+To measure performace execute it with 'test':
+
+```
+./QSCore test
+```
+It fill excute .qsm file from folder data/test one by one and write results in file results.json
 
 ## Configuration (Optionally)
 
