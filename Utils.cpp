@@ -19,6 +19,10 @@
 
 #include <iostream>
 #include <regex>
+#include <filesystem>
+
+#include <nlohmann/json.hpp>
+
 
 #ifdef WIN32
     #define QISKIT_VENV "C:\\work\\quantum\\qiskit\\Scripts\\activate"
@@ -655,6 +659,32 @@ std::string Utils::getCodeTypeName(CodeType type) {
     return "?";
 }
 
+
+int Utils::getFilesInFolder(const std::string& folderPath, std::vector<std::string>& files) {
+   files.clear();  // Clear any existing content in the vector
+
+    // Check if the folder path exists and is a directory
+    if (!std::filesystem::exists(folderPath) || !std::filesystem::is_directory(folderPath)) {
+        std::cerr << "Invalid folder path: " << folderPath << std::endl;
+        return -1;  // Return -1 for invalid folder path
+    }
+
+    // Try to iterate over directory contents
+    try {
+        for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+            if (entry.is_regular_file()) {
+                files.push_back(entry.path().string());
+            }
+        }
+    }
+    catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Filesystem error: " << e.what() << std::endl;
+        return -2;  // Return -2 for filesystem errors
+    }
+
+    return 0;  // Return 0 if operation was successful
+}
+
 std::string Utils::getPythonFrameworkName(PythonFramework type) {
     switch (type) {
         case eGeneric:  return "Generic";
@@ -720,3 +750,26 @@ std::string Utils::getCpuInfo() {
     return "CPU Type: " + cpuType + "\nArchitecture: " + architecture;
 }
 #endif
+
+int Utils::saveResultsToJson(const std::map<std::string, double>& results, const std::string& filePath) {
+    // Create a JSON object
+    nlohmann::json jsonData;
+
+    // Populate the JSON object with the results map
+    for (const auto& [fileName, executionTime] : results) {
+        jsonData[fileName] = executionTime;
+    }
+
+    jsonData["cpu"] = Utils::getCpuInfo();
+
+    // Write the JSON data to a file
+    std::ofstream file(filePath);
+    if (file.is_open()) {
+        file << jsonData.dump(4); // Pretty-print with 4-space indentation
+        file.close();
+    }
+    else {
+        return 1;
+    }
+    return 0;
+}

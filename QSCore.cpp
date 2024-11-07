@@ -38,6 +38,22 @@
 // sourceContent holds the synthetic file source.
 constexpr char sourceContent[] = R"(// OpenQASM 3.0;)";
 
+double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
+    QppQVM qvm(cfg);
+    LaunchStatus status;
+
+    LOGI("Executing file [%s]", fileName.c_str());
+    auto start = std::chrono::steady_clock::now();
+
+    int ret = qvm.run(fileName.c_str(), "", status);
+    auto stop = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration<double>(stop - start);
+    double timeSec = duration.count();
+
+    LOGI("[%s] ret %d, codeType %d, framework %d, execution time: (%f sec)", fileName.c_str(), ret, status.codeType, status.pythonFramework, timeSec);
+    return timeSec;
+}
+
 
 int main(int argc, char *argv[]) {
     ConfigLoader cfg;
@@ -509,30 +525,34 @@ int main(int argc, char *argv[]) {
         sessions.removeLater(session->getSessionId());
     };
 
-
     if (argc > 1) {
         if (!strcmp(argv[1], "server")) {
             LOGI("Server mode");
         } else
         if (!strcmp(argv[1], "file")) {
             if (argc > 2) {
-                // launch file specified in command line
-                QppQVM qvm(&cfg);
-                LaunchStatus status;
-
-                LOGI("Executing one file [%s]", argv[2]);
-                auto start = std::chrono::steady_clock::now();
-
-                int ret = qvm.run(argv[2], "", status);
-                auto stop = std::chrono::steady_clock::now();
-                auto duration = std::chrono::duration<double>(stop - start);
-                double timeSec = duration.count();
-             
-                LOGI("Execution time: (%f sec)", timeSec);
-                LOGI("ret %d, codeType %d, framework %d", ret, status.codeType, status.pythonFramework);
-
+                runQasmFile(&cfg, argv[2]);
                 return 0;
             }
+        }
+        else if (!strcmp(argv[1], "test")) {
+            LOGI("Test performance mode");
+            std::vector<std::string> testFiles;
+            int res = Utils::getFilesInFolder("data/qasm", testFiles);
+            if (res != 0) {
+                LOGI("Can not open folder with test data");
+                return 0;
+            }
+            LOGI("Found %u files in test data folder", testFiles.size());
+
+            std::map<std::string, double> results;
+            for (std::string& file : testFiles) {
+                double timeSec = runQasmFile(&cfg, file);
+                results[file] = timeSec;
+            }
+            Utils::saveResultsToJson(results, (argc>2)  ? argv[2] : "results.json");
+
+            return 0;
         }
     }
 
@@ -550,3 +570,5 @@ int main(int argc, char *argv[]) {
     wsock.start(wsHost, WS_SERVER_PORT);
     return 0;
 }
+
+
