@@ -6,7 +6,7 @@ __sudo apt-get install git cmake build-essential libcurl4-gnutls-dev libboost-al
 
 ## Build
 
-__git clone https://github.com/qunatag/qdb-qscore__
+__git clone https://github.com/quantag/qdb-qscore.git__
 
 __cd qdb-qscore/build__
 
