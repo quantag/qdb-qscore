@@ -42,7 +42,7 @@ double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
     QppQVM qvm(cfg);
     LaunchStatus status;
 
-    LOGI("Executing file [%s]", fileName.c_str());
+    LOGE("Executing file [%s]", fileName.c_str());
     auto start = std::chrono::steady_clock::now();
 
     int ret = qvm.run(fileName.c_str(), "", status);
@@ -50,7 +50,7 @@ double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
     auto duration = std::chrono::duration<double>(stop - start);
     double timeSec = duration.count();
 
-    LOGI("[%s] ret %d, codeType %d, framework %d, execution time: (%f sec)", fileName.c_str(), ret, status.codeType, status.pythonFramework, timeSec);
+    LOGE("[%s] ret %d, codeType %d, framework %d, execution time: (%f sec)", fileName.c_str(), ret, status.codeType, status.pythonFramework, timeSec);
     return timeSec;
 }
 
