@@ -50,6 +50,8 @@ public:
     bool isRenderCircuit() {
         std::string val = getValue(RENDER_CIRCUIT_KEY);
         if (!val.empty()) {
+            Utils::trim(val);
+            LOGI("[%s]", val.c_str());
             if (!strcmp(val.c_str(), "0"))
                 return false;
         }
