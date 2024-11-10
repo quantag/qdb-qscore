@@ -1,3 +1,10 @@
+This is QSCore repository (Quantag Studio Core). Cross platform unit which combines quantum virtual machine - currently supported [QPP](https://github.com/softwareQinc/qpp) and implementation of Microsoft [Debugger Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol) distributed under MIT license.
+
+It allows to debug quantum circuits from any IDE which supports [DAP](https://microsoft.github.io/debug-adapter-protocol/implementors/tools/) written
+in OpenQASM or Python (currently supported [Qiskit](https://www.ibm.com/quantum/qiskit) and [PyTKET](https://docs.quantinuum.com/tket/) frameworks)
+
+VS Code Extension which works with QSCode can be downloaded directly from VS Code [here](https://marketplace.visualstudio.com/items?itemName=QuantagITSolutionsGmbH.openqasm-debug)
+
 # qdb-qscore
 
 ## Prerequisites
