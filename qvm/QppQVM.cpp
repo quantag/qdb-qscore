@@ -80,7 +80,6 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 			}
 
 			ret = ERR_DEMOFILE;
-
 			status.serverFileFound = 0;
 		}
 		else {
@@ -263,7 +262,7 @@ double QppQVM::stepForward() {
 
 		//this->currentState.currentLine ++; // if comments, then skip them.. 
 
-		Utils::logSourceCode(originalParsedCode);
+	//	Utils::logSourceCode(originalParsedCode);
 		LOGI("currentLine before getNextLine = %d", this->currentState.currentLine);
 		this->currentState.currentLine = Utils::getNextLine(this->currentState.currentLine - 1, this->originalParsedCode, 2) + 1; // in UI line numbers starts from 1..
 		LOGI("currentLine after getNextLine = %d", this->currentState.currentLine);
