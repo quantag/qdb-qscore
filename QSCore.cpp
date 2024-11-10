@@ -1,6 +1,12 @@
 // QSCore.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+/*
+ * Copyright (c) 2024 Quantag IT Solutions GmbH
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 #include "dap/io.h"
 #include "dap/network.h"

@@ -1,10 +1,15 @@
+/*
+ * Copyright (c) 2024 Quantag IT Solutions GmbH
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 
 #include "Log.h"
-
 #include <stdio.h>
 #include <time.h>
 #include <stdarg.h>
-
 #include <ctime>
 #include <chrono>
 #include <iomanip>
@@ -16,7 +21,6 @@
 #else
 	#include <unistd.h>
 #endif
-
 
 
 #define MAX_LOG_LEN		18000

@@ -1,9 +1,14 @@
-#include "WebFrontend.h"
+/*
+ * Copyright (c) 2024 Quantag IT Solutions GmbH
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
+#include "WebFrontend.h"
 #include "Log.h"
 #include "ws/WSSession.h"
 #include "Utils.h"
-
 
 WebFrontend::WebFrontend() {
 	this->wsSession = nullptr;

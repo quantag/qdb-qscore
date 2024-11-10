@@ -1,6 +1,5 @@
 
 #include "Impl.h"
-
 #include "../Log.h"
 
 std::mutex threadsMutex;
