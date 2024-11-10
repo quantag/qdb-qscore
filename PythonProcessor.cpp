@@ -1,15 +1,20 @@
+/*
+ * Copyright (c) 2024 Quantag IT Solutions GmbH
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 #include "PythonProcessor.h"
 
 #include "Utils.h"
 #include "Log.h"
-
 #include <algorithm>
 
 PythonProcessor::PythonProcessor() : framework (eGeneric) {
 }
 
 PythonProcessor::PythonProcessor(PythonFramework fw) : framework(fw) {
-
 }
 
 PythonProcessor::~PythonProcessor() {

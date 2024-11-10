@@ -123,9 +123,6 @@
     <ClCompile Include="SessionStorage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="QuaProcessor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debugger.h">
@@ -222,9 +219,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SessionStorage.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="QuaProcessor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ConfigLoader.h">

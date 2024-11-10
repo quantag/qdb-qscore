@@ -1,18 +1,22 @@
 
+/*
+ * Copyright (c) 2024 Quantag IT Solutions GmbH
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+
 #include "QiskitProcessor.h"
 #include "Log.h"
 #include "Utils.h"
-
 #include "RestClient.h"
 
 // where store generated circuit images on server
-
 QiskitProcessor::QiskitProcessor() : PythonProcessor(eQiskit) {
-
 }
 
 QiskitProcessor::~QiskitProcessor() {
-
 }
 
 void QiskitProcessor::findAllQuantumCircuitDeclarations(std::vector<int>& result) {
