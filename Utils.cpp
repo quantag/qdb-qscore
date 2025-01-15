@@ -758,6 +758,9 @@ std::string Utils::getCpuInfo() {
 }
 #endif
 
+#ifdef QPP_OPENMP
+#include <omp.h>
+#endif
 int Utils::saveResultsToJson(const std::map<std::string, double>& results, const std::string& filePath) {
     // Create a JSON object
     nlohmann::json jsonData;
@@ -771,6 +774,12 @@ int Utils::saveResultsToJson(const std::map<std::string, double>& results, const
 
 #ifdef QPP_OPENMP
     jsonData["openmp"] = "1";
+
+    int max_threads = omp_get_max_threads();
+    jsonData["openmp_max_threads"] = max_threads;
+
+    int num_procs = omp_get_num_procs();
+    jsonData["openmp_num_procs"] = num_procs;
 #else
     jsonData["openmp"] = "0";
 
