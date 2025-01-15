@@ -60,6 +60,23 @@ double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
     return timeSec;
 }
 
+#include <omp.h>
+void testOpenMP() {
+    int max_threads = omp_get_max_threads(); 
+    int num_procs = omp_get_num_procs();     
+
+    LOGI( "Max threads: %d", max_threads);
+    LOGI( "Available processors: %d", num_procs);
+
+
+#ifdef QPP_OPENMP
+    LOGI("QPP_OPENMP defined");
+
+#else
+    LOGI("QPP_OPENMP not defined");
+
+#endif
+}
 
 int main(int argc, char *argv[]) {
     ConfigLoader cfg;
@@ -85,6 +102,7 @@ int main(int argc, char *argv[]) {
     else {
         LOGI("Could not load configuration file %s", CONFIG_FILE);
     }
+    testOpenMP();
 
     WSServer wsock;
     SessionStorage &sessions = SessionStorage::getInstance();
