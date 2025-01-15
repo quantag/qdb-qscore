@@ -769,6 +769,13 @@ int Utils::saveResultsToJson(const std::map<std::string, double>& results, const
 
     jsonData["cpu"] = Utils::getCpuInfo();
 
+#ifdef QPP_OPENMP
+    jsonData["openmp"] = "1";
+#else
+    jsonData["openmp"] = "0";
+
+#endif
+
     // Write the JSON data to a file
     std::ofstream file(filePath);
     if (file.is_open()) {
