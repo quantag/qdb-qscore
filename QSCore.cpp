@@ -44,6 +44,15 @@
 // sourceContent holds the synthetic file source.
 constexpr char sourceContent[] = R"(// OpenQASM 3.0;)";
 
+void printUsage() {
+    printf("Usage: ./QSCore [command]\n");
+    printf("Available commands:\n");
+    printf(" help - print this help info\n");
+    printf(" server - start QSCore in server mode. This is default mode which used if no command arguments was specified\n");
+    printf(" file <file.qasm> - execute single .qasm file and exit\n");
+    printf(" test [data-folder]- execute performace testing using data in 'data-folder', store results in 'results.json' and exit\n");
+}
+
 double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
     QppQVM qvm(cfg);
     LaunchStatus status;
@@ -577,6 +586,10 @@ int main(int argc, char *argv[]) {
             }
             Utils::saveResultsToJson(results, (argc>3)  ? argv[3] : "results.json");
 
+            return 0;
+        }
+        else if (!strcmp(argv[1], "help")) {
+            printUsage();
             return 0;
         }
     }

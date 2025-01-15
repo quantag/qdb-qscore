@@ -47,7 +47,6 @@ void Logger::init(int level, const std::string& filename) {
 		setFileName(filename);
 		_mode |= LO_FILE;
 
-
 		if (_mode & LO_FILE) {
 			FILE* fp = fopen(_filepath.c_str(), "w");
 			if (fp)
