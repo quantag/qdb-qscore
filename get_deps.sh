@@ -6,7 +6,7 @@ urls=(
     "https://quantag-it.com/pub/libs/json.tar.gz"
     "https://quantag-it.com/pub/libs/eigen.tar.gz"
     "https://quantag-it.com/pub/libs/boost.tar.gz"
-)
+    "https://quantag-it.com/pub/libs/openblas.tar.gz")
 
 # Specify the target directory where files will be unpacked
 target_dir="third_party"
