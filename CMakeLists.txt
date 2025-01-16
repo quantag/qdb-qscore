@@ -273,9 +273,13 @@ if (OPENMP_FOUND)
 endif()
 
 add_compile_definitions(QPP_OPENMP)
-# add_compile_definitions(EIGEN_USE_BLAS)
+
+add_compile_definitions(EIGEN_USE_BLAS)
+find_package(BLAS REQUIRED)
+# set(BLAS_LIBRARIES NVPL_BLAS_LIBRARY)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CURL_LIBRARIES} )
+target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties( ${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
