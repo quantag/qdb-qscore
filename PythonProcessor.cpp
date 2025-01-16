@@ -124,7 +124,7 @@ void PythonProcessor::removeComments() {
 //	Utils::logSource(this->sourceLines);
 
 	std::vector<int> linesToRemove;
-	for (int i = 0; i < this->sourceLines.size(); i++) {
+	for (size_t i = 0; i < this->sourceLines.size(); i++) {
 		if (isOneLineCommentLine(sourceLines.at(i)))
 			linesToRemove.push_back(i);
 	}
@@ -134,7 +134,7 @@ void PythonProcessor::removeComments() {
 
 	linesToRemove.clear();
 	bool commentLine = false;
-	for (int i = 0; i < this->sourceLines.size(); i++) {
+	for (size_t i = 0; i < this->sourceLines.size(); i++) {
 		if (isMultiLineComment(sourceLines.at(i))) {
 			commentLine = !commentLine;
 

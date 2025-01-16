@@ -265,7 +265,7 @@ int main(int argc, char *argv[]) {
 
                 if (session->debugger->getQVM()->isSourceCodeParsed()) {
                     int baseAddress = 100;
-                    for(int i=0; i< session->debugger->getQVM()->getSourcePerLines().size(); i++) {
+                    for(size_t i=0; i< session->debugger->getQVM()->getSourcePerLines().size(); i++) {
                         dap::DisassembledInstruction code;
 
                         code.address = Utils::intToString(baseAddress + i);
