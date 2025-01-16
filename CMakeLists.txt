@@ -273,6 +273,7 @@ if (OPENMP_FOUND)
 endif()
 
 add_compile_definitions(QPP_OPENMP)
+# add_compile_definitions(EIGEN_USE_BLAS)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CURL_LIBRARIES} )
 

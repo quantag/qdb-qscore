@@ -134,7 +134,7 @@ int Utils::parseSourcePerLines(const std::string& source, std::vector<std::strin
 }
 
 void Utils::logSource(const std::vector<std::string>& src) {
-    for (int i = 0; i < src.size(); i++) {
+    for (size_t i = 0; i < src.size(); i++) {
         LOGD("line %d. [%s]", i, src.at(i).c_str());
     }
 }
@@ -570,7 +570,7 @@ int Utils::getNextLine(int currentLine, const std::vector<CodeLine>& lines, int 
 
 int Utils::getFirstLine(const std::vector<CodeLine>& lines, int type) {
     // Iterate through the lines starting from currentLine + 1
-    for (int i = 0; i < lines.size(); ++i) {
+    for (size_t i = 0; i < lines.size(); ++i) {
         if (lines[i].type == type) { // Check if it's a code line
             return i; // Return the index of the next code line
         }
@@ -783,6 +783,12 @@ int Utils::saveResultsToJson(const std::map<std::string, double>& results, const
 #else
     jsonData["openmp"] = "0";
 
+#endif
+
+#ifdef EIGEN_USE_BLAS
+    jsonData["eigen_blas"] = "1";
+#else
+    jsonData["eigen_blas"] = "0";
 #endif
 
     // Write the JSON data to a file
