@@ -79,20 +79,27 @@ include(CMake/GlobalSettingsInclude.cmake OPTIONAL)
 ################################################################################
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-################################################################################
-# Sub-projects
-################################################################################
-
 set(PROJECT_NAME QSCore)
+
+option(USE_OPENBLAS, "Enable OpenBLAS libraries" OFF)
+
 
 ################################################################################
 # Source groups
 ################################################################################
 set(Header_Files
+    "ConfigLoader.h"
     "Debugger.h"
-    "Log.h"
     "Event.h"
+    "Log.h"
+    "PythonProcessor.h"
+    "QiskitProcessor.h"
+    "RestClient.h"
+    "SessionStorage.h"
+    "TketProcessor.h"
+    "Typedefs.h"
     "Utils.h"
+    "WebFrontend.h"
 )
 source_group("Header Files" FILES ${Header_Files})
 
@@ -118,9 +125,7 @@ set(Source_Files
     "ws/WSServer.cpp"
     "ws/WSListener.cpp"    
     "ws/WSSession.cpp"
-
     "qvm/QppQVM.cpp"
-
     "dap/content_stream.cpp"
     "dap/network.cpp"
     "dap/io.cpp"
@@ -274,12 +279,17 @@ endif()
 
 add_compile_definitions(QPP_OPENMP)
 
-add_compile_definitions(EIGEN_USE_BLAS)
-find_package(BLAS REQUIRED)
+if(USE_OPENBLAS)
+    message(STATUS "Building using BLAS libraries")
+    add_compile_definitions(EIGEN_USE_BLAS)
+    find_package(BLAS REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
 # set(BLAS_LIBRARIES NVPL_BLAS_LIBRARY)
+else()
+    message(STATUS "Not using BLAS libraries")
+endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CURL_LIBRARIES} )
-target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties( ${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)

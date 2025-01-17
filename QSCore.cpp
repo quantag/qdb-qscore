@@ -558,6 +558,12 @@ int main(int argc, char *argv[]) {
         sessions.removeLater(session->getSessionId());
     };
 
+#ifdef EIGEN_USE_BLAS
+    LOG(1, "Using BLAS");
+#else
+    LOG(1, "Not using BLAS");
+#endif
+
     if (argc > 1) {
         if (!strcmp(argv[1], "server")) {
             LOGI("Server mode");
@@ -585,7 +591,6 @@ int main(int argc, char *argv[]) {
                 results[file] = timeSec;
             }
             Utils::saveResultsToJson(results, (argc>3)  ? argv[3] : "results.json");
-
             return 0;
         }
         else if (!strcmp(argv[1], "help")) {
@@ -608,5 +613,3 @@ int main(int argc, char *argv[]) {
     wsock.start(wsHost, WS_SERVER_PORT);
     return 0;
 }
-
-
