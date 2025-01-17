@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 
 set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
 
-project(TcpStreamServer CXX)
+project(QSCore CXX)
 
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
@@ -79,10 +79,7 @@ include(CMake/GlobalSettingsInclude.cmake OPTIONAL)
 ################################################################################
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-set(PROJECT_NAME QSCore)
-
 option(USE_OPENBLAS, "Enable OpenBLAS libraries" OFF)
-
 
 ################################################################################
 # Source groups
