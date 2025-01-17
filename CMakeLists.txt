@@ -10,7 +10,7 @@ project(QSCore CXX)
 if(NOT CMAKE_VS_PLATFORM_NAME)
     set(CMAKE_VS_PLATFORM_NAME "x64")
 endif()
-message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
+# message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
 
 if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
      OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
@@ -79,7 +79,8 @@ include(CMake/GlobalSettingsInclude.cmake OPTIONAL)
 ################################################################################
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-option(USE_OPENBLAS, "Enable OpenBLAS libraries" OFF)
+# option(USE_OPENBLAS, "Enable OpenBLAS libraries" ON)
+# set_directory_properties(PROPERTIES CLEAN_NO_CUSTOM TRUE)
 
 ################################################################################
 # Source groups
@@ -269,21 +270,19 @@ endif()
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
+    message(STATUS "OpenMP found")
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-endif()
 
-add_compile_definitions(QPP_OPENMP)
-
-if(USE_OPENBLAS)
     message(STATUS "Building using BLAS libraries")
     add_compile_definitions(EIGEN_USE_BLAS)
     find_package(BLAS REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
-# set(BLAS_LIBRARIES NVPL_BLAS_LIBRARY)
+
+    add_compile_definitions(QPP_OPENMP)
 else()
-    message(STATUS "Not using BLAS libraries")
+    message(STATUS "OpenMP not found")
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CURL_LIBRARIES} )

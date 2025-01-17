@@ -558,6 +558,12 @@ int main(int argc, char *argv[]) {
         sessions.removeLater(session->getSessionId());
     };
 
+#ifdef QPP_OPENMP
+    LOG(1, "Using OpenMP");
+#else
+    LOG(1, "Not using OpenMP");
+#endif
+
 #ifdef EIGEN_USE_BLAS
     LOG(1, "Using BLAS");
 #else
