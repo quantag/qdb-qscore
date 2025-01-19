@@ -283,16 +283,26 @@ if(NVPL_ROOT_ENV)
     message(STATUS "Using NVPL_ROOT: ${NVPL_ROOT_ENV}")
     include_directories(${NVPL_LIB_ENV})
     link_directories(${NVPL_LIB_ENV})
+
+  find_library(NVPL_BLAS_LIBRARY nvblas HINTS $ENV{NVPL_LIB})
+  if(NVPL_BLAS_LIBRARY)
+      message(STATUS "Found NVPL BLAS library: ${NVPL_BLAS_LIBRARY}")
+      target_link_libraries(${PROJECT_NAME} PRIVATE ${NVPL_BLAS_LIBRARY})
+  else()
+      message(FATAL_ERROR "NVPL BLAS library not found in ${NVPL_LIB}")
+  endif()
+
 else()
     message(FATAL_ERROR "NVPL_ROOT is not set in the environment")
+    find_package(BLAS REQUIRED)
+    message(STATUS "Building using BLAS libraries")
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
 endif()
 
-    message(STATUS "Building using BLAS libraries")
     add_compile_definitions(EIGEN_USE_BLAS)
-    find_package(BLAS REQUIRED)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
 
     add_compile_definitions(QPP_OPENMP)
+
 else()
     message(STATUS "OpenMP not found")
 endif()
@@ -300,7 +310,11 @@ endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CURL_LIBRARIES} )
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+
 set_target_properties( ${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
+
 set(THREADS_PREFER_PTHREAD_FLAG ON)
+
 find_package(Threads REQUIRED)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
