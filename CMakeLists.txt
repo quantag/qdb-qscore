@@ -275,6 +275,18 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 
+    get_filename_component(NVPL_ROOT_ENV $ENV{NVPL_ROOT} ABSOLUTE)
+    get_filename_component(NVPL_LIB_ENV $ENV{NVPL_LIB} ABSOLUTE)
+    get_filename_component(NVPL_INC_ENV $ENV{NVPL_INC} ABSOLUTE)
+
+if(NVPL_ROOT_ENV)
+    message(STATUS "Using NVPL_ROOT: ${NVPL_ROOT_ENV}")
+    include_directories(${NVPL_LIB_ENV})
+    link_directories(${NVPL_LIB_ENV})
+else()
+    message(FATAL_ERROR "NVPL_ROOT is not set in the environment")
+endif()
+
     message(STATUS "Building using BLAS libraries")
     add_compile_definitions(EIGEN_USE_BLAS)
     find_package(BLAS REQUIRED)
