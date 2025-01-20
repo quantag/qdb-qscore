@@ -1,8 +1,29 @@
 cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 
 set(CMAKE_SYSTEM_VERSION 10.0 CACHE STRING "" FORCE)
-
 project(QSCore CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_program(ARM_C_COMPILER armclang)
+find_program(ARM_CXX_COMPILER armclang++)
+
+if(ARM_C_COMPILER AND ARM_CXX_COMPILER)
+    message(STATUS "Found Arm Compiler: ${ARM_CXX_COMPILER}")
+    set(CMAKE_C_COMPILER ${ARM_C_COMPILER})
+    set(CMAKE_CXX_COMPILER ${ARM_CXX_COMPILER})
+    set(CMAKE_C_FLAGS "-O3 -mcpu=neoverse-v2 -fopenmp")
+    set(CMAKE_CXX_FLAGS "-O3 -mcpu=neoverse-v2 -fopenmp")
+
+ else()
+    message(STATUS "Arm Compiler not found. Falling back to GCC.")
+    set(CMAKE_C_COMPILER gcc)
+    set(CMAKE_CXX_COMPILER g++)
+    set(CMAKE_C_FLAGS "-O3")
+    set(CMAKE_CXX_FLAGS "-O3")
+endif()
+
 
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
@@ -275,53 +296,50 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 
-if(DEFINED ENV{NVPL_ROOT})
-    get_filename_component(NVPL_ROOT_ENV $ENV{NVPL_ROOT} ABSOLUTE)
-    message(STATUS "Using NVPL_ROOT: ${NVPL_ROOT_ENV}")
+  if(DEFINED ENV{NVPL_ROOT})
+     get_filename_component(NVPL_ROOT_ENV $ENV{NVPL_ROOT} ABSOLUTE)
+     message(STATUS "Using NVPL_ROOT: ${NVPL_ROOT_ENV}")
 
-   set(NVPL_LIB_PATH "${NVPL_ROOT_ENV}/lib")
-   set(NVPL_INC_PATH "${NVPL_ROOT_ENV}/include")
+     set(NVPL_LIB_PATH "${NVPL_ROOT_ENV}/lib")
+     set(NVPL_INC_PATH "${NVPL_ROOT_ENV}/include")
 
-   include_directories(${NVPL_INC_PATH})
-   link_directories(${NVPL_LIB_PATH})
+     include_directories(${NVPL_INC_PATH})
+     link_directories(${NVPL_LIB_PATH})
 
-  find_library(NVPL_BLAS_LIBRARY nvpl_blas_ilp64_gomp HINTS ${NVPL_LIB_PATH} )
-  if(NVPL_BLAS_LIBRARY)
-      message(STATUS "Found NVPL BLAS library: ${NVPL_BLAS_LIBRARY}")
-      target_link_libraries(${PROJECT_NAME} PRIVATE ${NVPL_BLAS_LIBRARY})
-  else()
-      message(STATUS "NVPL BLAS library not found in ${NVPL_LIB}")
-  endif()
+    find_library(NVPL_BLAS_LIBRARY nvpl_blas_ilp64_gomp HINTS ${NVPL_LIB_PATH} )
+    if(NVPL_BLAS_LIBRARY)
+        message(STATUS "Found NVPL BLAS library: ${NVPL_BLAS_LIBRARY}")
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${NVPL_BLAS_LIBRARY})
+    else()
+        message(STATUS "NVPL BLAS library not found in ${NVPL_LIB}")
+    endif()
 
-else()
-    message(STATUS "NVPL_ROOT is not set in the environment")
+  else() # NVPL_ROOT not defined
+      message(STATUS "NVPL_ROOT is not set in the environment")
 
-    get_filename_component(ARMPL_LIB_PATH $ENV{LD_LIBRARY_PATH} ABSOLUTE)
-    find_library(ARMPL_BLAS_LIBRARY
-      armpl_lp64_mp
-      HINTS ${ARMPL_LIB_PATH} )
+      get_filename_component(ARMPL_LIB_PATH $ENV{LD_LIBRARY_PATH} ABSOLUTE)
+      find_library(ARMPL_BLAS_LIBRARY
+          armpl_ilp64_mp
+          HINTS ${ARMPL_LIB_PATH} )
 
-   if(ARMPL_BLAS_LIBRARY)
-       message(STATUS "Found ArmPL BLAS library: ${ARMPL_BLAS_LIBRARY}")
-       set(ARMPL_INC_PATH "/global/exafs/groups/gh/sw-env-202501/opt/armpl/24.10/include")
-       include_directories(${ARMPL_INC_PATH})
-       target_link_libraries(${PROJECT_NAME} PRIVATE ${ARMPL_BLAS_LIBRARY})
+     if(ARMPL_BLAS_LIBRARY)
+         message(STATUS "Found ArmPL BLAS library: ${ARMPL_BLAS_LIBRARY}")
+         set(ARMPL_INC_PATH "/global/exafs/groups/gh/sw-env-202501/opt/armpl/24.10/include")
+         include_directories(${ARMPL_INC_PATH})
+         target_link_libraries(${PROJECT_NAME} PRIVATE ${ARMPL_BLAS_LIBRARY})
 
-   else()
-       message(STATUS "ArmPL BLAS library not found in ${ARMPL_LIB_PATH}")
-       find_package(BLAS REQUIRED)
-       message(STATUS "Building using BLAS libraries")
-       target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
-   endif()
+     else()
+         message(STATUS "ArmPL BLAS library not found in ${ARMPL_LIB_PATH}")
+         find_package(BLAS REQUIRED)
+         message(STATUS "Building using BLAS libraries")
+         target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
+     endif()
+  endif() # if NVPL_ROOT defined
+      add_compile_definitions(EIGEN_USE_BLAS)
+      add_compile_definitions(QPP_OPENMP)
 
-endif()
-
-    add_compile_definitions(EIGEN_USE_BLAS)
-
-    add_compile_definitions(QPP_OPENMP)
-
-else()
-    message(STATUS "OpenMP not found")
+else()  # no OpenMP
+      message(STATUS "OpenMP not found")
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CURL_LIBRARIES} )
