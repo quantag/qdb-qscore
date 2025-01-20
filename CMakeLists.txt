@@ -281,10 +281,14 @@ if (OPENMP_FOUND)
 
 if(NVPL_ROOT_ENV)
     message(STATUS "Using NVPL_ROOT: ${NVPL_ROOT_ENV}")
-    include_directories(${NVPL_ROOT_ENV}/include)
-    link_directories(${NVPL_ROOT_ENV}/lib)
 
-  find_library(NVPL_BLAS_LIBRARY nvblas HINTS ${NVPL_ROOT_ENV}/lib )
+   set(NVPL_LIB_PATH "${NVPL_ROOT_ENV}/lib")
+   set(NVPL_INC_PATH "${NVPL_ROOT_ENV}/include")
+
+   include_directories(${NVPL_INC_PATH})
+   link_directories(${NVPL_LIB_PATH})
+
+  find_library(NVPL_BLAS_LIBRARY nvpl_blas_ilp64_gomp HINTS ${NVPL_LIB_PATH} )
   if(NVPL_BLAS_LIBRARY)
       message(STATUS "Found NVPL BLAS library: ${NVPL_BLAS_LIBRARY}")
       target_link_libraries(${PROJECT_NAME} PRIVATE ${NVPL_BLAS_LIBRARY})
