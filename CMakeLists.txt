@@ -276,8 +276,6 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 
     get_filename_component(NVPL_ROOT_ENV $ENV{NVPL_ROOT} ABSOLUTE)
-#    get_filename_component(NVPL_LIB_ENV $ENV{NVPL_LIB} ABSOLUTE)
-#    get_filename_component(NVPL_INC_ENV $ENV{NVPL_INC} ABSOLUTE)
 
 if(NVPL_ROOT_ENV)
     message(STATUS "Using NVPL_ROOT: ${NVPL_ROOT_ENV}")

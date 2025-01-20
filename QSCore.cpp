@@ -570,6 +570,12 @@ int main(int argc, char *argv[]) {
     LOG(1, "Not using BLAS");
 #endif
 
+#ifdef __CUDACC__
+    LOG(1, "CUDA available");
+#else
+    LOG(1, "CUDA not available");
+#endif
+
     if (argc > 1) {
         if (!strcmp(argv[1], "server")) {
             LOGI("Server mode");

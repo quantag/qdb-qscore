@@ -791,6 +791,12 @@ int Utils::saveResultsToJson(const std::map<std::string, double>& results, const
     jsonData["eigen_blas"] = "0";
 #endif
 
+#ifdef __CUDACC__
+    jsonData["cuda"] = "1";
+#else
+    jsonData["cuda"] = "0";
+#endif
+
     // Write the JSON data to a file
     std::ofstream file(filePath);
     if (file.is_open()) {
