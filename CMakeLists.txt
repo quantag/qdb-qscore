@@ -290,11 +290,11 @@ if(DEFINED ENV{NVPL_ROOT})
       message(STATUS "Found NVPL BLAS library: ${NVPL_BLAS_LIBRARY}")
       target_link_libraries(${PROJECT_NAME} PRIVATE ${NVPL_BLAS_LIBRARY})
   else()
-      message(FATAL_ERROR "NVPL BLAS library not found in ${NVPL_LIB}")
+      message(STATUS "NVPL BLAS library not found in ${NVPL_LIB}")
   endif()
 
 else()
-    message(FATAL_ERROR "NVPL_ROOT is not set in the environment")
+    message(STATUS "NVPL_ROOT is not set in the environment")
 
     get_filename_component(ARMPL_LIB_PATH $ENV{LD_LIBRARY_PATH} ABSOLUTE)
     find_library(ARMPL_BLAS_LIBRARY
@@ -308,7 +308,7 @@ else()
        target_link_libraries(${PROJECT_NAME} PRIVATE ${ARMPL_BLAS_LIBRARY})
 
    else()
-       message(FATAL_ERROR "ArmPL BLAS library not found in ${ARMPL_LIB_PATH}")
+       message(STATUS "ArmPL BLAS library not found in ${ARMPL_LIB_PATH}")
        find_package(BLAS REQUIRED)
        message(STATUS "Building using BLAS libraries")
        target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
