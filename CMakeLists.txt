@@ -317,10 +317,12 @@ if (OPENMP_FOUND)
   else() # NVPL_ROOT not defined
       message(STATUS "NVPL_ROOT is not set in the environment")
 
-      get_filename_component(ARMPL_LIB_PATH $ENV{LD_LIBRARY_PATH} ABSOLUTE)
-      find_library(ARMPL_BLAS_LIBRARY
-          armpl_ilp64_mp
-          HINTS ${ARMPL_LIB_PATH} )
+  if(DEFINED ENV{LD_LIBRARY_PATH})
+        get_filename_component(ARMPL_LIB_PATH $ENV{LD_LIBRARY_PATH} ABSOLUTE)
+        find_library(ARMPL_BLAS_LIBRARY
+            armpl_ilp64_mp
+            HINTS ${ARMPL_LIB_PATH} )
+  endif()
 
      if(ARMPL_BLAS_LIBRARY)
          message(STATUS "Found ArmPL BLAS library: ${ARMPL_BLAS_LIBRARY}")
