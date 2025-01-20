@@ -77,7 +77,6 @@ void testOpenMP() {
     LOGI( "Max threads: %d", max_threads);
     LOGI( "Available processors: %d", num_procs);
 
-
 #ifdef QPP_OPENMP
     LOGI("QPP_OPENMP defined");
 
