@@ -10,7 +10,8 @@ set(COMMON_OPT_FLAGS "-O3 -mcpu=neoverse-v2 -fopenmp")
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER g++)
 
-if(DEFINED ARM)  # -DARM
+if(DEFINED ARM AND ARM STREQUAL "ON")  # -DARM=ON
+  message(STATUS "Use ARM HPC compiler and ArmPL if available")
   find_program(ARM_C_COMPILER armclang)
   find_program(ARM_CXX_COMPILER armclang++)
   if(ARM_C_COMPILER AND ARM_CXX_COMPILER)
@@ -24,7 +25,6 @@ endif() # if -DARM
 
 set(CMAKE_C_FLAGS "${COMMON_OPT_FLAGS}")
 set(CMAKE_CXX_FLAGS "${COMMON_OPT_FLAGS}")
-
 
 ################################################################################
 # Set target arch type if empty. Visual studio solution generator provides it.
@@ -317,14 +317,14 @@ if (OPENMP_FOUND)
     endif()
 
   else() # NVPL_ROOT not defined
-      message(STATUS "NVPL_ROOT is not set in the environment")
+     message(STATUS "NVPL_ROOT is not set in the environment")
 
-     if(DEFINED ARM AND DEFINED ENV{LD_LIBRARY_PATH})
+     if(DEFINED ARM AND ARM STREQUAL "ON" AND DEFINED ENV{LD_LIBRARY_PATH})
            get_filename_component(ARMPL_LIB_PATH $ENV{LD_LIBRARY_PATH} ABSOLUTE)
            find_library(ARMPL_BLAS_LIBRARY armpl_ilp64_mp HINTS ${ARMPL_LIB_PATH} )
      endif()
 
-     if(DEFINED ARM AND ARMPL_BLAS_LIBRARY)
+     if(DEFINED ARM AND ARM STREQUAL "ON" AND ARMPL_BLAS_LIBRARY)
          message(STATUS "Found ArmPL BLAS library: ${ARMPL_BLAS_LIBRARY}")
          set(ARMPL_INC_PATH "/global/exafs/groups/gh/sw-env-202501/opt/armpl/24.10/include")
          include_directories(${ARMPL_INC_PATH})
