@@ -10,7 +10,7 @@ set(COMMON_OPT_FLAGS "-O3 -mcpu=neoverse-v2 -fopenmp")
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER g++)
 
-if(DEFINED ARMPL AND ARMPL STREQUAL "ON")  # -DARM=ON
+if(DEFINED ARMPL AND ARMPL STREQUAL "ON")  # -DARMPL=ON
   message(STATUS "Use ARM HPC compiler and ArmPL if available")
   find_program(ARM_C_COMPILER armclang)
   find_program(ARM_CXX_COMPILER armclang++)
@@ -21,7 +21,7 @@ if(DEFINED ARMPL AND ARMPL STREQUAL "ON")  # -DARM=ON
    else()
       message(STATUS "Arm Compiler not found. Falling back to GCC.")
   endif()
-endif() # if -DARM
+endif() # if -DARMPL
 
 set(CMAKE_C_FLAGS "${COMMON_OPT_FLAGS}")
 set(CMAKE_CXX_FLAGS "${COMMON_OPT_FLAGS}")
@@ -337,7 +337,6 @@ if (OPENMP_FOUND)
          message(STATUS "Building using BLAS libraries")
          target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
      endif()
-
   endif() # if NVPL_ROOT defined
 
   add_compile_definitions(QPP_OPENMP)
