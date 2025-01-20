@@ -296,9 +296,25 @@ if(NVPL_ROOT_ENV)
 
 else()
     message(FATAL_ERROR "NVPL_ROOT is not set in the environment")
-    find_package(BLAS REQUIRED)
-    message(STATUS "Building using BLAS libraries")
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
+
+    get_filename_component(ARMPL_LIB_PATH $ENV{LD_LIBRARY_PATH} ABSOLUTE)
+    find_library(ARMPL_BLAS_LIBRARY
+      armpl_lp64_mp
+      HINTS ${ARMPL_LIB_PATH} )
+
+   if(ARMPL_BLAS_LIBRARY)
+       message(STATUS "Found ArmPL BLAS library: ${ARMPL_BLAS_LIBRARY}")
+       set(ARMPL_INC_PATH "/global/exafs/groups/gh/sw-env-202501/opt/armpl/24.10/include")
+       include_directories(${ARMPL_INC_PATH})
+       target_link_libraries(${PROJECT_NAME} PRIVATE ${ARMPL_BLAS_LIBRARY})
+
+   else()
+       message(FATAL_ERROR "ArmPL BLAS library not found in ${ARMPL_LIB_PATH}")
+       find_package(BLAS REQUIRED)
+       message(STATUS "Building using BLAS libraries")
+       target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
+   endif()
+
 endif()
 
     add_compile_definitions(EIGEN_USE_BLAS)
