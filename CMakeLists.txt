@@ -6,23 +6,24 @@ project(QSCore CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_program(ARM_C_COMPILER armclang)
-find_program(ARM_CXX_COMPILER armclang++)
+set(COMMON_OPT_FLAGS "-O3 -mcpu=neoverse-v2 -fopenmp")
+set(CMAKE_C_COMPILER gcc)
+set(CMAKE_CXX_COMPILER g++)
 
-if(ARM_C_COMPILER AND ARM_CXX_COMPILER)
-    message(STATUS "Found Arm Compiler: ${ARM_CXX_COMPILER}")
-    set(CMAKE_C_COMPILER ${ARM_C_COMPILER})
-    set(CMAKE_CXX_COMPILER ${ARM_CXX_COMPILER})
-    set(CMAKE_C_FLAGS "-O3 -mcpu=neoverse-v2 -fopenmp")
-    set(CMAKE_CXX_FLAGS "-O3 -mcpu=neoverse-v2 -fopenmp")
-
- else()
-    message(STATUS "Arm Compiler not found. Falling back to GCC.")
-    set(CMAKE_C_COMPILER gcc)
-    set(CMAKE_CXX_COMPILER g++)
-    set(CMAKE_C_FLAGS "-O3")
-    set(CMAKE_CXX_FLAGS "-O3")
+if(DEFINED ARM)  # -DARM
+  find_program(ARM_C_COMPILER armclang)
+  find_program(ARM_CXX_COMPILER armclang++)
+  if(ARM_C_COMPILER AND ARM_CXX_COMPILER)
+      message(STATUS "Found Arm Compiler: ${ARM_CXX_COMPILER}")
+      set(CMAKE_C_COMPILER ${ARM_C_COMPILER})
+      set(CMAKE_CXX_COMPILER ${ARM_CXX_COMPILER})
+   else()
+      message(STATUS "Arm Compiler not found. Falling back to GCC.")
+  endif()
 endif()
+
+set(CMAKE_C_FLAGS "${COMMON_OPT_FLAGS}")
+set(CMAKE_CXX_FLAGS "${COMMON_OPT_FLAGS}")
 
 
 ################################################################################
