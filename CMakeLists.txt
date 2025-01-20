@@ -20,7 +20,7 @@ if(DEFINED ARM)  # -DARM
    else()
       message(STATUS "Arm Compiler not found. Falling back to GCC.")
   endif()
-endif()
+endif() # if -DARM
 
 set(CMAKE_C_FLAGS "${COMMON_OPT_FLAGS}")
 set(CMAKE_CXX_FLAGS "${COMMON_OPT_FLAGS}")
@@ -318,39 +318,36 @@ if (OPENMP_FOUND)
   else() # NVPL_ROOT not defined
       message(STATUS "NVPL_ROOT is not set in the environment")
 
-  if(DEFINED ENV{LD_LIBRARY_PATH})
-        get_filename_component(ARMPL_LIB_PATH $ENV{LD_LIBRARY_PATH} ABSOLUTE)
-        find_library(ARMPL_BLAS_LIBRARY
-            armpl_ilp64_mp
-            HINTS ${ARMPL_LIB_PATH} )
-  endif()
+     if(DEFINED ARM AND DEFINED ENV{LD_LIBRARY_PATH})
+           get_filename_component(ARMPL_LIB_PATH $ENV{LD_LIBRARY_PATH} ABSOLUTE)
+           find_library(ARMPL_BLAS_LIBRARY armpl_ilp64_mp HINTS ${ARMPL_LIB_PATH} )
+     endif()
 
-     if(ARMPL_BLAS_LIBRARY)
+     if(DEFINED ARM AND ARMPL_BLAS_LIBRARY)
          message(STATUS "Found ArmPL BLAS library: ${ARMPL_BLAS_LIBRARY}")
          set(ARMPL_INC_PATH "/global/exafs/groups/gh/sw-env-202501/opt/armpl/24.10/include")
          include_directories(${ARMPL_INC_PATH})
          target_link_libraries(${PROJECT_NAME} PRIVATE ${ARMPL_BLAS_LIBRARY})
 
      else()
-         message(STATUS "ArmPL BLAS library not found in ${ARMPL_LIB_PATH}")
+         message(STATUS "ArmPL disabled or ArmPL-BLAS library not found in ${ARMPL_LIB_PATH}")
          find_package(BLAS REQUIRED)
+
          message(STATUS "Building using BLAS libraries")
          target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
      endif()
   endif() # if NVPL_ROOT defined
-      add_compile_definitions(EIGEN_USE_BLAS)
-      add_compile_definitions(QPP_OPENMP)
+
+  add_compile_definitions(QPP_OPENMP)
 
 else()  # no OpenMP
       message(STATUS "OpenMP not found")
 endif()
 
+add_compile_definitions(EIGEN_USE_BLAS)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CURL_LIBRARIES} )
-
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
-
 set_target_properties( ${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
-
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 find_package(Threads REQUIRED)
