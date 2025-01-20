@@ -317,7 +317,7 @@ if (OPENMP_FOUND)
     endif()
 
   else() # NVPL_ROOT not defined
-     message(STATUS "NVPL_ROOT is not set in the environment")
+     message(STATUS "NVPL_ROOT is not set in the environment. LD_LIBRARY_PATH: '${LD_LIBRARY_PATH}'")
 
      if(DEFINED ARM AND ARM STREQUAL "ON" AND DEFINED ENV{LD_LIBRARY_PATH})
            get_filename_component(ARMPL_LIB_PATH $ENV{LD_LIBRARY_PATH} ABSOLUTE)
@@ -337,6 +337,7 @@ if (OPENMP_FOUND)
          message(STATUS "Building using BLAS libraries")
          target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
      endif()
+
   endif() # if NVPL_ROOT defined
 
   add_compile_definitions(QPP_OPENMP)
