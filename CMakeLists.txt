@@ -303,6 +303,7 @@ if (OPENMP_FOUND)
 
      set(NVPL_LIB_PATH "${NVPL_ROOT_ENV}/lib")
      set(NVPL_INC_PATH "${NVPL_ROOT_ENV}/include")
+     add_compile_definitions(NVPL_ENABLED)
 
      include_directories(${NVPL_INC_PATH})
      link_directories(${NVPL_LIB_PATH})

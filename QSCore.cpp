@@ -77,12 +77,29 @@ void testOpenMP() {
     LOGI( "Max threads: %d", max_threads);
     LOGI( "Available processors: %d", num_procs);
 
+
 #ifdef QPP_OPENMP
-    LOGI("QPP_OPENMP defined");
-
+    LOG(1, "Using OpenMP");
 #else
-    LOGI("QPP_OPENMP not defined");
+    LOG(1, "Not using OpenMP");
+#endif
 
+#ifdef EIGEN_USE_BLAS
+    LOG(1, "Using BLAS");
+#else
+    LOG(1, "Not using BLAS");
+#endif
+
+#ifdef __CUDACC__
+    LOG(1, "CUDA available");
+#else
+    LOG(1, "CUDA not available");
+#endif
+
+#ifdef NVPL_ENABLED
+    LOG(1, "NVPL enable");
+#else
+    LOG(1, "NVPL not enabled");
 #endif
 }
 
@@ -557,23 +574,6 @@ int main(int argc, char *argv[]) {
         sessions.removeLater(session->getSessionId());
     };
 
-#ifdef QPP_OPENMP
-    LOG(1, "Using OpenMP");
-#else
-    LOG(1, "Not using OpenMP");
-#endif
-
-#ifdef EIGEN_USE_BLAS
-    LOG(1, "Using BLAS");
-#else
-    LOG(1, "Not using BLAS");
-#endif
-
-#ifdef __CUDACC__
-    LOG(1, "CUDA available");
-#else
-    LOG(1, "CUDA not available");
-#endif
 
     if (argc > 1) {
         if (!strcmp(argv[1], "server")) {

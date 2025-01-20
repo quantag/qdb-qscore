@@ -797,6 +797,12 @@ int Utils::saveResultsToJson(const std::map<std::string, double>& results, const
     jsonData["cuda"] = "0";
 #endif
 
+
+#ifdef NVPL_ENABLED
+    jsonData["nvpl"] = "1";
+#else
+    jsonData["nvpl"] = "0";
+#endif
     // Write the JSON data to a file
     std::ofstream file(filePath);
     if (file.is_open()) {
