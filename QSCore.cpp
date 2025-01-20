@@ -77,7 +77,6 @@ void testOpenMP() {
     LOGI( "Max threads: %d", max_threads);
     LOGI( "Available processors: %d", num_procs);
 
-
 #ifdef QPP_OPENMP
     LOG(1, "Using OpenMP");
 #else
@@ -97,9 +96,9 @@ void testOpenMP() {
 #endif
 
 #ifdef NVPL_ENABLED
-    LOG(1, "NVPL enable");
+    LOG(1, "Using NVPL");
 #else
-    LOG(1, "NVPL not enabled");
+    LOG(1, "Not using NVPL");
 #endif
 }
 
