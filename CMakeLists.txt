@@ -194,6 +194,7 @@ endif()
 ################################################################################
 # Include directories
 ################################################################################
+add_subdirectory(third_party)
 include_directories(${CURL_INCLUDE_DIR})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
