@@ -803,6 +803,45 @@ int Utils::saveResultsToJson(const std::map<std::string, double>& results, const
 #else
     jsonData["nvpl"] = "0";
 #endif
+
+
+#ifdef __GNUC__
+    jsonData["gcc_version"] = __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__;
+#endif
+
+    /*
+#ifdef __clang__
+    std::cout << "Clang version: " << __clang_major__ << "." << __clang_minor__ << "." << __clang_patchlevel__ << "\n";
+#endif
+*/
+
+#ifdef __x86_64__
+    jsonData["arch"] = "x86_64";
+#elif defined(__aarch64__)
+    jsonData["arch"] = "ARM64";
+#endif
+
+#ifdef __tune_core__
+    jsonData["mtune"] = __tune_core__;
+#endif
+
+
+#ifdef __tune_cpu__
+    jsonData["mtune_cpu"] = __tune_cpu__ ;
+#endif
+
+
+#ifdef __arch__
+    jsonData["march"] = __arch__ ;
+#endif
+
+#ifdef __native__
+    jsonData["native"] = "1";
+#else
+    jsonData["native"] = "0";
+#endif
+
+
     // Write the JSON data to a file
     std::ofstream file(filePath);
     if (file.is_open()) {
