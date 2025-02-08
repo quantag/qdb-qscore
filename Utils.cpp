@@ -806,14 +806,11 @@ int Utils::saveResultsToJson(const std::map<std::string, double>& results, const
 
 
 #ifdef __GNUC__
-    jsonData["gcc_version"] = __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__;
+    jsonData["gcc_version"] = std::to_string(__GNUC__) + "." +
+        std::to_string(__GNUC_MINOR__) + "." +
+        std::to_string(__GNUC_PATCHLEVEL__); 
 #endif
 
-    /*
-#ifdef __clang__
-    std::cout << "Clang version: " << __clang_major__ << "." << __clang_minor__ << "." << __clang_patchlevel__ << "\n";
-#endif
-*/
 
 #ifdef __x86_64__
     jsonData["arch"] = "x86_64";
