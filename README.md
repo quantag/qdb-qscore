@@ -10,7 +10,7 @@ VS Code Extension which works with QSCode can be downloaded directly from VS Cod
 ## Prerequisites
 
 ```
-sudo apt-get install git cmake build-essential libcurl4-gnutls-dev libomp-dev
+sudo apt-get install git cmake build-essential libcurl4-gnutls-dev libomp-dev libblas-dev
 ```
 ## Build
 
