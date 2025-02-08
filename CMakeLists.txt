@@ -10,6 +10,13 @@ set(COMMON_OPT_FLAGS "-O3 -mcpu=neoverse-v2 -fopenmp")
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER g++)
 
+set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+set(CMAKE_HAVE_THREADS_LIBRARY 1)
+set(CMAKE_USE_WIN32_THREADS_INIT 0)
+set(CMAKE_USE_PTHREADS_INIT 1)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+
+
 if(DEFINED ARMPL AND ARMPL STREQUAL "ON")  # -DARMPL=ON
   message(STATUS "Use ARM HPC compiler and ArmPL if available")
   find_program(ARM_C_COMPILER armclang)
@@ -326,9 +333,8 @@ if (OPENMP_FOUND)
 
      if(DEFINED ARMPL AND ARMPL STREQUAL "ON" AND ARMPL_BLAS_LIBRARY)
          message(STATUS "Found ArmPL BLAS library: ${ARMPL_BLAS_LIBRARY}")
-         set(ARMPL_INC_PATH "/global/exafs/groups/gh/sw-env-202501/opt/armpl/24.10/include")
-         include_directories(${ARMPL_INC_PATH})
-         target_link_libraries(${PROJECT_NAME} PRIVATE ${ARMPL_BLAS_LIBRARY})
+ 
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${ARMPL_BLAS_LIBRARY})
 
      else()
          message(STATUS "ArmPL disabled or ArmPL-BLAS library not found in ${ARMPL_LIB_PATH}")
