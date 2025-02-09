@@ -1,0 +1,20 @@
+{
+    "../test/qasm/file10.qasm": 0.009352048,
+    "../test/qasm/file15.qasm": 0.573027597,
+    "../test/qasm/file20.qasm": 24.545112069,
+    "arch": "x86_64",
+    "cpu": "CPU Type: AMD Ryzen 5 3600 6-Core Processor\nArchitecture: x86_64",
+    "cuda": "0",
+    "eigen_blas": "1",
+    "gcc_version": "13.3.0",
+    "native": "0",
+    "nvpl": "0",
+    "openmp": "1",
+    "openmp_max_threads": 12,
+    "openmp_num_procs": 12
+    "march":"znver2",
+    "mtune":"znver2"
+    "params": "-march=znver2 -mtune=znver2",
+    "os": "Ubuntu 24.04 LTS",
+    "ram": "32g"
+}

@@ -1,0 +1,16 @@
+{
+    "../test/qasm\\file10.qasm": 0.2951954,
+    "../test/qasm\\file15.qasm": 18.0566808,
+    "../test/qasm\\file20.qasm": 715.0292396,
+    "cpu": "CPU Type: Intel(R) Core(TM) i7-8565U CPU @ 1.80GHz\nArchitecture: x86",
+    "cuda": "0",
+    "eigen_blas": "1",
+    "native": "0",
+    "nvpl": "0",
+    "openmp": "1",
+    "openmp_max_threads": 8,
+    "openmp_num_procs": 8,
+    "params": "/favor:INTEL64 /arch:AVX2 /Ox",
+    "os": "Windows 11 Pro 22H2",
+    "ram": "32g"
+}
