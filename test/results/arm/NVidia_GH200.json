@@ -1,0 +1,21 @@
+{
+  "../test/qasm/file10.qasm": 0.017341,
+  "../test/qasm/file15.qasm": 0.117016,
+  "../test/qasm/file20.qasm": 6.458363,
+  "../test/qasm/file25.qasm": 319.813848465,
+  "../test/qasm/file26.qasm": 693.744952,
+  "../test/qasm/file27.qasm": 1501.459437,
+  "../test/qasm/file28.qasm": 3192.362212,
+  "cpu": "CPU Type: GH200",
+  "cuda": "0",
+  "eigen_blas": "1",
+  "native": "0",
+  "nvpl": "0",
+  "openmp": "1",
+  "openmp_max_threads": 72,
+  "openmp_num_procs": 72,
+  "params": "-O3 -mcpu=neoverse-v2",
+  "os": "Linux",
+  "compiler": "armclang++",
+  "armpl": 1
+}
