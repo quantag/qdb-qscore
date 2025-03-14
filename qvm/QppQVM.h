@@ -8,7 +8,7 @@
 
 #pragma once
 #include "../interfaces/iqvm.h"
-#include "qpp.h"
+#include <qpp.h>
 
 using namespace qpp;
 
