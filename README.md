@@ -52,3 +52,12 @@ Location of demo .qasm file to use if provided file is not found
 __source.folder (default /var/dap)__
 
 Where to search for source files on server 
+
+
+## Other microservices
+
+Quantum Debugger backend consist of several microservices, not only this one. 
+
+- DAP files - microservice to upload files to server [dap-files](https://github.com/quantag/dap-files)
+
+- qdb-decom - python scripts executor [qdb-decom](scripts/qdb-decom)
