@@ -1,0 +1,20 @@
+{
+    "../test/qasm/file10.qasm": 0.007854746,
+    "../test/qasm/file15.qasm": 0.278838786,
+    "../test/qasm/file20.qasm": 10.859677458,
+    "../test/qasm/file25.qasm": 561.507808725,
+    "../test/qasm/file26.qasm": 1198.480389696,
+    "../test/qasm/file27.qasm": 2641.027099159,
+    "../test/qasm/file28.qasm": 5804.438632104,
+    "../test/qasm/file30.qasm": 25336.220157219,
+    "arch": "x86_64",
+    "cpu": "CPU Type: AMD EPYC 9224 24-Core Processor\nArchitecture: x86_64",
+    "cuda": "0",
+    "eigen_blas": "1",
+    "gcc_version": "13.1.0",
+    "native": "0",
+    "nvpl": "0",
+    "openmp": "1",
+    "openmp_max_threads": 48,
+    "openmp_num_procs": 48
+}
