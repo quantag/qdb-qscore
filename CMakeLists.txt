@@ -6,7 +6,8 @@ project(QSCore CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(COMMON_OPT_FLAGS "-O3 -mcpu=neoverse-v2 -fopenmp")
+set(MARCH "native" CACHE STRING "Set -march")
+set(COMMON_OPT_FLAGS "-O3 -march=${MARCH}")
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER g++)
 
@@ -200,6 +201,7 @@ endif()
 ################################################################################
 # Include directories
 ################################################################################
+add_subdirectory(third_party)
 include_directories(${CURL_INCLUDE_DIR})
 
 target_include_directories(${PROJECT_NAME} PUBLIC

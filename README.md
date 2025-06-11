@@ -17,7 +17,7 @@ sudo apt-get install git cmake build-essential libcurl4-gnutls-dev libomp-dev li
 Here is single line download-and-build command
 
 ```
-git clone https://github.com/quantag/qdb-qscore.git && cd qdb-qscore && ./get_deps.sh && cd build && cmake .. && make
+git clone https://github.com/quantag/qdb-qscore.git && cd qdb-qscore && cd build && cmake .. && make
 ```
 
 ## Run
