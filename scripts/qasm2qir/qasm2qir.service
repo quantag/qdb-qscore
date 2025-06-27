@@ -1,0 +1,15 @@
+[Unit]
+Description=QASM to QIR converter microservice
+After=network.target
+
+[Service]
+User=qbit
+WorkingDirectory=/home/qbit/qasm2qir
+ExecStart=/home/qbit/qasm2qir/.venv/bin/python /home/qbit/qasm2qir/qasm2qir.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
