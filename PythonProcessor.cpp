@@ -175,7 +175,7 @@ void PythonProcessor::deleteLines(const std::vector<int>& lines) {
 	}
 }
 
-ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourceCode, const std::string& sessionId) {
+/*ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourceCode, const std::string& sessionId) {
 	LOGI("");
 
 	std::vector<std::string> qasmLines;
@@ -200,4 +200,54 @@ ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourc
 	LOGI("result status: %d", result.status);
 
 	return result;
+}*/
+
+ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourceCode, const std::string& sessionId) {
+	LOGI("");
+
+	std::vector<std::string> qasmLines;
+	Utils::parseSourcePerLines(sourceCode, qasmLines);
+
+	bool isQASM3 = false;
+	for (const auto& line : qasmLines) {
+		if (line.find("OPENQASM 3") != std::string::npos) {
+			isQASM3 = true;
+			break;
+		}
+	}
+
+	sourceLines.clear();
+	sourceLines.push_back("from qiskit import QuantumCircuit");
+
+	if (isQASM3) {
+		sourceLines.push_back("from qiskit_qasm3_import import loads");
+	}
+	else {
+		sourceLines.push_back("from qiskit.qasm import load_qasm_string");
+	}
+
+	sourceLines.push_back("src = '''");
+	for (const std::string& line : qasmLines) {
+		sourceLines.push_back("    " + line);
+	}
+	sourceLines.push_back("'''");
+
+	if (isQASM3) {
+		sourceLines.push_back("qc = loads(src)");
+	}
+	else {
+		sourceLines.push_back("qc = load_qasm_string(src)");
+	}
+
+	sourceLines.push_back("qc.draw(output='mpl', filename='" + std::string(SERVER_IMAGE_FOLDER) + sessionId + ".png')");
+	sourceLines.push_back(std::string(BRIDGE_VAR) + "=0");
+
+	Utils::logSource(sourceLines);
+	std::string updatedSource = Utils::combineVector(this->sourceLines);
+	std::string out;
+	ScriptExecResult result = restClient.execCode(updatedSource);
+	LOGI("result status: %d", result.status);
+
+	return result;
 }
+
