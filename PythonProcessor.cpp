@@ -220,7 +220,7 @@ ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourc
 	sourceLines.push_back("from qiskit import QuantumCircuit");
 
 	if (isQASM3) {
-		sourceLines.push_back("from qiskit_qasm3_import import loads");
+		sourceLines.push_back("from qiskit_qasm3_import import parse");
 	}
 	else {
 		sourceLines.push_back("from qiskit.qasm import load_qasm_string");
@@ -233,7 +233,7 @@ ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourc
 	sourceLines.push_back("'''");
 
 	if (isQASM3) {
-		sourceLines.push_back("qc = loads(src)");
+		sourceLines.push_back("qc = parse(src)");
 	}
 	else {
 		sourceLines.push_back("qc = load_qasm_string(src)");
