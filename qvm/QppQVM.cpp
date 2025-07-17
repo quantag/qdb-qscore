@@ -182,9 +182,13 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 		LOGE("Error parsing OpenQASM from file [%s]. [%s]", file.c_str(), (e.what()!=NULL) ? e.what() : "");
 		status.errorMessage = (e.what() != NULL) ? e.what() : "Parsing error";
 	}
+	catch (const std::exception& e) {
+		LOGE("Caught std::exception: %s", e.what());
+		status.errorMessage = std::string("Exception: ") + e.what();
+	}
 	catch (...) {
 		// Catch any other type of exception
-		LOGE("Caught unknown exception");
+		LOGE("Caught unknown OpenQASM parsing exception");
 		status.errorMessage = "Unknown exception occurred";
 	}
 
