@@ -175,7 +175,7 @@ void PythonProcessor::deleteLines(const std::vector<int>& lines) {
 	}
 }
 
-/*ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourceCode, const std::string& sessionId) {
+ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourceCode, const std::string& sessionId) {
 	LOGI("");
 
 	std::vector<std::string> qasmLines;
@@ -200,8 +200,9 @@ void PythonProcessor::deleteLines(const std::vector<int>& lines) {
 	LOGI("result status: %d", result.status);
 
 	return result;
-}*/
+}
 
+/*
 ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourceCode, const std::string& sessionId) {
 	LOGI("");
 
@@ -250,4 +251,4 @@ ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourc
 
 	return result;
 }
-
+*/
