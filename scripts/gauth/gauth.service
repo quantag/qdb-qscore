@@ -1,0 +1,14 @@
+[Unit]
+Description=Google Auth Helper service
+After=network.target
+
+[Service]
+User=qbit
+Group=qbit
+Restart=always
+RestartSec=3
+WorkingDirectory=/home/qbit/gauth
+ExecStart=/home/qbit/gauth/.venv/bin/python gauth.py
+
+[Install]
+WantedBy=multi-user.target
