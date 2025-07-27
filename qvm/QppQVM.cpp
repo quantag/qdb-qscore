@@ -178,7 +178,7 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 		LOGI("Created QCircuit from file '%s', nQubits = %u", file.c_str(), this->nQubits);
 		this->sourceCodeParsed = 1;
 	}
-	catch (qasmtools::parser::ParseError e) {
+	catch (qasmtools::parser::ParseError &e) {
 		LOGE("Error parsing OpenQASM from file [%s]. [%s]", file.c_str(), (e.what()!=NULL) ? e.what() : "");
 		status.errorMessage = (e.what() != NULL) ? e.what() : "Parsing error";
 	}
