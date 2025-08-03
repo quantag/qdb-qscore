@@ -8,7 +8,31 @@ from openai import BadRequestError
 from flask import Flask, request, jsonify
 from openai import OpenAI
 
+import re
 import logging
+
+def extract_qasm_only(text: str) -> str:
+    # Remove Markdown code block markers if present
+    text = text.strip()
+    if text.startswith("```") and text.endswith("```"):
+        text = "\n".join(text.splitlines()[1:-1])  # remove first and last lines
+
+    lines = text.splitlines()
+
+    # Remove leading junk until OPENQASM found
+    while lines and not lines[0].strip().lower().startswith("openqasm"):
+        lines.pop(0)
+
+    # Collect QASM lines and stop on suspicious non-code
+    qasm_lines = []
+    for line in lines:
+        # Stop if we encounter trailing markdown
+        if line.strip().startswith("```"):
+            break
+        qasm_lines.append(line)
+
+    return "\n".join(qasm_lines).strip()
+
 
 LOG_FILE = "aiqasm.log"
 
@@ -84,11 +108,8 @@ def optimize_qasm():
             enc = tiktoken.get_encoding("cl100k_base")
 
         input_tokens = len(enc.encode(qasm_code))
-        app.logger.info(f"QASM token count: {input_tokens}")
 
-        app.logger.info("Calling OpenAI to optimize QASM...")
         app.logger.info(f"Using temperature={temperature} for optimization.")
-        app.logger.info(f"Using max_tokens={max_tokens}.")
 #        app.logger.debug(f"Original QASM:\n{qasm_code}")
         model_limit = MODEL_LIMITS.get(model_name, 16000)
 
@@ -105,6 +126,11 @@ def optimize_qasm():
                 "max_tokens": max_tokens
             }), 400
 
+        app.logger.info(f"Using model: {model_name}")
+        app.logger.info(f"QASM input tokens: {input_tokens} / allowed max: {max_input_tokens} (model limit: {model_limit}, max_tokens: {max_tokens})")
+        app.logger.info("Calling OpenAI to optimize QASM...")
+
+
         response = client.chat.completions.create(
             model=model_name,
             messages=[
@@ -116,6 +142,7 @@ def optimize_qasm():
         )
 
         optimized_qasm = response.choices[0].message.content.strip()
+        optimized_qasm = extract_qasm_only(optimized_qasm)
         optimized_b64 = base64.b64encode(optimized_qasm.encode("utf-8")).decode("utf-8")
 
        # Token usage and cost

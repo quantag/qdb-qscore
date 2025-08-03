@@ -1,0 +1,15 @@
+[Unit]
+Description=AI QASM optimizer microservice
+After=network.target
+
+[Service]
+User=admin
+WorkingDirectory=/home/admin/work/aiqasm
+ExecStart=/home/admin/work/aiqasm/.venv/bin/python /home/admin/work/aiqasm/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
