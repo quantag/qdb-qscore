@@ -10,7 +10,7 @@ from openai import BadRequestError
 from flask import Flask, request, jsonify
 from openai import OpenAI
 from join import join_optimized_chunks
-from process import process_qasm_base64
+from process import process_qasm
 from app_config import api_key, model_name, temperature, max_tokens, model_limits, system_prompt
 
 import re
@@ -241,8 +241,14 @@ def process_qasm_endpoint():
         qasm_b64 = data["qasm_b64"]
         model = data.get("model", "gpt-4o")
 
+        try:
+            qasm_code = base64.b64decode(qasm_b64).decode("utf-8")
+        except Exception as e:
+            app.logger.error(f"Base64 decoding failed: {e}")
+            return jsonify({"error": "Invalid base64 QASM input"}), 400
+
         app.logger.info(f"Received process request for model: {model}")
-        result = process_qasm_base64(qasm_b64, model)
+        result = process_qasm(qasm_code, model)
 
         return jsonify({
             "mode": result["mode"],
