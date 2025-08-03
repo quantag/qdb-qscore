@@ -4,14 +4,14 @@ import logging
 
 from typing import List
 
-from app_config import MODEL_LIMITS
+from app_config import model_limits
 
 
 def split_openqasm_into_chunks(qasm_code: str, model_name: str) -> List[str]:
-    if model_name not in MODEL_LIMITS:
+    if model_name not in model_limits:
         raise ValueError(f"Unknown model name: {model_name}")
 
-    max_tokens_per_chunk = MODEL_LIMITS[model_name]
+    max_tokens_per_chunk = model_limits[model_name]
     logging.info(f"For model '{model_name}', maximum chunk size is {max_tokens_per_chunk} tokens.")
 
     enc = tiktoken.encoding_for_model(model_name)

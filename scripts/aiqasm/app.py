@@ -4,15 +4,18 @@ import json
 import traceback
 import tiktoken
 from split import split_openqasm_into_chunks
-from app_config import MODEL_LIMITS
+from app_config import model_limits
 from openai import BadRequestError
 
 from flask import Flask, request, jsonify
 from openai import OpenAI
+from join import join_optimized_chunks
+from process import process_qasm_base64
+from app_config import api_key, model_name, temperature, max_tokens, model_limits, system_prompt
 
 import re
 import logging
-
+import requests
 
 def extract_qasm_only(text: str) -> str:
     # Remove Markdown code block markers if present
@@ -55,18 +58,6 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 app = Flask(__name__)
 app.logger = logging.getLogger("aiqasm")
 
-# === Load API key from config.json ===
-CONFIG_PATH = "config.json"
-if not os.path.exists(CONFIG_PATH):
-    print("ERROR: config.json not found. Please create it before starting the server.")
-    sys.exit(1)
-
-with open(CONFIG_PATH, "r") as f:
-    config = json.load(f)
-    api_key = config.get("openai_api_key")
-    model_name = config.get("openai_model", "gpt-3.5-turbo")
-    temperature = config.get("temperature", 0.2)
-    max_tokens = config.get("max_tokens", 2000)
 
 
 
@@ -102,7 +93,7 @@ def optimize_qasm():
 
         app.logger.info(f"Using temperature={temperature} for optimization.")
 #        app.logger.debug(f"Original QASM:\n{qasm_code}")
-        model_limit = MODEL_LIMITS.get(model_name, 16000)
+        model_limit = model_limits.get(model_name, 16000)
 
         # Compute available token space for input
         max_input_tokens = model_limit - max_tokens
@@ -203,6 +194,94 @@ def split_qasm():
         app.logger.error("Exception in /split endpoint:")
         app.logger.error(traceback.format_exc())
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+
+@app.route("/join", methods=["POST"])
+def join_qasm_chunks():
+    try:
+        data = request.json
+
+        if "chunks_b64" not in data or not isinstance(data["chunks_b64"], list):
+            return jsonify({"error": "Missing or invalid 'chunks_b64' field"}), 400
+
+        # Decode all chunks
+        chunks = []
+        for idx, chunk_b64 in enumerate(data["chunks_b64"]):
+            try:
+                chunk_str = base64.b64decode(chunk_b64).decode("utf-8")
+                chunks.append(chunk_str)
+            except Exception as e:
+                app.logger.error(f"Failed to decode chunk {idx}: {e}")
+                return jsonify({"error": f"Invalid base64 encoding in chunk {idx}"}), 400
+
+        app.logger.info(f"Joining {len(chunks)} QASM chunks...")
+
+        joined_qasm = join_optimized_chunks(chunks)
+        joined_b64 = base64.b64encode(joined_qasm.encode("utf-8")).decode("ascii")
+
+        return jsonify({
+            "joined_qasm_b64": joined_b64,
+            "lines": len(joined_qasm.splitlines())
+        })
+
+    except Exception as e:
+        app.logger.exception("Exception during join endpoint")
+        return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
+
+@app.route("/process", methods=["POST"])
+def process_qasm_endpoint():
+    try:
+        data = request.json
+
+        if "qasm_b64" not in data:
+            app.logger.warning("Missing 'qasm_b64' in request")
+            return jsonify({"error": "Missing 'qasm_b64' field"}), 400
+
+        qasm_b64 = data["qasm_b64"]
+        model = data.get("model", "gpt-4o")
+
+        app.logger.info(f"Received process request for model: {model}")
+        result = process_qasm_base64(qasm_b64, model)
+
+        return jsonify({
+            "mode": result["mode"],
+            "temp_dir": result["temp_dir"],
+            "optimized_qasm_b64": result["optimized_qasm_b64"]
+        })
+
+    except requests.exceptions.RequestException as e:
+        app.logger.error("API call failed:")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": f"Request failed: {str(e)}"}), 500
+
+    except Exception as e:
+        app.logger.error("Unexpected error during processing:")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
+
+@app.route("/tokens", methods=["POST"])
+def count_tokens():
+    try:
+        data = request.get_json(force=True)
+
+        if not isinstance(data, dict):
+            return jsonify({"error": "Invalid JSON object"}), 400
+
+        qasm_b64 = data.get("qasm_b64")
+        model = data.get("model")
+
+        if not qasm_b64 or not model:
+            return jsonify({"error": "Missing 'qasm_b64' or 'model'"}), 400
+
+        qasm_code = base64.b64decode(qasm_b64).decode("utf-8")
+
+        enc = tiktoken.encoding_for_model(model)
+        token_count = len(enc.encode(qasm_code))
+        return jsonify({"tokens": token_count})
+
+    except Exception as e:
+        app.logger.exception("Failed to count tokens")
+        return jsonify({"error": str(e)}), 400
 
 
 if __name__ == "__main__":
