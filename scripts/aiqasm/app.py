@@ -16,6 +16,7 @@ from app_config import api_key, model_name, temperature, max_tokens, model_limit
 import re
 import logging
 import requests
+from validate import validate_qasm
 
 def extract_qasm_only(text: str) -> str:
     # Remove Markdown code block markers if present
@@ -283,6 +284,21 @@ def count_tokens():
         app.logger.exception("Failed to count tokens")
         return jsonify({"error": str(e)}), 400
 
+@app.route("/validate", methods=["POST"])
+def validate_endpoint():
+    data = request.get_json()
+    qasm_b64 = data.get("qasm_b64")
+
+    if not qasm_b64:
+        return jsonify({"error": "Missing qasm_b64"}), 400
+
+    try:
+        qasm_code = base64.b64decode(qasm_b64).decode("utf-8")
+    except Exception as e:
+        return jsonify({"error": f"Base64 decode failed: {str(e)}"}), 400
+
+    result = validate_qasm(qasm_code)
+    return jsonify(result)
 
 if __name__ == "__main__":
     import logging
