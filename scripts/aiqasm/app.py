@@ -249,6 +249,8 @@ def process_qasm_endpoint():
 
         app.logger.info(f"Received process request for model: {model}")
         result = process_qasm(qasm_code, model)
+        if "error" in result:
+            return jsonify(result), 400
 
         return jsonify({
             "mode": result["mode"],
