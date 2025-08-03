@@ -3,6 +3,8 @@ import os
 import json
 import traceback
 import tiktoken
+from split import split_openqasm_into_chunks
+from app_config import MODEL_LIMITS
 from openai import BadRequestError
 
 from flask import Flask, request, jsonify
@@ -10,6 +12,7 @@ from openai import OpenAI
 
 import re
 import logging
+
 
 def extract_qasm_only(text: str) -> str:
     # Remove Markdown code block markers if present
@@ -66,18 +69,6 @@ with open(CONFIG_PATH, "r") as f:
     max_tokens = config.get("max_tokens", 2000)
 
 
-MODEL_LIMITS_PATH = "model_limits.json"
-if os.path.exists(MODEL_LIMITS_PATH):
-    with open(MODEL_LIMITS_PATH, "r") as f:
-        MODEL_LIMITS = json.load(f)
-else:
-    MODEL_LIMITS = {
-        "gpt-3.5-turbo": 16385,
-        "gpt-4": 8192,
-        "gpt-4-0613": 8192,
-        "gpt-4-1106-preview": 128000,
-        "gpt-4o": 128000
-    }
 
 # Load model cost information
 try:
@@ -186,6 +177,32 @@ def optimize_qasm():
         app.logger.error("Exception during optimization:")
         app.logger.error(traceback.format_exc())
         return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
+
+
+@app.route("/split", methods=["POST"])
+def split_qasm():
+    try:
+        data = request.json
+
+        if "qasm" not in data:
+            return jsonify({"error": "Missing 'qasm' field"}), 400
+
+        qasm_b64 = data["qasm"]
+        model_name = data.get("model")
+
+        # Decode input QASM
+        qasm_code = base64.b64decode(qasm_b64).decode("utf-8")
+        chunks = split_openqasm_into_chunks(qasm_code, model_name)
+
+        return jsonify({
+            "chunk_count": len(chunks),
+            "chunks": [base64.b64encode(c.encode("utf-8")).decode("ascii") for c in chunks]
+        })
+
+    except Exception as e:
+        app.logger.error("Exception in /split endpoint:")
+        app.logger.error(traceback.format_exc())
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 
 if __name__ == "__main__":
