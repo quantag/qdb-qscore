@@ -1,0 +1,15 @@
+[Unit]
+Description=Quantum traspiler microservice
+After=network.target
+
+[Service]
+User=admin
+WorkingDirectory=/home/admin/work/q3d
+ExecStart=/home/admin/work/q3d/.venv/bin/python /home/admin/work/q3d/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

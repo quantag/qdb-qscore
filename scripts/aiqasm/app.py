@@ -78,6 +78,7 @@ client = OpenAI(api_key=api_key)
 def optimize_qasm():
     try:      
         data = request.json
+        _model = data["model"]
 
         if "qasm" not in data:
             app.logger.warning("Missing 'qasm' in request")
@@ -86,7 +87,7 @@ def optimize_qasm():
         qasm_code = base64.b64decode(data["qasm"]).decode("utf-8")
         # === Token counting ===
         try:
-            enc = tiktoken.encoding_for_model(model_name)
+            enc = tiktoken.encoding_for_model(_model)
         except Exception:
             enc = tiktoken.get_encoding("cl100k_base")
 
@@ -94,7 +95,7 @@ def optimize_qasm():
 
         app.logger.info(f"Using temperature={temperature} for optimization.")
 #        app.logger.debug(f"Original QASM:\n{qasm_code}")
-        model_limit = model_limits.get(model_name, 16000)
+        model_limit = model_limits.get(_model, 16000)
 
         # Compute available token space for input
         max_input_tokens = model_limit - max_tokens
@@ -109,13 +110,13 @@ def optimize_qasm():
                 "max_tokens": max_tokens
             }), 400
 
-        app.logger.info(f"Using model: {model_name}")
+        app.logger.info(f"Using model: {_model}")
         app.logger.info(f"QASM input tokens: {input_tokens} / allowed max: {max_input_tokens} (model limit: {model_limit}, max_tokens: {max_tokens})")
         app.logger.info("Calling OpenAI to optimize QASM...")
 
 
         response = client.chat.completions.create(
-            model=model_name,
+            model=_model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": qasm_code}
