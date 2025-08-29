@@ -1,0 +1,14 @@
+[Unit]
+Description=QSCore service
+After=network.target
+
+[Service]
+User=qbit
+Group=qbit
+Restart=always
+RestartSec=3
+WorkingDirectory=/yourfolder
+ExecStart=/yourfolder/QSCore server <yourIP>
+
+[Install]
+WantedBy=multi-user.target
