@@ -1,32 +1,20 @@
-/*
- * Copyright (c) 2024 Quantag IT Solutions GmbH
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- */
-
 #pragma once
 
 #include <stdarg.h>
 #include <string>
+#include <mutex>
 
-typedef unsigned char byte;
+using byte = unsigned char;   // <-- fix for undefined "byte"
+#define MAX_LOG_LEN   18000
+#define MAX_DATA_LEN  128
 
-/**
- * Logger output mask
- */
-#define LO_CONSOLE		( 1 )
-#define LO_FILE			( 2 )
-#define LO_DEBUGGER		( 8 )
+#define LO_CONSOLE   (1)
+#define LO_FILE      (2)
+#define LO_DEBUGGER  (8)
 
-
-/**
- * Macros for global logger
- */
-#define LOG_INIT			Logger::logger.init
-
-#define LOG(...)			Logger::logger.log(__FUNCTION__,__VA_ARGS__)
-#define LOG_DATA(...)	Logger::logger.data(__FUNCTION__,__VA_ARGS__)
+#define LOG_INIT     Logger::logger.init
+#define LOG(...)     Logger::logger.log(__FUNCTION__, __VA_ARGS__)
+#define LOG_DATA(...) Logger::logger.data(__FUNCTION__, __VA_ARGS__)
 
 #define LOGE(...) LOG(Log::eErr, __VA_ARGS__)
 #define LOGW(...) LOG(Log::eInfo, __VA_ARGS__)
@@ -36,51 +24,43 @@ typedef unsigned char byte;
 #define LOGD(...) LOG(Log::eStream, __VA_ARGS__)
 
 namespace Log {
-	enum {
-		eErr = 1,
-		eInfo,
-		eStream,
-		eStreamDbg
-	};
+    enum {
+        eErr = 1,
+        eInfo,
+        eStream,
+        eStreamDbg
+    };
 };
 
-/**
- * class Logger - to log in file
- */
-class Logger
-{
+class Logger {
 public:
-// Global logger
-	static Logger	logger;
+    static Logger logger;
 
-// Constructor/Destructor
-	Logger(); 
-	virtual ~Logger();
+    Logger();
+    ~Logger();
 
-// Implementation
-	void	init(int level, const std::string& filename);
-	void	log(const std::string &funcName, int level, const char* format, ...);
-	void	data(const std::string &funcName, int level,  const char *title, const byte* buf, unsigned int len);
+    void init(int level, const std::string& filename = "");
+    void log(const std::string& funcName, int level, const char* format, ...);
+    void data(const std::string& funcName, int level, const char* title, const byte* buf, unsigned int len);
 
-	void	setLogLevel(int level)	{ _level = level; }
-	void	setMode(int mode)		{ _mode = mode; }
+    void setLogLevel(int level) { _level = level; }
+    void setMode(int mode) { _mode = mode; }
 
-	const std::string& getBaseFileName() const { return baseFileName; }
-	const std::string& getFileName() const { return _filepath; }
-	void setFileName(const std::string& fileName);
-
-protected:
-	void	logArgs(int level,  const std::string &funcName, const char* format, va_list args);
-	std::string buildLogLine(const std::string& funcName, const std::string& buf);
-	std::string getCurrentTimestamp();
+    const std::string& getBaseFileName() const { return baseFileName; }
+    const std::string& getFileName() const { return _filepath; }
+    void setFileName(const std::string& fileName);
 
 private:
-// Members
-	int			_mode;
-	int			_level;
+    void logArgs(int level, const std::string& funcName, const char* format, va_list args);
+    std::string buildLogLine(const std::string& funcName, const std::string& buf);
+    std::string getCurrentTimestamp();
 
-	std::string	_filepath; // real full file name
-	std::string baseFileName;  // core of file name
+    int _mode;
+    int _level;
+
+    std::string _filepath;
+    std::string baseFileName;
+
+    FILE* _file;
+    std::mutex _mtx;
 };
-
-
