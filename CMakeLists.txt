@@ -6,7 +6,29 @@ project(QSCore CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(COMMON_OPT_FLAGS "-O3 -mcpu=neoverse-v2 -fopenmp")
+option(CPU_OPT "CPU optimization target (generic|intel|amd|gh200)" "generic")
+
+set(COMMON_OPT_FLAGS "")
+
+if(CPU_OPT STREQUAL "intel")
+    # Good baseline for recent Intel
+    message(STATUS "Optimizing for Intel CPU")
+    set(COMMON_OPT_FLAGS "-O3 -march=skylake -mtune=skylake -funroll-loops -fomit-frame-pointer")
+elseif(CPU_OPT STREQUAL "amd")
+    # Zen 2/3 tuning
+    message(STATUS "Optimizing for AMD CPU")
+    set(COMMON_OPT_FLAGS "-O3 -march=znver2 -mtune=znver2 -funroll-loops -fomit-frame-pointer")
+elseif(CPU_OPT STREQUAL "gh200")
+    # NVIDIA Grace Hopper ARM
+    message(STATUS "Optimizing for nVidia ARM CPU")
+    # (check supported flags with your GCC/Clang version)
+    set(COMMON_OPT_FLAGS "-O3 -mcpu=neoverse-v2 -funroll-loops -fomit-frame-pointer")
+else()
+    # Safe generic baseline
+    set(COMMON_OPT_FLAGS "-O2 -march=x86-64-v2")
+endif()
+
+
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER g++)
 
