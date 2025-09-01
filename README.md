@@ -81,9 +81,4 @@ Supported parameters:
 - source.folder (default /var/dap)  
   Where to search for source files on server.
 
-## Other microservices
 
-Quantum Debugger backend consists of several microservices, not only this one:
-
-- dap-files (https://github.com/quantag/dap-files) - microservice to upload files to server
-- qdb-decom (scripts/qdb-decom) - Python scripts executor
