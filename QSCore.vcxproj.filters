@@ -123,6 +123,12 @@
     <ClCompile Include="SessionStorage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="qvm\BaseQVM.cpp">
+      <Filter>Source Files\qvm</Filter>
+    </ClCompile>
+    <ClCompile Include="qvm\CudaQVM.cpp">
+      <Filter>Source Files\qvm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debugger.h">
@@ -223,6 +229,12 @@
     </ClInclude>
     <ClInclude Include="ConfigLoader.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="qvm\BaseQVM.h">
+      <Filter>Header Files\qvm</Filter>
+    </ClInclude>
+    <ClInclude Include="qvm\CudaQVM.h">
+      <Filter>Header Files\qvm</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

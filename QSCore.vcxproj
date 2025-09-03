@@ -159,6 +159,8 @@
     <ClCompile Include="PythonProcessor.cpp" />
     <ClCompile Include="QiskitProcessor.cpp" />
     <ClCompile Include="QSCore.cpp" />
+    <ClCompile Include="qvm\BaseQVM.cpp" />
+    <ClCompile Include="qvm\CudaQVM.cpp" />
     <ClCompile Include="qvm\QppQVM.cpp" />
     <ClCompile Include="RestClient.cpp" />
     <ClCompile Include="SessionStorage.cpp" />
@@ -193,6 +195,8 @@
     <ClInclude Include="Log.h" />
     <ClInclude Include="PythonProcessor.h" />
     <ClInclude Include="QiskitProcessor.h" />
+    <ClInclude Include="qvm\BaseQVM.h" />
+    <ClInclude Include="qvm\CudaQVM.h" />
     <ClInclude Include="qvm\QppQVM.h" />
     <ClInclude Include="RestClient.h" />
     <ClInclude Include="SessionStorage.h" />
