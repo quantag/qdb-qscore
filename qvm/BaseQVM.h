@@ -1,0 +1,20 @@
+
+#pragma once
+
+#include "../interfaces/iqvm.h"
+
+class ConfigLoader;
+class PythonProcessor;
+class IFrontend;
+
+class BaseQVM : public IQVM {
+public:
+	void updateProcessor(PythonFramework framework);
+	int getSourceLines();
+	void setWSSession(WSSession* wsSession);
+
+protected:
+	PythonProcessor* processor;
+	ConfigLoader* cfg;
+	IFrontend* frontend;
+};

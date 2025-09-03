@@ -7,27 +7,22 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(CPU_OPT "CPU optimization target (generic|intel|amd|gh200)" "generic")
+option(ENABLE_CUDAQ "Enable CUDA-Q support" OFF)
 
 set(COMMON_OPT_FLAGS "")
 
 if(CPU_OPT STREQUAL "intel")
-    # Good baseline for recent Intel
     message(STATUS "Optimizing for Intel CPU")
     set(COMMON_OPT_FLAGS "-O3 -march=skylake -mtune=skylake -funroll-loops -fomit-frame-pointer")
 elseif(CPU_OPT STREQUAL "amd")
-    # Zen 2/3 tuning
     message(STATUS "Optimizing for AMD CPU")
     set(COMMON_OPT_FLAGS "-O3 -march=znver2 -mtune=znver2 -funroll-loops -fomit-frame-pointer")
 elseif(CPU_OPT STREQUAL "gh200")
-    # NVIDIA Grace Hopper ARM
     message(STATUS "Optimizing for nVidia ARM CPU")
-    # (check supported flags with your GCC/Clang version)
     set(COMMON_OPT_FLAGS "-O3 -mcpu=neoverse-v2 -funroll-loops -fomit-frame-pointer")
 else()
-    # Safe generic baseline
     set(COMMON_OPT_FLAGS "-O2 -march=x86-64-v2")
 endif()
-
 
 set(CMAKE_C_COMPILER gcc)
 set(CMAKE_CXX_COMPILER g++)
@@ -38,8 +33,7 @@ set(CMAKE_USE_WIN32_THREADS_INIT 0)
 set(CMAKE_USE_PTHREADS_INIT 1)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
-
-if(DEFINED ARMPL AND ARMPL STREQUAL "ON")  # -DARMPL=ON
+if(DEFINED ARMPL AND ARMPL STREQUAL "ON")
   message(STATUS "Use ARM HPC compiler and ArmPL if available")
   find_program(ARM_C_COMPILER armclang)
   find_program(ARM_CXX_COMPILER armclang++)
@@ -50,48 +44,29 @@ if(DEFINED ARMPL AND ARMPL STREQUAL "ON")  # -DARMPL=ON
    else()
       message(STATUS "Arm Compiler not found. Falling back to GCC.")
   endif()
-endif() # if -DARMPL
+endif()
 
 set(CMAKE_C_FLAGS "${COMMON_OPT_FLAGS}")
 set(CMAKE_CXX_FLAGS "${COMMON_OPT_FLAGS}")
 
-################################################################################
-# Set target arch type if empty. Visual studio solution generator provides it.
-################################################################################
 if(NOT CMAKE_VS_PLATFORM_NAME)
     set(CMAKE_VS_PLATFORM_NAME "x64")
 endif()
-# message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
 
 if(NOT ("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64"
      OR "${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86"))
     message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
 endif()
 
-################################################################################
-# Global configuration types
-################################################################################
-set(CMAKE_CONFIGURATION_TYPES
-    "Debug"
-    "Release"
-    CACHE STRING "" FORCE
-)
+set(CMAKE_CONFIGURATION_TYPES "Debug" "Release" CACHE STRING "" FORCE)
 
-################################################################################
-# Global compiler options
-################################################################################
 if(MSVC)
-    # remove default flags provided with CMake for MSVC
     set(CMAKE_CXX_FLAGS "")
     set(CMAKE_CXX_FLAGS_DEBUG "")
     set(CMAKE_CXX_FLAGS_RELEASE "")
 endif()
 
-################################################################################
-# Global linker options
-################################################################################
 if(MSVC)
-    # remove default flags provided with CMake for MSVC
     set(CMAKE_EXE_LINKER_FLAGS "")
     set(CMAKE_MODULE_LINKER_FLAGS "")
     set(CMAKE_SHARED_LINKER_FLAGS "")
@@ -106,36 +81,17 @@ if(MSVC)
     set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "${CMAKE_STATIC_LINKER_FLAGS}")
 endif()
 
-################################################################################
-# Nuget packages function stub.
-################################################################################
 function(use_package TARGET PACKAGE VERSION)
     message(WARNING "No implementation of use_package. Create yours. "
                     "Package \"${PACKAGE}\" with version \"${VERSION}\" "
                     "for target \"${TARGET}\" is ignored!")
 endfunction()
 
-################################################################################
-# Common utils
-################################################################################
 include(CMake/Utils.cmake)
-
-################################################################################
-# Additional Global Settings(add specific info there)
-################################################################################
 include(CMake/GlobalSettingsInclude.cmake OPTIONAL)
 
-################################################################################
-# Use solution folders feature
-################################################################################
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-# option(USE_OPENBLAS, "Enable OpenBLAS libraries" ON)
-# set_directory_properties(PROPERTIES CLEAN_NO_CUSTOM TRUE)
-
-################################################################################
-# Source groups
-################################################################################
 set(Header_Files
     "ConfigLoader.h"
     "Debugger.h"
@@ -152,9 +108,7 @@ set(Header_Files
 )
 source_group("Header Files" FILES ${Header_Files})
 
-set(Header_Files__interfaces
-    "interfaces/iqvm.h"
-)
+set(Header_Files__interfaces "interfaces/iqvm.h")
 source_group("Header Files\\interfaces" FILES ${Header_Files__interfaces})
 
 find_package(CURL REQUIRED)
@@ -172,9 +126,10 @@ set(Source_Files
     "RestClient.cpp"
     "SessionStorage.cpp"
     "ws/WSServer.cpp"
-    "ws/WSListener.cpp"    
+    "ws/WSListener.cpp"
     "ws/WSSession.cpp"
     "qvm/QppQVM.cpp"
+    "qvm/BaseQVM.cpp"
     "dap/content_stream.cpp"
     "dap/network.cpp"
     "dap/io.cpp"
@@ -193,130 +148,45 @@ set(Source_Files
 )
 source_group("Source Files" FILES ${Source_Files})
 
-set(ALL_FILES
-    ${Header_Files}
-    ${Header_Files__interfaces}
-    ${Source_Files}
-)
+set(ALL_FILES ${Header_Files} ${Header_Files__interfaces} ${Source_Files})
 
-################################################################################
-# Target
-################################################################################
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
 set(ROOT_NAMESPACE TcpStreamServer)
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_GLOBAL_KEYWORD "Win32Proj"
-)
+set_target_properties(${PROJECT_NAME} PROPERTIES VS_GLOBAL_KEYWORD "Win32Proj")
+
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
+    set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE")
 elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
-    )
+    set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE")
 endif()
-################################################################################
-# Include directories
-################################################################################
+
 include_directories(${CURL_INCLUDE_DIR})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-            "${CMAKE_CURRENT_SOURCE_DIR}/third_party/boost/include/boost-1_82;"
-            "${CMAKE_CURRENT_SOURCE_DIR}/third_party/json/include;"
-            "${CMAKE_CURRENT_SOURCE_DIR}/third_party/qpp/include;"
-            "${CMAKE_CURRENT_SOURCE_DIR}/third_party/eigen;"
-            "${CMAKE_CURRENT_SOURCE_DIR}/third_party/qasmtools/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/boost/include/boost-1_82;"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/json/include;"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/qpp/include;"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/eigen;"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/qasmtools/include"
 )
 
-################################################################################
-# Compile definitions
-################################################################################
 if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
     target_compile_definitions(${PROJECT_NAME} PRIVATE
-        #"$<$<CONFIG:Debug>:"
-            "CPPDAP_JSON_NLOHMANN"
-            "_CRT_SECURE_NO_WARNINGS"
-            "_WINSOCK_DEPRECATED_NO_WARNINGS"
-       # ">"
-        "$<$<CONFIG:Release>:"
-            "NDEBUG"
-        ">"
-        "_CONSOLE;"
-        "UNICODE;"
-        "_UNICODE"
+        "CPPDAP_JSON_NLOHMANN"
+        "_CRT_SECURE_NO_WARNINGS"
+        "_WINSOCK_DEPRECATED_NO_WARNINGS"
+        "$<$<CONFIG:Release>:NDEBUG>"
+        "_CONSOLE;UNICODE;_UNICODE"
     )
 elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
     target_compile_definitions(${PROJECT_NAME} PRIVATE
-        "$<$<CONFIG:Debug>:"
-            "_DEBUG"
-        ">"
-        "$<$<CONFIG:Release>:"
-            "NDEBUG"
-        ">"
-        "WIN32;"
-        "_CONSOLE;"
-        "UNICODE;"
-        "_UNICODE"
+        "$<$<CONFIG:Debug>:_DEBUG>"
+        "$<$<CONFIG:Release>:NDEBUG>"
+        "WIN32;_CONSOLE;UNICODE;_UNICODE"
     )
-endif()
-
-################################################################################
-# Compile and link options
-################################################################################
-if(MSVC)
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Debug>:
-                /std:c++17
-                /bigobj
-            >
-            $<$<CONFIG:Release>:
-                /Oi;
-                /Gy
-            >
-            /permissive-;
-            /sdl;
-            /W3;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /Oi;
-                /Gy
-            >
-            /permissive-;
-            /sdl;
-            /W3;
-            ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-            ${DEFAULT_CXX_EXCEPTION_HANDLING}
-        )
-    endif()
-    if("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x64")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /OPT:REF;
-                /OPT:ICF
-            >
-            /DEBUG;
-            /SUBSYSTEM:CONSOLE
-        )
-    elseif("${CMAKE_VS_PLATFORM_NAME}" STREQUAL "x86")
-        target_link_options(${PROJECT_NAME} PRIVATE
-            $<$<CONFIG:Release>:
-                /OPT:REF;
-                /OPT:ICF
-            >
-            /DEBUG;
-            /SUBSYSTEM:CONSOLE
-        )
-    endif()
 endif()
 
 find_package(OpenMP)
@@ -345,7 +215,7 @@ if (OPENMP_FOUND)
         message(STATUS "NVPL BLAS library not found in ${NVPL_LIB}")
     endif()
 
-  else() # NVPL_ROOT not defined
+  else()
      message(STATUS "NVPL_ROOT is not set in the environment. LD_LIBRARY_PATH: '${LD_LIBRARY_PATH}'")
 
      if(DEFINED ARMPL AND ARMPL STREQUAL "ON" AND DEFINED ENV{LD_LIBRARY_PATH})
@@ -355,30 +225,46 @@ if (OPENMP_FOUND)
 
      if(DEFINED ARMPL AND ARMPL STREQUAL "ON" AND ARMPL_BLAS_LIBRARY)
          message(STATUS "Found ArmPL BLAS library: ${ARMPL_BLAS_LIBRARY}")
- 
-        target_link_libraries(${PROJECT_NAME} PRIVATE ${ARMPL_BLAS_LIBRARY})
-
+         target_link_libraries(${PROJECT_NAME} PRIVATE ${ARMPL_BLAS_LIBRARY})
      else()
          message(STATUS "ArmPL disabled or ArmPL-BLAS library not found in ${ARMPL_LIB_PATH}")
          find_package(BLAS REQUIRED)
-
          message(STATUS "Building using BLAS libraries")
          target_link_libraries(${PROJECT_NAME} PRIVATE ${BLAS_LIBRARIES} )
      endif()
-  endif() # if NVPL_ROOT defined
+  endif()
 
   add_compile_definitions(QPP_OPENMP)
 
-else()  # no OpenMP
+else()
       message(STATUS "OpenMP not found")
 endif()
 
 add_compile_definitions(EIGEN_USE_BLAS)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CURL_LIBRARIES} )
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
-set_target_properties( ${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 17)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 find_package(Threads REQUIRED)
-
 target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
+
+# ---------------------------------------------------------------------------
+# Optional CUDA-Q support
+# ---------------------------------------------------------------------------
+if(ENABLE_CUDAQ)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -c "import cudaq, os; print(os.path.dirname(cudaq.__file__))"
+        OUTPUT_VARIABLE CUDAQ_PYTHON_PATH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(EXISTS "${CUDAQ_PYTHON_PATH}")
+        message(STATUS "Found CUDA-Q at ${CUDAQ_PYTHON_PATH}")
+        target_include_directories(${PROJECT_NAME} PUBLIC ${CUDAQ_PYTHON_PATH}/include)
+        target_link_directories(${PROJECT_NAME} PUBLIC ${CUDAQ_PYTHON_PATH}/lib)
+        target_link_libraries(${PROJECT_NAME} PRIVATE cudaq-common)
+    else()
+        message(FATAL_ERROR "CUDA-Q not found. Please install with: pip install cudaq")
+    endif()
+endif()

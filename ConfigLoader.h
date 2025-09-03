@@ -6,7 +6,7 @@
  */
 
 #pragma once
-
+#include <cstring>   // for strcmp
 #include <iostream>
 #include <fstream>
 #include <sstream>
