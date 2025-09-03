@@ -146,6 +146,12 @@ set(Source_Files
     "dap/typeof.cpp"
     "dap/Impl.cpp"
 )
+# Add CudaQVM sources only if CUDA-Q is enabled
+if(ENABLE_CUDAQ)
+    list(APPEND Source_Files
+        "qvm/CudaQVM.cpp"
+    )
+endif()
 source_group("Source Files" FILES ${Source_Files})
 
 set(ALL_FILES ${Header_Files} ${Header_Files__interfaces} ${Source_Files})
