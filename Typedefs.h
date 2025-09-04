@@ -11,6 +11,7 @@
 #include <functional>
 
 
+
 // z = a + i*b
 // TODO: use std::complex instead
 struct complexNumber {
