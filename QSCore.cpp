@@ -100,6 +100,13 @@ void testOpenMP() {
 #else
     LOG(1, "Not using NVPL");
 #endif
+
+#ifdef ENABLE_CUDAQ
+    LOG(1, "CUDA-Q is enabled");
+#else
+    LOG(1, "CUDA-Q is disabled");
+#endif
+
 }
 
 int main(int argc, char *argv[]) {

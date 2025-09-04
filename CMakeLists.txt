@@ -256,20 +256,29 @@ find_package(Threads REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
 
 # ---------------------------------------------------------------------------
-# Optional CUDA-Q support
+# Optional CUDA-Q support (C++ build)
 # ---------------------------------------------------------------------------
 if(ENABLE_CUDAQ)
-    find_package(Python3 COMPONENTS Interpreter REQUIRED)
-    execute_process(
-        COMMAND ${Python3_EXECUTABLE} -c "import cudaq, os; print(os.path.dirname(cudaq.__file__))"
-        OUTPUT_VARIABLE CUDAQ_PYTHON_PATH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if(EXISTS "${CUDAQ_PYTHON_PATH}")
-        message(STATUS "Found CUDA-Q at ${CUDAQ_PYTHON_PATH}")
-        target_include_directories(${PROJECT_NAME} PUBLIC ${CUDAQ_PYTHON_PATH}/include)
-        # No linking needed for pip-installed CUDA-Q
-    else()
-        message(FATAL_ERROR "CUDA-Q not found. Please install with: pip install cudaq")
+    if(NOT DEFINED CUDAQ_ROOT)
+        message(FATAL_ERROR "ENABLE_CUDAQ=ON but CUDAQ_ROOT is not set. "
+                            "Please pass -DCUDAQ_ROOT=/path/to/cuda-quantum")
     endif()
+
+    message(STATUS "Using CUDA-Q from ${CUDAQ_ROOT}")
+
+    target_include_directories(${PROJECT_NAME} PUBLIC ${CUDAQ_ROOT}/include)
+    link_directories(${CUDAQ_ROOT}/lib)
+
+    # Collect all CUDA-Q libs
+    file(GLOB CUDAQ_ALL_LIBS "${CUDAQ_ROOT}/lib/libcudaq*.so")
+
+    if(NOT CUDAQ_ALL_LIBS)
+        message(FATAL_ERROR "Could not find any libcudaq*.so in ${CUDAQ_ROOT}/lib")
+    endif()
+
+    message(STATUS "Linking CUDA-Q libs: ${CUDAQ_ALL_LIBS}")
+
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${CUDAQ_ALL_LIBS})
+
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_CUDAQ)
 endif()
