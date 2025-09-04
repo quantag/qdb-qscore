@@ -41,156 +41,30 @@ QppQVM::~QppQVM() {
 }
 
 
-
-int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
-	LOGI("[%s] [%s]", fileName.c_str(), sessionId.c_str());
-
-	int ret = ERR_OK;
-	status.pythonFramework = eUnknownFramework;
-	status.codeType = eUnknown;
-
-	this->sourceCodeParsed = 0;
-	this->sourceCodePerLines.clear();
-
-	sourceCode = "";
-	std::string file = fileName;
-
-	std::string sourceFolder = SOURCE_FOLDER;
-	if (cfg) {
-		sourceFolder = cfg->getSourceFolder();
-	}
-
-	if (!Utils::fileExists(file)) {
-		// try to find on server folder
-		std::string defaultFolder = sourceFolder + std::string("default");
-		std::string serverFile = Utils::findServerFile(defaultFolder, file);
-		if (Utils::fileExists(serverFile)) {
-			LOGI("Found Server File in default folder '%s'", serverFile.c_str());
-
-		}
-		else {
-			std::string sessionFolder = sourceFolder + sessionId;
-			serverFile = Utils::findServerFile(sessionFolder, file);
-		}
-
-		if (!Utils::fileExists(serverFile)) {
-			LOGI("Server File '%s' not exists", serverFile.c_str());
-			LOGI("File [%s] not exist, use demo file [%s]", fileName.c_str(), DEMO_FILE);
-			if (cfg) {
-				file = cfg->getDemoFile();
-			}
-			else {
-				file = DEMO_FILE;
-			}
-
-			ret = ERR_DEMOFILE;
-			status.serverFileFound = 0;
-		}
-		else {
-			status.serverFileFound = 1;
-
-			LOGI("Server File '%s' exists", serverFile.c_str());
-			file = serverFile;
-		}
-	}
-
-	if (!Utils::fileExists(file) ) {
-		LOGI("File '%s' not exists", file.c_str());
-		return ERR_NOFILE;
-	}
-	else {
-		LOGI("File '%s' exist !", file.c_str());
-		if(ret!= ERR_DEMOFILE) ret = ERR_OK;
-	}
-
-	sourceCode = Utils::loadFile(file);
-	LOGI("Loaded %u bytes from [%s]", sourceCode.size(), file.c_str());
-
-	// store original sources
-	this->originalSourceCode = sourceCode;
-
-	status.codeType = Utils::detectCodeType(sourceCode);
-	LOGI("Source code type: %d", status.codeType);
-
-	Utils::parseCode(sourceCode, originalParsedCode, status.codeType);
-
-	switch (status.codeType) {
-		case CodeType::ePython:
-		{
-			LOGI("Recognized Python source");
-			status.pythonFramework = Utils::detectPythonFramework(sourceCode);
-			LOGI("Recognized Python framework: %d", status.pythonFramework);
-			updateProcessor(status.pythonFramework);
-		
-			ScriptExecResult result = processor->parsePythonToOpenQASM(sourceCode, sessionId);
-			if (result.status!=0) {
-				LOGE(">>> Parser returned error in HTML format");
-				status.errorMessage = Utils::getPlainTextFromHTML(result.err);
-				return 1;
-			}
-			else {
-				this->sourceCode = result.res;
-			}
-			break;
-		}
-		case CodeType::eOpenQASM:
-		{
-			LOGI("Recognized OpenQASM source");
-
-			bool renderCircuit = true;
-			if (cfg) {
-				renderCircuit = cfg->isRenderCircuit();
-			}
-			if (!renderCircuit) {
-				LOGI("Circuit rendering disabled in config");
-			}
-			else {
-				ScriptExecResult result = processor->renderOpenQASMCircuit(sourceCode, sessionId);
-				if (result.status != 0) {
-					LOGE(">>> Render OpenQASM failed");
-					status.errorMessage = "Rendering OpenQASM circuit failed : " + result.err;
-					return 1;
-				}
-			}
-			break;
-		}
-			default:
-				LOGE("Not recognized source code type");
-	}
-
-	int nLines = Utils::parseSourcePerLines(this->sourceCode, this->sourceCodePerLines);
-	LOGI("Parsed lines: %d", nLines);
-
-	this->currentState.currentLine = Utils::getFirstLine(this->originalParsedCode, 2) + 1;
-	int ret1 = frontend->loadCode(this->sourceCode);
-	LOGI("frontend.loadCode ret %d", ret1);
+int QppQVM::loadSourceCode(const std::string& fileName,
+	const std::string& sessionId,
+	LaunchStatus& status) {
+	std::string preparedSource;
+	int ret = prepareSource(fileName, sessionId, status, preparedSource);
+	if (ret != ERR_OK && ret != ERR_DEMOFILE) return ret;
 
 	try {
-		LOGI("Trying to parse OpenQASM: '%s'", this->sourceCode.c_str());
-
-		std::istringstream stringStream(this->sourceCode);
-		circuit = std::make_unique<QCircuit>(qasm::read(stringStream));
-
-		this->nQubits = circuit->get_nq();
-		LOGI("Created QCircuit from file '%s', nQubits = %u", file.c_str(), this->nQubits);
-		this->sourceCodeParsed = 1;
-	}
-	catch (qasmtools::parser::ParseError &e) {
-		LOGE("Error parsing OpenQASM from file [%s]. [%s]", file.c_str(), (e.what()!=NULL) ? e.what() : "");
-		status.errorMessage = (e.what() != NULL) ? e.what() : "Parsing error";
+		std::istringstream iss(preparedSource);
+		circuit = std::make_unique<qpp::QCircuit>(qasm::read(iss));
+		nQubits = circuit->get_nq();
+		sourceCodeParsed = 1;
 	}
 	catch (const std::exception& e) {
-		LOGE("Caught std::exception: %s", e.what());
-		status.errorMessage = std::string("Exception: ") + e.what();
+		status.errorMessage = e.what();
+		return ERR_PARSEERROR;
 	}
 	catch (...) {
-		// Catch any other type of exception
-		LOGE("Caught unknown OpenQASM parsing exception");
-		status.errorMessage = "Unknown exception occurred";
+		status.errorMessage = "QPP parser failed.";
+		return ERR_PARSEERROR;
 	}
-
 	return ret;
 }
+
 
 
 int QppQVM::run(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {

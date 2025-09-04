@@ -41,3 +41,68 @@ void BaseQVM::setWSSession(WSSession* ws) {
 	if (this->frontend)
 		this->frontend->setWSSession(ws);
 }
+
+int BaseQVM::prepareSource(const std::string& fileName,
+    const std::string& sessionId,
+    LaunchStatus& status,
+    std::string& preparedSource) {
+    int ret = ERR_OK;
+    status.pythonFramework = eUnknownFramework;
+    status.codeType = eUnknown;
+
+    this->sourceCodeParsed = 0;
+    this->sourceCodePerLines.clear();
+
+    std::string file = fileName;
+    std::string sourceFolder = SOURCE_FOLDER;
+    if (cfg) {
+        sourceFolder = cfg->getSourceFolder();
+    }
+
+    if (!Utils::fileExists(file)) {
+        std::string defaultFolder = sourceFolder + "default";
+        std::string serverFile = Utils::findServerFile(defaultFolder, file);
+        if (!Utils::fileExists(serverFile)) {
+            std::string sessionFolder = sourceFolder + sessionId;
+            serverFile = Utils::findServerFile(sessionFolder, file);
+        }
+
+        if (!Utils::fileExists(serverFile)) {
+            LOGI("File [%s] not found, using demo file.", fileName.c_str());
+            file = cfg ? cfg->getDemoFile() : DEMO_FILE;
+            ret = ERR_DEMOFILE;
+            status.serverFileFound = 0;
+        }
+        else {
+            file = serverFile;
+            status.serverFileFound = 1;
+        }
+    }
+
+    if (!Utils::fileExists(file)) {
+        LOGE("File '%s' still not found.", file.c_str());
+        return ERR_NOFILE;
+    }
+
+    sourceCode = Utils::loadFile(file);
+    originalSourceCode = sourceCode;
+
+    status.codeType = Utils::detectCodeType(sourceCode);
+    Utils::parseCode(sourceCode, originalParsedCode, status.codeType);
+
+    if (status.codeType == CodeType::ePython) {
+        status.pythonFramework = Utils::detectPythonFramework(sourceCode);
+        updateProcessor(status.pythonFramework);
+        ScriptExecResult result = processor->parsePythonToOpenQASM(sourceCode, sessionId);
+        if (result.status != 0) {
+            status.errorMessage = Utils::getPlainTextFromHTML(result.err);
+            return ERR_PARSEERROR;
+        }
+        preparedSource = result.res;
+    }
+    else {
+        preparedSource = sourceCode;
+    }
+
+    return ret;
+}
