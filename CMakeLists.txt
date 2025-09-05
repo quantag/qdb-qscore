@@ -152,6 +152,11 @@ if(ENABLE_CUDAQ)
     list(APPEND Source_Files
         "qvm/CudaQVM.cpp"
     )
+
+if(CUDAQ_ROOT)
+  add_compile_definitions(CUDAQ_ROOT_PATH="${CUDAQ_ROOT}")
+endif()
+
 endif()
 source_group("Source Files" FILES ${Source_Files})
 

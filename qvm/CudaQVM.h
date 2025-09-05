@@ -30,9 +30,9 @@ public:
     int getSourceLines() override;
     double stepForward() override;
 
-
 private:
     std::optional<std::string> cudaqSource_;
+    std::string translateQasmToCudaq(const std::string &qasm);
 };
 
 #endif // ENABLE_CUDAQ

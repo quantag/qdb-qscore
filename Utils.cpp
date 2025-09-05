@@ -851,3 +851,9 @@ int Utils::saveResultsToJson(const std::map<std::string, double>& results, const
     }
     return 0;
 }
+
+int Utils::extractIndex(const std::string &line) {
+    auto l = line.find('[');
+    auto r = line.find(']');
+    return std::stoi(line.substr(l + 1, r - l - 1));
+}

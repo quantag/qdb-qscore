@@ -77,5 +77,6 @@ public:
 	static int getFilesInFolder(const std::string& folderPath, std::vector<std::string>& files);
 
 	static int saveResultsToJson(const std::map<std::string, double>& results, const std::string& filePath);
+        static int extractIndex(const std::string &line);
 
 };
