@@ -50,7 +50,7 @@ int QppQVM::loadSourceCode(const std::string& fileName,
 	if (ret != ERR_OK && ret != ERR_DEMOFILE) 
 		return ret;
 
-	LOGI("prepared source = [%s]", preparedSource.c_str());
+//	LOGI("prepared source = [%s]", preparedSource.c_str());
 
 	try {
 		std::istringstream iss(preparedSource);

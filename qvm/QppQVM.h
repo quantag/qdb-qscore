@@ -29,7 +29,7 @@ public:
 	int debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
 
 	virtual std::string getQVMName() {
-		return "QPP 1.0.11";
+		return "QPP 1.0.12";
 	}
 
 

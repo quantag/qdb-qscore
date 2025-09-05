@@ -103,7 +103,7 @@ int CudaQVM::debug(const std::string& in,
 }
 
 std::string CudaQVM::getQVMName() {
-    return "CudaQVM";
+    return "CudaQVM 0.2";
 }
 
 int CudaQVM::getSourceLines() {
