@@ -5,8 +5,9 @@
 #include "../Utils.h"
 #include "../ConfigLoader.h"
 
-#include "../QiskitProcessor.h"
-#include "../TketProcessor.h"
+#include "../processors/QiskitProcessor.h"
+#include "../processors/TketProcessor.h"
+#include "../processors/CudaQProcessor.h"
 #include "../WebFrontend.h"
 #include "../ws/WSServer.h"
 
@@ -21,14 +22,14 @@ void BaseQVM::updateProcessor(CodeFramework framework) {
 	}
 
 	switch (framework) {
-	case eQiskit:
-	case eGeneric:
-		this->processor = new QiskitProcessor();
-		break;
-	case eTket:
-		this->processor = new TketProcessor();
-		break;
-	}
+	    case eQiskit:
+	    case eGeneric:
+		    this->processor = new QiskitProcessor();
+		    break;
+	    case eTket:
+		    this->processor = new TketProcessor();
+		    break;
+	    }
 }
 
 int BaseQVM::getSourceLines() {

@@ -13,8 +13,9 @@
 #include "../Utils.h"
 
 #include "../WebFrontend.h"
-#include "../QiskitProcessor.h"
-#include "../TketProcessor.h"
+#include "../processors/QiskitProcessor.h"
+#include "../processors/TketProcessor.h"
+#include "../processors/CudaQProcessor.h"
 
 #include "../ConfigLoader.h"
 
@@ -46,7 +47,10 @@ int QppQVM::loadSourceCode(const std::string& fileName,
 	LaunchStatus& status) {
 	std::string preparedSource;
 	int ret = prepareSource(fileName, sessionId, status, preparedSource);
-	if (ret != ERR_OK && ret != ERR_DEMOFILE) return ret;
+	if (ret != ERR_OK && ret != ERR_DEMOFILE) 
+		return ret;
+
+	LOGI("prepared source = [%s]", preparedSource.c_str());
 
 	try {
 		std::istringstream iss(preparedSource);

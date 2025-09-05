@@ -8,9 +8,9 @@
 
 
 #include "QiskitProcessor.h"
-#include "Log.h"
-#include "Utils.h"
-#include "RestClient.h"
+#include "../Log.h"
+#include "../Utils.h"
+#include "../RestClient.h"
 
 // where store generated circuit images on server
 QiskitProcessor::QiskitProcessor() : PythonProcessor(eQiskit) {

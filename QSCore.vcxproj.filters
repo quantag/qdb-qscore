@@ -34,6 +34,12 @@
     <Filter Include="Header Files\ws">
       <UniqueIdentifier>{d7c703cb-3d58-4428-a6e4-7e1ae2b80c8b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\processors">
+      <UniqueIdentifier>{e3162cb6-0b40-440b-b951-167ba4220737}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\processors">
+      <UniqueIdentifier>{7ed00446-f952-4034-a295-0835ef322606}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="QSCore.cpp">
@@ -108,15 +114,6 @@
     <ClCompile Include="dap\Impl.cpp">
       <Filter>Source Files\dap</Filter>
     </ClCompile>
-    <ClCompile Include="PythonProcessor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="QiskitProcessor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TketProcessor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="RestClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -128,6 +125,18 @@
     </ClCompile>
     <ClCompile Include="qvm\CudaQVM.cpp">
       <Filter>Source Files\qvm</Filter>
+    </ClCompile>
+    <ClCompile Include="processors\CudaQProcessor.cpp">
+      <Filter>Source Files\processors</Filter>
+    </ClCompile>
+    <ClCompile Include="processors\PythonProcessor.cpp">
+      <Filter>Source Files\processors</Filter>
+    </ClCompile>
+    <ClCompile Include="processors\QiskitProcessor.cpp">
+      <Filter>Source Files\processors</Filter>
+    </ClCompile>
+    <ClCompile Include="processors\TketProcessor.cpp">
+      <Filter>Source Files\processors</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -212,12 +221,6 @@
     <ClInclude Include="dap\Impl.h">
       <Filter>Header Files\dap</Filter>
     </ClInclude>
-    <ClInclude Include="PythonProcessor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="QiskitProcessor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TketProcessor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -235,6 +238,18 @@
     </ClInclude>
     <ClInclude Include="qvm\CudaQVM.h">
       <Filter>Header Files\qvm</Filter>
+    </ClInclude>
+    <ClInclude Include="processors\CudaQProcessor.h">
+      <Filter>Header Files\processors</Filter>
+    </ClInclude>
+    <ClInclude Include="processors\PythonProcessor.h">
+      <Filter>Header Files\processors</Filter>
+    </ClInclude>
+    <ClInclude Include="processors\QiskitProcessor.h">
+      <Filter>Header Files\processors</Filter>
+    </ClInclude>
+    <ClInclude Include="processors\TketProcessor.h">
+      <Filter>Header Files\processors</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
