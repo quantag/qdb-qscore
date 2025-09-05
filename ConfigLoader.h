@@ -17,6 +17,7 @@
 #define DEMO_FILE_KEY           "demo.file"
 #define SOURCE_FOLDER_KEY       "source.folder"
 #define LOG_LEVEL_KEY           "log.level"
+#define QVM_TYPE_KEY            "qvm.type"
 
 #define DEMO_FILE		"/home/qbit/qasm/file1.qasm"
 #define SOURCE_FOLDER	"/var/dap/"
@@ -96,6 +97,14 @@ public:
             return it->second;
         }
         return ""; // Return an empty string if the key is not found
+    }
+
+    std::string getQvmType() {
+        std::string val = getValue(QVM_TYPE_KEY);
+        if (!val.empty()) {
+            return val;
+        }
+        return "qpp"; // default
     }
 
 private:

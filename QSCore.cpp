@@ -58,17 +58,27 @@ void printUsage() {
 }
 
 double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
+    std::unique_ptr<BaseQVM> qvm;
+
+    std::string qvmType = cfg->getQvmType();
+    if (qvmType == "cudaq") {
 #ifdef ENABLE_CUDAQ
-    CudaQVM qvm(cfg);
+        qvm = std::make_unique<CudaQVM>(cfg);
 #else
-    QppQVM qvm(cfg);
+        LOGE("CudaQVM requested but not compiled with ENABLE_CUDAQ.");
+        return 1;
 #endif
+    }
+    else {
+        qvm = std::make_unique<QppQVM>(cfg);
+    }
+
     LaunchStatus status;
 
-    LOGE("Executing file [%s]", fileName.c_str());
+    LOGE("Executing file [%s] on QVM [%s]", fileName.c_str(), qvmType.c_str());
     auto start = std::chrono::steady_clock::now();
 
-    int ret = qvm.run(fileName.c_str(), "", status);
+    int ret = qvm->run(fileName.c_str(), "", status);
     auto stop = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration<double>(stop - start);
     double timeSec = duration.count();
