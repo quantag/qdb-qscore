@@ -100,9 +100,11 @@ public:
     }
 
     std::string getQvmType() {
-        std::string val = getValue(QVM_TYPE_KEY);
-        if (!val.empty()) {
-            return val;
+        auto it = properties_.find("qvm.type");
+        if (it != properties_.end()) {
+            std::string value = it->second;
+            Utils::trim(value);   // remove trailing newline, spaces, etc.
+            return value;
         }
         return "qpp"; // default
     }
