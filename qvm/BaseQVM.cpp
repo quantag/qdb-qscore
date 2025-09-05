@@ -12,7 +12,7 @@
 
 
 
-void BaseQVM::updateProcessor(PythonFramework framework) {
+void BaseQVM::updateProcessor(CodeFramework framework) {
 	if (this->processor != NULL) {
 		if (this->processor->getFramework() == framework)
 			return;
@@ -42,10 +42,10 @@ void BaseQVM::setWSSession(WSSession* ws) {
 		this->frontend->setWSSession(ws);
 }
 
-int BaseQVM::prepareSource(const std::string& fileName,
-    const std::string& sessionId,
-    LaunchStatus& status,
-    std::string& preparedSource) {
+int BaseQVM::prepareSource( const std::string& fileName,
+                            const std::string& sessionId,
+                            LaunchStatus& status,
+                            std::string& preparedSource) {
     int ret = ERR_OK;
     status.pythonFramework = eUnknownFramework;
     status.codeType = eUnknown;

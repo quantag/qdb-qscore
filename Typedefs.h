@@ -25,16 +25,18 @@ struct complexNumber {
 	}
 };
 
-enum PythonFramework {
+enum CodeFramework {
 	eGeneric = 0,
 	eQiskit = 1,
 	eTket = 2,
+	eCUDAQ = 3,
 	eUnknownFramework = 100
 };
 
 enum CodeType {
 	ePython,
 	eOpenQASM,
+	eCpp,
 	eUnknown
 };
 
@@ -75,5 +77,5 @@ struct LaunchStatus {
 	std::string errorMessage;
 
 	CodeType codeType;
-	PythonFramework pythonFramework;
+	CodeFramework pythonFramework;
 };

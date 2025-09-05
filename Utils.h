@@ -34,7 +34,7 @@ public:
 	static std::string toBinaryString(unsigned char val, size_t n);
 	static std::string intToString(int n);
 		
-	static std::string executePythonCode(const std::string& sourceCode, PythonFramework fr);
+	static std::string executePythonCode(const std::string& sourceCode, CodeFramework fr);
 //	static bool isOpenQASMCode(const std::string& code);
 
 	static CodeType detectCodeType(const std::string& sourceCode);
@@ -42,7 +42,7 @@ public:
 	static bool containsOpenQASMKeywords(const std::string& sourceCode);
 	static std::string vectorToString(const std::vector<int> data);
 
-	static PythonFramework detectPythonFramework(const std::string& src);
+	static CodeFramework detectPythonFramework(const std::string& src);
 	static std::string getFileNameFromFullPath(const std::string& fullPath);
 	
 	static std::string execute(const std::string& cmd);
@@ -71,7 +71,7 @@ public:
 	static int isExecutable(const std::string& line, CodeType type);
 	static int isExecutableLineOpenQASM(const std::string& line);
 	static std::string getCodeTypeName(CodeType type);
-	static std::string getPythonFrameworkName(PythonFramework type);
+	static std::string getPythonFrameworkName(CodeFramework type);
 
 	static std::string getCpuInfo();
 	static int getFilesInFolder(const std::string& folderPath, std::vector<std::string>& files);

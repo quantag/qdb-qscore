@@ -19,13 +19,13 @@
 class PythonProcessor {
 public:
 	PythonProcessor();
-	PythonProcessor(PythonFramework fw);
+	PythonProcessor(CodeFramework fw);
 	virtual ~PythonProcessor();
 
 	virtual ScriptExecResult parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) = 0;
 	int findMathImport();
 
-	PythonFramework getFramework() const {
+	CodeFramework getFramework() const {
 		return framework;
 	}
 	ScriptExecResult renderOpenQASMCircuit(const std::string& sourceCode, const std::string& sessionId);
@@ -48,7 +48,7 @@ protected:
 	int findLastImportLine();
 	std::string getPreSpaces(int line);
 
-	PythonFramework framework;
+	CodeFramework framework;
 	RestClient restClient;
 };
 

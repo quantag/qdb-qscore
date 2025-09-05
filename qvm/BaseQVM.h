@@ -9,7 +9,7 @@ class IFrontend;
 
 class BaseQVM : public IQVM {
 public:
-	void updateProcessor(PythonFramework framework);
+	void updateProcessor(CodeFramework framework);
 	int getSourceLines();
 	void setWSSession(WSSession* wsSession);
 	int prepareSource(const std::string& fileName,
