@@ -75,7 +75,7 @@ double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
 
     LaunchStatus status;
 
-    LOGE("Executing file [%s] on QVM [%s]", fileName.c_str(), qvmType.c_str());
+    LOGE("Executing file [%s] on QVM [%s]", fileName.c_str(), qvm->getQVMName().c_str());
     auto start = std::chrono::steady_clock::now();
 
     int ret = qvm->run(fileName.c_str(), "", status);
