@@ -28,7 +28,7 @@ def main():
     qasm_b64 = base64.b64encode(qasm_text.encode("utf-8")).decode("ascii")
 
     payload = {
-        "qasm_b64": qasm_b64,
+        "qasm": qasm_b64,
         "type": target_type
     }
 

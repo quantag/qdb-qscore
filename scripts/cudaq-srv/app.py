@@ -21,9 +21,7 @@ def b64e(s: str) -> str:
 def b64d(s: str) -> str:
     return base64.b64decode(s).decode("utf-8")
 
-# -------------------------
-# Logging helper
-# -------------------------
+
 # -------------------------
 # Logging helper
 # -------------------------
@@ -133,6 +131,73 @@ def qasm_to_kernel(qasm: str) -> Tuple["cudaq.Kernel", int]:
             raise ValueError(f"Unsupported or unrecognized statement: {line}")
 
     return kernel, creg_size
+
+# -------------------------
+# Parser -> C++ kernel code (string)
+# -------------------------
+def qasm_to_kernel_cpp(qasm: str) -> str:
+    lines = []
+    lines.append("#include <cudaq.h>")
+    lines.append("")
+    lines.append("cudaq::kernel auto make_kernel_from_qasm() {")
+    creg_size = 0
+
+    for raw in qasm.splitlines():
+        line = raw.strip()
+        if (not line
+            or line.startswith("//")
+            or line.startswith("OPENQASM")
+            or line.startswith("include")):
+            continue
+
+        if line.startswith("qreg"):
+            n = int(line.split("[")[1].split("]")[0])
+            lines.append(f"    auto q = cudaq::qalloc({n});")
+
+        elif line.startswith("creg"):
+            creg_size = int(line.split("[")[1].split("]")[0])
+
+        elif line.startswith("h "):
+            idx = int(line.split("[")[1].split("]")[0])
+            lines.append(f"    h(q[{idx}]);")
+
+        elif line.startswith("x "):
+            idx = int(line.split("[")[1].split("]")[0])
+            lines.append(f"    x(q[{idx}]);")
+
+        elif line.startswith("cx"):
+            parts = line.replace(";", "").split(",")
+            c1 = int(parts[0].split("[")[1].split("]")[0])
+            c2 = int(parts[1].split("[")[1].split("]")[0])
+            lines.append(f"    cx(q[{c1}], q[{c2}]);")
+
+        elif line.startswith("rz"):
+            angle_expr = line[line.find("(")+1:line.find(")")]
+            idx = int(line.split("[")[1].split("]")[0])
+            theta = parse_angle(angle_expr)
+            lines.append(f"    rz({theta}, q[{idx}]);")
+
+        elif line.startswith("cu1"):
+            l2 = line.replace(";", "")
+            angle_expr = l2[l2.find("(")+1:l2.find(")")]
+            ctrl_idx = int(l2.split("[")[1].split("]")[0])
+            tgt_idx  = int(l2.split("[")[2].split("]")[0])
+            theta = parse_angle(angle_expr)
+            lines.append(f"    cp({theta}, q[{ctrl_idx}], q[{tgt_idx}]);")
+
+        elif line.startswith("barrier"):
+            continue
+
+        elif line.startswith("measure"):
+            continue
+
+        else:
+            raise ValueError(f"Unsupported or unrecognized statement: {line}")
+
+    lines.append("}")
+    lines.append(f"// creg_size_hint = {creg_size}")
+    return "\n".join(lines)
+
 
 # -------------------------
 # Parser -> Python kernel code (string)
@@ -256,16 +321,23 @@ def run_qasm():
 def compile_qasm():
     try:
         data = request.get_json(force=True) or {}
-        qasm_b64 = data.get("qasm_b64")
+        qasm_b64 = data.get("qasm")
         if not qasm_b64:
-            return jsonify({"error": "qasm_b64 is required"}), 400
+            return jsonify({"error": "qasm is required"}), 400
 
         qasm = b64d(qasm_b64)
+        target_type = (data.get("type") or "python").lower()
 
         # log input
-        log_qasm(qasm, "compile")
+        log_qasm(qasm, f"compile_{target_type}")
 
-        src = qasm_to_kernel_code(qasm)
+        #src = qasm_to_kernel_code(qasm)
+        if target_type == "cpp":
+            src = qasm_to_kernel_cpp(qasm)
+            return jsonify({"kernel_cpp_b64": b64e(src)})
+        else:
+            src = qasm_to_kernel_code(qasm)
+            return jsonify({"kernel_py_b64": b64e(src)})
         return jsonify({"kernel_py_b64": b64e(src)})
 
     except Exception as e:
