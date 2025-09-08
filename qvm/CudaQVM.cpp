@@ -71,13 +71,7 @@ int CudaQVM::run(const std::string& code,
     }
 
     try {
-        // Step 2: Load endpoint from config
-        ConfigLoader config;
-        if (!config.load("config.properties")) {
-            status.errorMessage = "Failed to load config.properties";
-            return ERR_RUNERROR;
-        }
-        std::string endpoint = config.getValue("qvm.endpoint");
+        std::string endpoint = this->cfg->getValue("qvm.endpoint");
         if (endpoint.empty()) {
             status.errorMessage = "qvm.endpoint not set in config.properties";
             return ERR_RUNERROR;
