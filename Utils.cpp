@@ -166,6 +166,7 @@ std::string Utils::decode64(const std::string& val) {
     // Return the decoded string
     return os.str().substr(0, outLen);
 }
+
 int Utils::fileExists(const std::string& filePath) {
     std::ifstream file(filePath.c_str());
     return file.good() ? 1 : 0;

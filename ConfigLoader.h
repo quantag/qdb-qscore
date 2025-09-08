@@ -18,9 +18,12 @@
 #define SOURCE_FOLDER_KEY       "source.folder"
 #define LOG_LEVEL_KEY           "log.level"
 #define QVM_TYPE_KEY            "qvm.type"
+#define CUDAQ_SRV_KEY           "cudaq.srv"
 
+// defaults
 #define DEMO_FILE		"/home/qbit/qasm/file1.qasm"
 #define SOURCE_FOLDER	"/var/dap/"
+#define CUDAQ_SRV       "https://cloud.quantag-it.com/api1/run"
 
 class ConfigLoader {
 public:
@@ -80,6 +83,14 @@ public:
             return val;
         }
         return SOURCE_FOLDER;
+    }
+
+    std::string getCudaQSrvEndpoint() {
+        std::string val = getValue(CUDAQ_SRV_KEY);
+        if (!val.empty()) {
+            return val;
+        }
+        return CUDAQ_SRV;
     }
 
     std::string getDemoFile() {

@@ -67,14 +67,23 @@ int CudaQVM::run(const std::string& code,
     }
 
     try {
-        // Step 2: Send QASM to Flask microservice
-        std::string url = "http://127.0.0.1:5005/run";  // or your production URL
-        nlohmann::json payload;
-        payload["qasm"] = qasmSource;
-        payload["shots"] = 1000;
+        // Step 1: Prepare QASM source
+        std::string qasmSource = "..."; // your QASM text
 
-        RestClient client("http://127.0.0.1:5005/run");
+        // Step 2: Encode input
+        std::string qasmB64 = Utils::encode64(qasmSource);
+        std::string shotsB64 = Utils::encode64("1000");
+
+        // Step 3: Build JSON payload
+        nlohmann::json payload;
+        payload["qasm_b64"] = qasmB64;
+        payload["shots_b64"] = shotsB64;
+
+        // Step 4: Send request
+        RestClient client(this->cfg->getCudaQSrvEndpoint());
         std::string response = client.doPost(payload.dump());
+
+        // Step 5: Parse response
         auto jsonResp = nlohmann::json::parse(response);
         if (jsonResp.contains("error")) {
             status.errorMessage = jsonResp["error"];
@@ -82,8 +91,15 @@ int CudaQVM::run(const std::string& code,
             return ERR_RUNERROR;
         }
 
-        if (jsonResp.contains("result")) {
-            //LOGI("CudaQVM run result: %s", jsonResp["result"].dump().c_str());
+        if (jsonResp.contains("result_b64")) {
+            // Decode base64 payload
+            std::string resultJsonStr = Utils::decode64(jsonResp["result_b64"]);
+            auto resultJson = nlohmann::json::parse(resultJsonStr);
+
+            if (resultJson.contains("histogram")) {
+                auto hist = resultJson["histogram"];
+                LOGI("CudaQVM histogram: %s", hist.dump().c_str());
+            }
         }
     }
     catch (std::exception& e) {
