@@ -9,6 +9,9 @@
 #include "../Log.h"
 #include "../Utils.h"
 #include "../RestClient.h"
+#include "../ConfigLoader.h"
+
+
 CudaQVM::CudaQVM() {
     cudaqSource_.reset();
 }
