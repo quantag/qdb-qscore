@@ -1,0 +1,74 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "CUDA-Q Compiler Service",
+    "description": "API for compiling OpenQASM to CUDA-Q kernels (Python or C++).",
+    "version": "1.0.0"
+  },
+  "schemes": [
+    "https"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "paths": {
+    "/compile": {
+      "post": {
+        "summary": "Compile OpenQASM",
+        "description": "Convert OpenQASM into CUDA-Q kernel source (Python or C++).",
+        "operationId": "compileQasm",
+        "x-google-backend": {
+          "address": "https://cloud.quantag-it.com/api1/compile",
+          "protocol": "h2"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "qasm_b64": {
+                  "type": "string",
+                  "description": "Base64 encoded QASM input"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["python", "cpp"],
+                  "description": "Target kernel type (default: python)"
+                }
+              },
+              "required": ["qasm_b64"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful compile",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "kernel_py_b64": {
+                  "type": "string"
+                },
+                "kernel_cpp_b64": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    }
+  }
+}

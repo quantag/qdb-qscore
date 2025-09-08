@@ -1,0 +1,28 @@
+Edit OpenAPI spec (services.json)
+
+For example, change the backend address in the x-google-backend.address field:
+
+"x-google-backend": {
+  "address": "https://new-service.quantag-it.com/compile",
+  "protocol": "h2"
+}
+
+
+Create a new API config
+
+Configs are immutable, so you make a new version:
+
+gcloud api-gateway api-configs create qcloud-config-v2 --api=qcloud --openapi-spec=services.json --project=quantum-464212
+
+
+Update your gateway to use the new config
+
+gcloud api-gateway gateways update qcloud-gateway --api=qcloud --api-config=qcloud-config-v2 --location=europe-west1 --project=quantum-464212
+
+
+Verify
+
+gcloud api-gateway gateways describe qcloud-gateway --location=europe-west1 --project=quantum-464212
+
+
+The apiConfig: field will now point to your new config (qcloud-config-v2).
