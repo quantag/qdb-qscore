@@ -1,19 +1,13 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "CUDA-Q Compiler Service",
-    "description": "API for compiling OpenQASM to CUDA-Q kernels (Python or C++).",
+    "title": "QCloud Quantum API",
+    "description": "API Gateway for CUDA-Q microservices (compile and run).",
     "version": "1.0.0"
   },
-  "schemes": [
-    "https"
-  ],
-  "produces": [
-    "application/json"
-  ],
-  "consumes": [
-    "application/json"
-  ],
+  "schemes": ["https"],
+  "produces": ["application/json"],
+  "consumes": ["application/json"],
   "paths": {
     "/compile": {
       "post": {
@@ -32,17 +26,17 @@
             "schema": {
               "type": "object",
               "properties": {
-                "qasm_b64": {
+                "qasm": {
                   "type": "string",
                   "description": "Base64 encoded QASM input"
                 },
                 "type": {
                   "type": "string",
                   "enum": ["python", "cpp"],
-                  "description": "Target kernel type (default: python)"
+                  "description": "Target kernel type"
                 }
               },
-              "required": ["qasm_b64"]
+              "required": ["qasm"]
             }
           }
         ],
@@ -52,20 +46,119 @@
             "schema": {
               "type": "object",
               "properties": {
-                "kernel_py_b64": {
-                  "type": "string"
-                },
-                "kernel_cpp_b64": {
-                  "type": "string"
-                }
+                "output": { "type": "string" }
               }
             }
           },
-          "400": {
-            "description": "Bad request"
+          "400": { "description": "Bad request" },
+          "500": { "description": "Server error" }
+        },
+        "x-google-extensions": {
+          "cors": {
+            "allowOrigins": [
+              "http://localhost:4200",
+              "https://cloud.quantag-it.com",
+              "https://quantum.quantag-it.com"
+            ],
+            "allowMethods": ["POST", "OPTIONS"],
+            "allowHeaders": ["Content-Type", "Authorization"]
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS support",
+        "operationId": "compileCors",
+        "responses": {
+          "200": {
+            "description": "CORS preflight OK"
+          }
+        },
+        "x-google-extensions": {
+          "cors": {
+            "allowOrigins": [
+              "http://localhost:4200",
+              "https://cloud.quantag-it.com",
+              "https://quantum.quantag-it.com"
+            ],
+            "allowMethods": ["POST", "OPTIONS"],
+            "allowHeaders": ["Content-Type", "Authorization"]
+          }
+        }
+      }
+    },
+    "/run": {
+      "post": {
+        "summary": "Run OpenQASM",
+        "description": "Execute OpenQASM on CUDA-Q and return histogram.",
+        "operationId": "runQasm",
+        "x-google-backend": {
+          "address": "https://cloud.quantag-it.com/api1/run",
+          "protocol": "h2"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "qasm": {
+                  "type": "string",
+                  "description": "Base64 encoded QASM input"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["python", "cpp"],
+                  "description": "Execution mode (optional)"
+                }
+              },
+              "required": ["qasm"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful execution",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "output": { "type": "string" }
+              }
+            }
           },
-          "500": {
-            "description": "Server error"
+          "400": { "description": "Bad request" },
+          "500": { "description": "Server error" }
+        },
+        "x-google-extensions": {
+          "cors": {
+            "allowOrigins": [
+              "http://localhost:4200",
+              "https://cloud.quantag-it.com",
+              "https://quantum.quantag-it.com"
+            ],
+            "allowMethods": ["POST", "OPTIONS"],
+            "allowHeaders": ["Content-Type", "Authorization"]
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS support",
+        "operationId": "runCors",
+        "responses": {
+          "200": {
+            "description": "CORS preflight OK"
+          }
+        },
+        "x-google-extensions": {
+          "cors": {
+            "allowOrigins": [
+              "http://localhost:4200",
+              "https://cloud.quantag-it.com",
+              "https://quantum.quantag-it.com"
+            ],
+            "allowMethods": ["POST", "OPTIONS"],
+            "allowHeaders": ["Content-Type", "Authorization"]
           }
         }
       }
