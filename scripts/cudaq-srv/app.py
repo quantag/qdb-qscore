@@ -7,8 +7,10 @@ import base64
 import os
 from datetime import datetime
 from typing import Tuple, Dict
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 # -------------------------
 # Helpers for base64 I/O
