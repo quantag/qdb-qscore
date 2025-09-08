@@ -36,13 +36,13 @@ def main():
         resp = requests.post(URL, json=payload, timeout=60)
         if resp.status_code == 200:
             data = resp.json()
-            if target_type == "cpp" and "kernel_cpp_b64" in data:
-                kernel_src = base64.b64decode(data["kernel_cpp_b64"]).decode("utf-8")
+            if target_type == "cpp" and "output" in data:
+                kernel_src = base64.b64decode(data["output"]).decode("utf-8")
                 print("Success (C++ mode)")
                 print("Generated CUDA-Q C++ kernel code:\n")
                 print(kernel_src)
-            elif target_type == "python" and "kernel_py_b64" in data:
-                kernel_src = base64.b64decode(data["kernel_py_b64"]).decode("utf-8")
+            elif target_type == "python" and "output" in data:
+                kernel_src = base64.b64decode(data["output"]).decode("utf-8")
                 print("Success (Python mode)")
                 print("Generated CUDA-Q Python kernel code:\n")
                 print(kernel_src)

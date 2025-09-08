@@ -334,11 +334,11 @@ def compile_qasm():
         #src = qasm_to_kernel_code(qasm)
         if target_type == "cpp":
             src = qasm_to_kernel_cpp(qasm)
-            return jsonify({"kernel_cpp_b64": b64e(src)})
+            return jsonify({"output": b64e(src)})
         else:
             src = qasm_to_kernel_code(qasm)
-            return jsonify({"kernel_py_b64": b64e(src)})
-        return jsonify({"kernel_py_b64": b64e(src)})
+            return jsonify({"output": b64e(src)})
+        return jsonify({"output": b64e(src)})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
