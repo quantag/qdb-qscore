@@ -8,6 +8,12 @@
   "schemes": ["https"],
   "produces": ["application/json"],
   "consumes": ["application/json"],
+  "x-google-endpoints": [
+    {
+      "name": "qcloud-gateway-asivl5za.ew.gateway.dev",
+      "allowCors": true
+    }
+  ],
   "paths": {
     "/compile": {
       "post": {
@@ -26,15 +32,8 @@
             "schema": {
               "type": "object",
               "properties": {
-                "qasm": {
-                  "type": "string",
-                  "description": "Base64 encoded QASM input"
-                },
-                "type": {
-                  "type": "string",
-                  "enum": ["python", "cpp"],
-                  "description": "Target kernel type"
-                }
+                "qasm": { "type": "string" },
+                "type": { "type": "string", "enum": ["python", "cpp"] }
               },
               "required": ["qasm"]
             }
@@ -49,19 +48,6 @@
                 "output": { "type": "string" }
               }
             }
-          },
-          "400": { "description": "Bad request" },
-          "500": { "description": "Server error" }
-        },
-        "x-google-extensions": {
-          "cors": {
-            "allowOrigins": [
-              "http://localhost:4200",
-              "https://cloud.quantag-it.com",
-              "https://quantum.quantag-it.com"
-            ],
-            "allowMethods": ["POST", "OPTIONS"],
-            "allowHeaders": ["Content-Type", "Authorization"]
           }
         }
       },
@@ -70,18 +56,12 @@
         "operationId": "compileCors",
         "responses": {
           "200": {
-            "description": "CORS preflight OK"
-          }
-        },
-        "x-google-extensions": {
-          "cors": {
-            "allowOrigins": [
-              "http://localhost:4200",
-              "https://cloud.quantag-it.com",
-              "https://quantum.quantag-it.com"
-            ],
-            "allowMethods": ["POST", "OPTIONS"],
-            "allowHeaders": ["Content-Type", "Authorization"]
+            "description": "CORS preflight OK",
+            "headers": {
+              "Access-Control-Allow-Origin": { "type": "string" },
+              "Access-Control-Allow-Methods": { "type": "string" },
+              "Access-Control-Allow-Headers": { "type": "string" }
+            }
           }
         }
       }
@@ -103,15 +83,8 @@
             "schema": {
               "type": "object",
               "properties": {
-                "qasm": {
-                  "type": "string",
-                  "description": "Base64 encoded QASM input"
-                },
-                "type": {
-                  "type": "string",
-                  "enum": ["python", "cpp"],
-                  "description": "Execution mode (optional)"
-                }
+                "qasm": { "type": "string" },
+                "type": { "type": "string", "enum": ["python", "cpp"] }
               },
               "required": ["qasm"]
             }
@@ -126,19 +99,6 @@
                 "output": { "type": "string" }
               }
             }
-          },
-          "400": { "description": "Bad request" },
-          "500": { "description": "Server error" }
-        },
-        "x-google-extensions": {
-          "cors": {
-            "allowOrigins": [
-              "http://localhost:4200",
-              "https://cloud.quantag-it.com",
-              "https://quantum.quantag-it.com"
-            ],
-            "allowMethods": ["POST", "OPTIONS"],
-            "allowHeaders": ["Content-Type", "Authorization"]
           }
         }
       },
@@ -147,18 +107,12 @@
         "operationId": "runCors",
         "responses": {
           "200": {
-            "description": "CORS preflight OK"
-          }
-        },
-        "x-google-extensions": {
-          "cors": {
-            "allowOrigins": [
-              "http://localhost:4200",
-              "https://cloud.quantag-it.com",
-              "https://quantum.quantag-it.com"
-            ],
-            "allowMethods": ["POST", "OPTIONS"],
-            "allowHeaders": ["Content-Type", "Authorization"]
+            "description": "CORS preflight OK",
+            "headers": {
+              "Access-Control-Allow-Origin": { "type": "string" },
+              "Access-Control-Allow-Methods": { "type": "string" },
+              "Access-Control-Allow-Headers": { "type": "string" }
+            }
           }
         }
       }
