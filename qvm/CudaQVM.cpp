@@ -43,8 +43,8 @@ int CudaQVM::loadSourceCode(const std::string& code,
 
 
 int CudaQVM::run(const std::string& code,
-                 const std::string& path,
-                 LaunchStatus& status) {
+    const std::string& path,
+    LaunchStatus& status) {
     // Step 1: Load QASM source
     std::string qasmSource;
     if (Utils::fileExists(code)) {
@@ -53,7 +53,8 @@ int CudaQVM::run(const std::string& code,
             status.errorMessage = "Failed to read QASM file: " + code;
             return ERR_NOFILE;
         }
-    } else {
+    }
+    else {
         qasmSource = code;
     }
 
@@ -67,20 +68,28 @@ int CudaQVM::run(const std::string& code,
     }
 
     try {
-        // Step 1: Prepare QASM source
-        std::string qasmSource = "..."; // your QASM text
+        // Step 2: Load endpoint from config
+        ConfigLoader config;
+        if (!config.load("config.properties")) {
+            status.errorMessage = "Failed to load config.properties";
+            return ERR_RUNERROR;
+        }
+        std::string endpoint = config.getValue("qvm.endpoint");
+        if (endpoint.empty()) {
+            status.errorMessage = "qvm.endpoint not set in config.properties";
+            return ERR_RUNERROR;
+        }
 
-        // Step 2: Encode input
+        // Step 3: Encode input
         std::string qasmB64 = Utils::encode64(qasmSource);
         std::string shotsB64 = Utils::encode64("1000");
 
-        // Step 3: Build JSON payload
         nlohmann::json payload;
         payload["qasm_b64"] = qasmB64;
         payload["shots_b64"] = shotsB64;
 
-        // Step 4: Send request
-        RestClient client(this->cfg->getCudaQSrvEndpoint());
+        // Step 4: Send QASM to Flask microservice
+        RestClient client(endpoint.c_str());
         std::string response = client.doPost(payload.dump());
 
         // Step 5: Parse response
@@ -92,7 +101,6 @@ int CudaQVM::run(const std::string& code,
         }
 
         if (jsonResp.contains("result_b64")) {
-            // Decode base64 payload
             std::string resultJsonStr = Utils::decode64(jsonResp["result_b64"]);
             auto resultJson = nlohmann::json::parse(resultJsonStr);
 
