@@ -4,15 +4,14 @@ import requests
 import base64
 import json
 
-URL = "https://cloud.quantag-it.com/api1/run"
+URL = "https://cloud.quantag-it.com/api1/compile"
 
 def main():
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <input.qasm> [shots]")
+        print(f"Usage: {sys.argv[0]} <input.qasm>")
         sys.exit(1)
 
     qasm_file = sys.argv[1]
-    shots = int(sys.argv[2]) if len(sys.argv) > 2 else 1000
 
     if not os.path.exists(qasm_file):
         print(f"Error: QASM file not found: {qasm_file}")
@@ -21,25 +20,22 @@ def main():
     with open(qasm_file, "r", encoding="utf-8") as f:
         qasm_text = f.read()
 
-    # Encode inputs
+    # Encode QASM in base64
     qasm_b64 = base64.b64encode(qasm_text.encode("utf-8")).decode("ascii")
-    shots_b64 = base64.b64encode(str(shots).encode("utf-8")).decode("ascii")
 
     payload = {
-        "qasm_b64": qasm_b64,
-        "shots_b64": shots_b64
+        "qasm_b64": qasm_b64
     }
 
     try:
         resp = requests.post(URL, json=payload, timeout=60)
         if resp.status_code == 200:
             data = resp.json()
-            if "result_b64" in data:
-                result_json = base64.b64decode(data["result_b64"]).decode("utf-8")
-                result = json.loads(result_json)
+            if "kernel_py_b64" in data:
+                kernel_src = base64.b64decode(data["kernel_py_b64"]).decode("utf-8")
                 print("Success")
-                print("Histogram:", result.get("histogram"))
-                print("CReg size:", result.get("creg_size"))
+                print("Generated CUDA-Q kernel code:\n")
+                print(kernel_src)
             else:
                 print("Unexpected response:", data)
         else:
