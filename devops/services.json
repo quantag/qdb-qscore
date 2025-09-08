@@ -50,20 +50,6 @@
             }
           }
         }
-      },
-      "options": {
-        "summary": "CORS support",
-        "operationId": "compileCors",
-        "responses": {
-          "200": {
-            "description": "CORS preflight OK",
-            "headers": {
-              "Access-Control-Allow-Origin": { "type": "string" },
-              "Access-Control-Allow-Methods": { "type": "string" },
-              "Access-Control-Allow-Headers": { "type": "string" }
-            }
-          }
-        }
       }
     },
     "/run": {
@@ -98,20 +84,6 @@
               "properties": {
                 "output": { "type": "string" }
               }
-            }
-          }
-        }
-      },
-      "options": {
-        "summary": "CORS support",
-        "operationId": "runCors",
-        "responses": {
-          "200": {
-            "description": "CORS preflight OK",
-            "headers": {
-              "Access-Control-Allow-Origin": { "type": "string" },
-              "Access-Control-Allow-Methods": { "type": "string" },
-              "Access-Control-Allow-Headers": { "type": "string" }
             }
           }
         }
