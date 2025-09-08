@@ -71,9 +71,10 @@ int CudaQVM::run(const std::string& code,
     }
 
     try {
-        std::string endpoint = this->cfg->getValue("qvm.endpoint");
+        std::string endpoint = this->cfg->getCudaQSrvEndpoint();
         if (endpoint.empty()) {
-            status.errorMessage = "qvm.endpoint not set in config.properties";
+            status.errorMessage = "CUDAQ service endpoint not set in config.properties";
+            LOGE("CudaQVM error: [%s]", status.errorMessage.c_str());
             return ERR_RUNERROR;
         }
 
@@ -88,6 +89,8 @@ int CudaQVM::run(const std::string& code,
         // Step 4: Send QASM to Flask microservice
         RestClient client(endpoint.c_str());
         std::string response = client.doPost(payload.dump());
+
+       LOGI("CudaQVM: send request to [%s]", endpoint.c_str());
 
         // Step 5: Parse response
         auto jsonResp = nlohmann::json::parse(response);
