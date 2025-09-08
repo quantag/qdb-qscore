@@ -4,7 +4,8 @@ import requests
 import base64
 import json
 
-URL = "https://cloud.quantag-it.com/api1/compile"
+#URL = "https://cloud.quantag-it.com/api1/compile"
+URL = "https://qcloud-gateway-asivl5za.ew.gateway.dev/compile"
 
 def main():
     if len(sys.argv) < 2:
