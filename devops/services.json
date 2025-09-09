@@ -52,66 +52,32 @@
         }
       },
       "options": {
-        "summary": "CORS support",
-        "operationId": "compileCors",
-        "responses": {
-          "200": {
-            "description": "CORS preflight OK",
-            "headers": {
-              "Access-Control-Allow-Origin": { "type": "string" },
-              "Access-Control-Allow-Methods": { "type": "string" },
-              "Access-Control-Allow-Headers": { "type": "string" }
-            }
-          }
-        }
-      }
-    },
-    "/run": {
-      "post": {
-        "summary": "Run OpenQASM",
-        "description": "Execute OpenQASM on CUDA-Q and return histogram.",
-        "operationId": "runQasm",
+        "summary": "CORS preflight for /compile",
+        "operationId": "compileOptions",
         "x-google-backend": {
-          "address": "https://cloud.quantag-it.com/api1/run",
+          "address": "https://cloud.quantag-it.com/api1/compile",
           "protocol": "h2"
         },
-        "parameters": [
-          {
-            "in": "body",
-            "name": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "qasm": { "type": "string" },
-                "type": { "type": "string", "enum": ["python", "cpp"] }
-              },
-              "required": ["qasm"]
-            }
-          }
-        ],
         "responses": {
           "200": {
-            "description": "Successful execution",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "output": { "type": "string" }
-              }
-            }
-          }
-        }
-      },
-      "options": {
-        "summary": "CORS support",
-        "operationId": "runCors",
-        "responses": {
-          "200": {
-            "description": "CORS preflight OK",
+            "description": "Successful preflight",
             "headers": {
-              "Access-Control-Allow-Origin": { "type": "string" },
-              "Access-Control-Allow-Methods": { "type": "string" },
-              "Access-Control-Allow-Headers": { "type": "string" }
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
             }
           }
         }
