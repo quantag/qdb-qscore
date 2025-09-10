@@ -74,7 +74,7 @@ int BaseQVM::prepareSource( const std::string& fileName,
         if (!Utils::fileExists(serverFile)) {
             file = cfg ? cfg->getDemoFile() : DEMO_FILE_DEFAULT;
 
-            LOGI("File [%s] not found, using demo file.", file.c_str());
+            LOGI("File [%s] not found, using demo file [%s].", serverFile.c_str(), file.c_str());
             ret = ERR_DEMOFILE;
             status.serverFileFound = 0;
         }
