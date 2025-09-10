@@ -569,9 +569,17 @@ int main(int argc, char *argv[]) {
 
             std::string msg;
             switch (ret) {
-                case ERR_DEMOFILE:
+                case ERR_DEMOFILE: {
                     msg = "Using demo file to launch QVM [" + session->debugger->getQVM()->getQVMName() + "]";
+                    msg += "\n" + Utils::getCpuInfo();
+                    msg += "\nOpenMP ";
+#ifdef QPP_OPENMP
+                    msg += "enabled\n";
+#else
+                    msg += "disabled\n";
+#endif
                     break;
+                }
                 case ERR_OK:
                 {
                     msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]\nCode type: "
