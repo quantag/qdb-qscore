@@ -49,13 +49,18 @@
 constexpr char sourceContent[] = R"(// OpenQASM 3.0;)";
 
 void printUsage() {
-    printf("Usage: ./QSCore [command]\n");
-    printf("Available commands:\n");
-    printf(" help - print this help info\n");
-    printf(" server - start QSCore in server mode. This is default mode which used if no command arguments was specified\n");
-    printf(" file <file.qasm> - execute single .qasm file and exit\n");
-    printf(" test [data-folder]- execute performace testing using data in 'data-folder', store results in 'results.json' and exit\n");
+    printf("Usage: ./QSCore [options]\n");
+    printf("Options:\n");
+    printf("  --help                 Print this help info\n");
+    printf("  --server               Start QSCore in server mode (default)\n");
+    printf("  --file <file.qasm>     Execute a single .qasm file and exit\n");
+    printf("  --test [folder]        Run performance tests using folder (default: ../test/qasm)\n");
+    printf("  --output <file.json>   Where to save test results (default: results.json)\n");
+    printf("  --config <file.ini>    Path to configuration file (default: QSCore.ini)\n");
+    printf("  --dap-host <addr>      Address for DAP server (default: 127.0.0.1)\n");
+    printf("  --ws-host <addr>       Address for WebSocket server (default: 127.0.0.1)\n");
 }
+
 
 double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
     std::unique_ptr<BaseQVM> qvm;
@@ -128,10 +133,55 @@ void testOpenMP() {
 }
 
 int main(int argc, char *argv[]) {
-    ConfigLoader cfg;
+    std::string configFile = CONFIG_FILE;
+    std::string mode = "server";
+    std::string fileName;
+    std::string testFolder = "../test/qasm";
+    std::string outputFile = "results.json";
+    std::string dapHost = LOCALHOST;
+    std::string wsHost = LOCALHOST;
 
-    // first load config to read log level
-    bool configLoaded = cfg.load(CONFIG_FILE);
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+
+        if (arg == "--config" && i + 1 < argc) {
+            configFile = argv[++i];
+        }
+        else if (arg == "--server") {
+            mode = "server";
+        }
+        else if (arg == "--file" && i + 1 < argc) {
+            mode = "file";
+            fileName = argv[++i];
+        }
+        else if (arg == "--test") {
+            mode = "test";
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                testFolder = argv[++i];
+            }
+        }
+        else if (arg == "--dap-host" && i + 1 < argc) {
+            dapHost = argv[++i];
+        }
+        else if (arg == "--ws-host" && i + 1 < argc) {
+            wsHost = argv[++i];
+        }
+        else if (arg == "--output" && i + 1 < argc) {
+            outputFile = argv[++i];
+        }
+        else if (arg == "--help") {
+            printUsage();
+            return 0;
+        }
+        else {
+            printf("Unknown option: %s\n", arg.c_str());
+            printUsage();
+            return 1;
+        }
+    }
+
+    ConfigLoader cfg;
+    bool configLoaded = cfg.load(configFile);
     int logLevel = 2;
     if (configLoaded) {
         logLevel = cfg.getLogLevel();
@@ -142,14 +192,14 @@ int main(int argc, char *argv[]) {
     LOG(logLevel, "logLevel = %d", logLevel);
 
     if (configLoaded) {
-        LOGI("Loaded config file from '%s'", CONFIG_FILE);
+        LOGI("Loaded config file from '%s'", configFile.c_str());
         LOGI("Render circuit: %d", cfg.isRenderCircuit());
         LOGI("Demo file path: %s", cfg.getDemoFile().c_str());
         LOGI("Source folder path: %s", cfg.getSourceFolder().c_str());
 
     }
     else {
-        LOGI("Could not load configuration file %s", CONFIG_FILE);
+        LOGI("Could not load configuration file %s", configFile.c_str());
     }
     testOpenMP();
 
@@ -599,52 +649,45 @@ int main(int argc, char *argv[]) {
     };
 
 
-    if (argc > 1) {
-        if (!strcmp(argv[1], "server")) {
-            LOGI("Server mode");
-        } else
-        if (!strcmp(argv[1], "file")) {
-            if (argc > 2) {
-                runQasmFile(&cfg, argv[2]);
-                return 0;
-            }
+    // handle modes
+    if (mode == "server") {
+        LOGI("Server mode");
+    }
+    else if (mode == "file") {
+        if (fileName.empty()) {
+            LOGE("Missing argument for --file");
+            return 1;
         }
-        else if (!strcmp(argv[1], "test")) {
-            LOGI("Test performance mode");
-            std::vector<std::string> testFiles;
-            std::string dataFolder = argc > 2 ? argv[2] : "../test/qasm";
-            int res = Utils::getFilesInFolder(  dataFolder, testFiles);
-            if (res != 0) {
-                LOGI("Can not open folder [%s] with test data", dataFolder.c_str());
-                return 0;
-            }
-            LOGI("Found %u files in test data folder", testFiles.size());
+        runQasmFile(&cfg, fileName);
+        return 0;
+    }
+    else if (mode == "test") {
+        LOGI("Test performance mode");
+        std::vector<std::string> testFiles;
+        int res = Utils::getFilesInFolder(testFolder, testFiles);
+        if (res != 0) {
+            LOGI("Can not open folder [%s] with test data", testFolder.c_str());
+            return 0;
+        }
+        LOGI("Found %u files in test data folder", testFiles.size());
 
-            std::map<std::string, double> results;
-            for (std::string& file : testFiles) {
-                double timeSec = runQasmFile(&cfg, file);
-                results[file] = timeSec;
-            }
-            Utils::saveResultsToJson(results, (argc>3)  ? argv[3] : "results.json");
-            return 0;
+        std::map<std::string, double> results;
+        for (std::string& file : testFiles) {
+            double timeSec = runQasmFile(&cfg, file);
+            results[file] = timeSec;
         }
-        else if (!strcmp(argv[1], "help")) {
-            printUsage();
-            return 0;
-        }
+        Utils::saveResultsToJson(results, outputFile);
+        return 0;
     }
 
     // Create the network server
     auto dapServer = dap::net::Server::create();
 
-    const char* dapHost =  (argc > 2) ? argv[2] : LOCALHOST;
-    dapServer->start( dapHost, DAP_SERVER_PORT, onClientConnected);
-    LOGI("DAP Server started on [%s:%d]", dapHost, DAP_SERVER_PORT);
+    dapServer->start(dapHost.c_str(), DAP_SERVER_PORT, onClientConnected);
+    LOGI("DAP Server started on [%s:%d]", dapHost.c_str(), DAP_SERVER_PORT);
     LOGI("CPU: [%s]", Utils::getCpuInfo().c_str());
 
-    const char* wsHost =  (argc > 3) ? argv[3] : LOCALHOST;
-    LOGI("Starting WS Server on [%s:%d]", wsHost, WS_SERVER_PORT);
-   
-    wsock.start(wsHost, WS_SERVER_PORT);
+    LOGI("Starting WS Server on [%s:%d]", wsHost.c_str(), WS_SERVER_PORT);
+    wsock.start(wsHost.c_str(), WS_SERVER_PORT);
     return 0;
 }
