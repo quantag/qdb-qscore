@@ -571,13 +571,7 @@ int main(int argc, char *argv[]) {
             switch (ret) {
                 case ERR_DEMOFILE: {
                     msg = "Using demo file to launch QVM [" + session->debugger->getQVM()->getQVMName() + "]";
-                    msg += "\n" + Utils::getCpuInfo();
-                    msg += "\nOpenMP ";
-#ifdef QPP_OPENMP
-                    msg += "enabled\n";
-#else
-                    msg += "disabled\n";
-#endif
+                    msg += "\n" + Utils::getCpuInfoFull();
                     break;
                 }
                 case ERR_OK:
@@ -589,14 +583,7 @@ int main(int argc, char *argv[]) {
                         msg += std::string("\n") + "Python Framework: " + Utils::getPythonFrameworkName(status.pythonFramework);
                     }
 
-                    msg += "\n" + Utils::getCpuInfo();
-                    msg += "\nOpenMP ";
-#ifdef QPP_OPENMP
-                    msg += "enabled\n";
-#else
-                    msg += "disabled\n";
-#endif
-
+                    msg += "\n" + Utils::getCpuInfoFull();
                     break;
                 }
                 default:
