@@ -2,7 +2,7 @@
   "swagger": "2.0",
   "info": {
     "title": "QCloud Quantum API",
-    "description": "API Gateway for CUDA-Q microservices (compile and run).",
+    "description": "API Gateway for quantum microservices",
     "version": "1.0.0"
   },
   "schemes": ["https"],
@@ -15,11 +15,11 @@
     }
   ],
   "paths": {
-    "/compile": {
+    "/cudaq-compile": {
       "post": {
-        "summary": "Compile OpenQASM",
+        "summary": "Compile OpenQASM to CUDA-Q",
         "description": "Convert OpenQASM into CUDA-Q kernel source (Python or C++).",
-        "operationId": "compileQasm",
+        "operationId": "compileQasmCudaq",
         "x-google-backend": {
           "address": "https://cloud.quantag-it.com/api1/compile",
           "protocol": "h2"
@@ -52,11 +52,505 @@
         }
       },
       "options": {
-        "summary": "CORS preflight for /compile",
-        "operationId": "compileOptions",
+        "summary": "CORS preflight for /cudaq-compile",
+        "operationId": "CudaqCompileOptions",
         "x-google-backend": {
           "address": "https://cloud.quantag-it.com/api1/compile",
           "protocol": "h2"
+        },
+        "responses": {
+          "200": {
+            "description": "Successful preflight",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/qir-compile": {
+      "post": {
+        "summary": "Compile OpenQASM to QIR",
+        "description": "Convert OpenQASM into QIR (Quantum Intermediate Representation).",
+        "operationId": "compileQasmQir",
+        "x-google-backend": {
+          "address": "https://api.quantag-it.com/compile",
+          "protocol": "h2"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "qasm": { "type": "string" }
+              },
+              "required": ["qasm"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful compile",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "qir": { "type": "string" },
+                "status": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /qir-compile",
+        "operationId": "QIRCompileOptions",
+        "x-google-backend": {
+          "address": "https://api.quantag-it.com/compile",
+          "protocol": "h2"
+        },
+        "responses": {
+          "200": {
+            "description": "Successful preflight",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/image-process": {
+      "post": {
+        "summary": "Processing Image",
+        "description": "Process an image using a specified model.",
+        "operationId": "processImage",
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api13/process",
+          "protocol": "http/1.1"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "image": { "type": "string" }
+              },
+              "required": ["image"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image successfully processed",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "compressed": { "type": "string" },
+                "mse": { "type": "integer" },
+                "reconstructed": { "type": "string" },
+                "overlays": { "type": "array" }
+
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /image-process",
+        "operationId": "processOptions",
+        "security": [],
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api13/process",
+          "protocol": "http/1.1"
+        },
+        "responses": {
+          "200": {
+            "description": "Successful preflight",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/qbin-compile": {
+      "post": {
+        "summary": "Compile To QBIN",
+        "description": "Compile QASM Code into QBIN format.",
+        "operationId": "qbinCompile",
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api18/compile",
+          "protocol": "http/1.1"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "qasm_b64": { "type": "string" }
+              },
+              "required": ["qasm_b64"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful compile",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "elapsed_ms": { "type": "integer" },
+                "qbin_b64": { "type": "string" },
+                "size_in": { "type": "integer" },
+                "size_out": { "type": "integer" }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /qbin-compile",
+        "operationId": "qbinCompileOptions",
+        "security": [],
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api18/compile",
+          "protocol": "http/1.1"
+        },
+        "responses": {
+          "200": {
+            "description": "Successful preflight",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/qbin-decompile": {
+      "post": {
+        "summary": "Decompile From QBIN",
+        "description": "Decompile QBIN format back to QASM.",
+        "operationId": "qbinDecompile",
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api18/decompile",
+          "protocol": "http/1.1"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "qbin_b64": { "type": "string" }
+              },
+              "required": ["qbin_b64"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful decompile",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "elapsed_ms": { "type": "integer" },
+                "qasm_b64": { "type": "string" },
+                "size_in": { "type": "integer" },
+                "size_out": { "type": "integer" }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /qbin-decompile",
+        "operationId": "qbinDecompileOptions",
+        "security": [],
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api18/decompile",
+          "protocol": "http/1.1"
+        },
+        "responses": {
+          "200": {
+            "description": "Successful preflight",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/guppy-detect": {
+      "post": {
+        "summary": "Detect Guppy",
+        "description": "Detect Guppy functions from python code.",
+        "operationId": "guppyDetect",
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api17/detect",
+          "protocol": "http/1.1"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "source_b64": { "type": "string" }
+              },
+              "required": ["source_b64"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful detect",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "count": { "type": "integer" },
+                "functions": { "type": "array" },
+                "ok": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /guppy-detect",
+        "operationId": "guppyDetectOptions",
+        "security": [],
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api17/detect",
+          "protocol": "http/1.1"
+        },
+        "responses": {
+          "200": {
+            "description": "Successful preflight",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/guppy-compile": {
+      "post": {
+        "summary": "Compile Guppy",
+        "description": "Compile Guppy functions from python code",
+        "operationId": "guppyCompile",
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api17/compile",
+          "protocol": "http/1.1"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "formats": { "type": "string" },
+                "functions": { "type": "array" },
+                "source_b64": { "type": "string" }
+              },
+              "required": ["source_b64", "formats", "functions"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful compile",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "results": { "type": "object" },
+                "ok": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /guppy-compile",
+        "operationId": "guppyCompileOptions",
+        "security": [],
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api18/compile",
+          "protocol": "http/1.1"
+        },
+        "responses": {
+          "200": {
+            "description": "Successful preflight",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sql-compare": {
+      "post": {
+        "summary": "Compare SQL Databases",
+        "description": "Compare two SQL databases",
+        "operationId": "sqlCompare",
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api14/compare",
+          "protocol": "http/1.1"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "db1_b64": { "type": "string" },
+                "db2_b64": { "type": "string" }
+              },
+              "required": ["db1_b64", "db2_b64"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful compared",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "table_differences": { "type": "object" },
+                "tables_only_in_db1": { "type": "object" },
+                "tables_only_in_db2": { "type": "object" }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /sql-compare",
+        "operationId": "sqlCompareOptions",
+        "security": [],
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api14/compare",
+          "protocol": "http/1.1"
         },
         "responses": {
           "200": {
