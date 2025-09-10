@@ -21,7 +21,7 @@
 #define CUDAQ_SRV_KEY           "cudaq.srv"
 
 // defaults
-#define DEMO_FILE		"/home/qbit/qasm/file1.qasm"
+#define DEMO_FILE		"./file1.qasm"
 #define SOURCE_FOLDER	"/var/dap/"
 #define CUDAQ_SRV       "https://cloud.quantag-it.com/api1/run"
 
