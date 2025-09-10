@@ -82,11 +82,11 @@ int CudaQVM::run(const std::string& code,
 
         // Step 3: Encode input
         std::string qasmB64 = Utils::encode64(qasmSource);
-        std::string shotsB64 = Utils::encode64("1000");
+        int shots = 1000;
 
         nlohmann::json payload;
         payload["qasm_b64"] = qasmB64;
-        payload["shots_b64"] = shotsB64;
+        payload["shots"] = shots;
 
         // Step 4: Send QASM to Flask microservice
         RestClient client(endpoint.c_str());
