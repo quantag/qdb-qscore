@@ -59,6 +59,8 @@ int BaseQVM::prepareSource( const std::string& fileName,
 
     if (cfg) {
         sourceFolder = cfg->getSourceFolder();
+    }  else {
+        LOGE("cfg is null in BaseQVM");
     }
 
     if (!Utils::fileExists(file)) {
