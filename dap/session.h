@@ -26,6 +26,7 @@
 
 class Debugger;
 class WSSession;
+class ConfigLoader;
 
 namespace dap {
 
@@ -150,7 +151,7 @@ class Session {
   using ClosedHandler = std::function<void()>;
 
   // create() constructs and returns a new Session.
-  static std::shared_ptr<Session> create();
+  static std::shared_ptr<Session> create(ConfigLoader* cfg);
 
   void setSessionId(const std::string& id);
   const std::string& getSessionId() const {

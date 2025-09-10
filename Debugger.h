@@ -12,9 +12,11 @@
 #include "Typedefs.h"
 #include "interfaces/iqvm.h"
 
+class ConfigLoader;
+
 class Debugger {
  public:
-	Debugger(const EventHandler&);
+	Debugger(const EventHandler&, ConfigLoader* cfg);
 	~Debugger();
 
 	// run() instructs the debugger to continue execution.

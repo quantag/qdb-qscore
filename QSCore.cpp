@@ -220,7 +220,7 @@ int main(int argc, char *argv[]) {
 
         LOGI("== DAP client CONNECTED ==");
 
-        auto session = dap::Session::create();
+        auto session = dap::Session::create(&cfg);
         // Event handlers from the Debugger.
         auto onDebuggerEvent = [&](EventEnum onEvent) {
             switch (onEvent) {
