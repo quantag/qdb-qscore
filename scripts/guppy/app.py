@@ -40,12 +40,18 @@ import importlib.util
 import sys
 import tempfile
 from pathlib import Path
+from flask_cors import CORS
+
+import logging
+logger = logging.getLogger("guppy")
 
 # Optional: if you plan to run in Selene locally later
 # pip install selene-sim
 # from selene_sim import build as selene_build
 
+#app = Flask(__name__)
 app = Flask(__name__)
+CORS(app)
 
 DEFAULT_FORMATS = ["bytes_b64"]
 
@@ -106,6 +112,11 @@ def detect_guppy_functions(src_code: str) -> Tuple[Dict[str, Any], List[Dict[str
 def compile_endpoint():
     try:
         data = request.get_json(force=True)
+        formats = data.get("formats", ["json"])
+        logger.info(f"[Compile] Requested formats: {formats}")
+        funcs = data.get("functions", ["json"])
+        logger.info(f"[Compile] Requested functions: {funcs}")
+
     except Exception:
         return jsonify({"ok": False, "error": "Invalid JSON"}), 400
 
@@ -151,8 +162,8 @@ def compile_endpoint():
                 return jsonify({"ok": False, "error": f"Compile failed for '{name}': {e}"}), 400
 
             entry = {}
-            if "bytes_b64" in formats:
-                entry["bytes_b64"] = base64.b64encode(compiled.to_bytes()).decode("ascii")
+            if "hugr" in formats:
+                entry["hugr"] = base64.b64encode(compiled.to_bytes()).decode("ascii")
             if "str" in formats:
                 try:
                     entry["str"] = compiled.to_str()
@@ -165,6 +176,7 @@ def compile_endpoint():
                     entry["json_error"] = str(e)
 
             results[name] = entry
+            logger.info(f"[Compile] Function {name} -> returned formats: {list(entry.keys())}")
 
     return jsonify({"ok": True, "results": results})
 

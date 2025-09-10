@@ -5,7 +5,9 @@
 #include <fstream>
 #include <sstream>
 #include <nlohmann/json.hpp>
+#if !defined(_WIN32)
 #include <cudaq.h>
+#endif
 #include "../Log.h"
 #include "../Utils.h"
 #include "../RestClient.h"

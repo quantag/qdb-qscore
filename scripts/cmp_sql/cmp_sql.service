@@ -1,0 +1,15 @@
+[Unit]
+Description=Compare SQLs microservice
+After=network.target
+
+[Service]
+User=qbit
+WorkingDirectory=/home/qbit/compare_sql
+ExecStart=/home/qbit/compare_sql/.venv/bin/python /home/qbit/compare_sql/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
