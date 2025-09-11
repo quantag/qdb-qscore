@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 from flask import Flask, request, jsonify
 from werkzeug.exceptions import BadRequest
-
+from flask_cors import CORS
 # -----------------------------------------------------------------------------
 # Configuration (equivalent to Application.mainFolder and Application.imageFolder)
 # -----------------------------------------------------------------------------
@@ -359,3 +359,4 @@ Path(IMAGE_FOLDER).mkdir(parents=True, exist_ok=True)
 if __name__ == "__main__":
     # Example: FLASK_RUN_HOST=0.0.0.0 FLASK_RUN_PORT=8080 python app.py
     app.run(host="0.0.0.0", port=8150)
+    CORS(app)
