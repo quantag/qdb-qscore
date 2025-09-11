@@ -8,14 +8,30 @@ from qiskit_ibm_runtime import QiskitRuntimeService, SamplerV2
 from qiskit import transpile
 from qiskit.qasm3 import loads as qasm3_loads
 from datetime import datetime
+import os
+from datetime import datetime
+from flask_cors import CORS
 
 # Configure logging
+# Generate filename with timestamp
+log_filename = datetime.now().strftime("server_%Y%m%d_%H%M%S.log")
+
+# Configure logging to file + console
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(log_filename, encoding="utf-8"),
+        logging.StreamHandler()
+    ]
 )
 
+logging.info(f"Logging started, writing to {log_filename}")
+
+
 app = Flask(__name__)
+CORS(app)
+
 
 # Load config
 with open("config.json") as f:
@@ -299,6 +315,67 @@ def get_or_create_user_by_googleid():
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+
+
+@app.route("/get_config", methods=["POST"])
+def get_config_for_user():
+    data = request.get_json(silent=True) or {}
+    user_id = data.get("user_id")
+
+    # === Default fallback config (hardcoded) ===
+    default_config = {
+        "auth.check": "https://cryspprod3.quantag-it.com:444/api10/check_token_ready",
+        "auth.start": "https://cryspprod3.quantag-it.com:444/api10/google-auth-start",
+        "prepare.data": "https://cryspprod3.quantag-it.com:444/api2/public/prepareData",
+        "submit.files": "https://cryspprod3.quantag-it.com:444/api2/public/submitFiles",
+        "get.image": "https://cryspprod3.quantag-it.com:444/api2/public/getImage",
+        "get.file": "https://cryspprod3.quantag-it.com:444/api2/public/getFile",
+        "cudaq.run": "https://cryspprod3.quantag-it.com:444/api19/cudaq/run",
+        "transpile": "https://cryspprod3.quantag-it.com:444/api15/transpile",
+        "pyzx.optimize": "https://cryspprod3.quantag-it.com:444/api16/optimize",
+        "pyzx.render": "https://cryspprod3.quantag-it.com:444/api16/render",
+        "ibmq.submit": "https://quantum.quantag-it.com/api5/submit_ibm_job",
+        "zi.run": "https://cryspprod2.quantag-it.com:4043/api2/run",
+        "qasm2qir": "https://api.quantag-it.com/qasm2qir",
+        "circuit.web": "https://quantag-it.com/quantum/#/qcd?id=",
+        "getuser.by_googleid": "https://quantum.quantag-it.com/api5/getuser_by_googleid",
+        "get.config": "https://quantum.quantag-it.com/api5/get_config"
+    }
+
+    # If no user_id = return default config immediately
+    if not user_id:
+        logging.warning("No user_id provided, returning default config")
+        return jsonify(default_config), 200
+
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT uc.ki, uc.val
+            FROM users u
+            JOIN user_config uc ON uc.set_id = u.config_set
+            WHERE u.uid = %s;
+        """, (user_id,))
+        rows = cursor.fetchall()
+
+        if not rows:
+            logging.warning(f"No config found for user {user_id}, returning default")
+            return jsonify(default_config), 200
+
+        config_values = {ki: val for ki, val in rows}
+        logging.warning(f"Sent config for user {user_id}..")
+        return jsonify(config_values), 200
+
+    except Exception as e:
+        logging.error(f"DB error in /get_config: {e}, returning default config")
+        return jsonify(default_config), 200
+
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
 
 
 @app.route("/submit_ibm_job", methods=["POST"])

@@ -1,0 +1,14 @@
+[Unit]
+Description=Quantum DB Service
+After=network.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/home/admin/work/db
+ExecStart=/home/admin/work/db/.venv/bin/python server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
