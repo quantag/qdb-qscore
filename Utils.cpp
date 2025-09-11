@@ -858,3 +858,14 @@ int Utils::extractIndex(const std::string &line) {
     auto r = line.find(']');
     return std::stoi(line.substr(l + 1, r - l - 1));
 }
+
+std::string Utils::getCpuInfoFull() {
+    std::string msg = getCpuInfo();
+    msg += "\nOpenMP ";
+#ifdef QPP_OPENMP
+    msg += "enabled\n";
+#else
+    msg += "disabled\n";
+#endif
+    return msg;
+}

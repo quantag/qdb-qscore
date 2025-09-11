@@ -287,13 +287,13 @@ def run_qasm():
         if not qasm_b64:
             return jsonify({"error": "qasm_b64 is required"}), 400
 
-        shots_txt = "1000"
-        if "shots_b64" in data and data["shots_b64"]:
-            shots_txt = b64d(data["shots_b64"])
-        shots = int(shots_txt)
-
+        shots = 1000
+        if "shots" in data and data["shots"]:
+            shots = data["shots"]
         qasm = b64d(qasm_b64)
 
+        print(qasm)
+        print(shots)
         # log input
         log_qasm(qasm, "run")
 

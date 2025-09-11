@@ -55,9 +55,12 @@ int BaseQVM::prepareSource( const std::string& fileName,
     this->sourceCodePerLines.clear();
 
     std::string file = fileName;
-    std::string sourceFolder = SOURCE_FOLDER;
+    std::string sourceFolder = cfg ? cfg->getSourceFolder() : SOURCE_FOLDER_DEFAULT;
+
     if (cfg) {
         sourceFolder = cfg->getSourceFolder();
+    }  else {
+        LOGE("cfg is null in BaseQVM");
     }
 
     if (!Utils::fileExists(file)) {
@@ -69,8 +72,9 @@ int BaseQVM::prepareSource( const std::string& fileName,
         }
 
         if (!Utils::fileExists(serverFile)) {
-            LOGI("File [%s] not found, using demo file.", fileName.c_str());
-            file = cfg ? cfg->getDemoFile() : DEMO_FILE;
+            file = cfg ? cfg->getDemoFile() : DEMO_FILE_DEFAULT;
+
+            LOGI("File [%s] not found, using demo file [%s].", serverFile.c_str(), file.c_str());
             ret = ERR_DEMOFILE;
             status.serverFileFound = 0;
         }

@@ -1,0 +1,15 @@
+[Unit]
+Description=Quantum DAP Python
+After=network.target
+
+[Service]
+User=admin
+WorkingDirectory=/home/admin/work/dapp
+ExecStart=/home/admin/work/dapp/.venv/bin/python /home/admin/work/dapp/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

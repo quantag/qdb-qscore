@@ -23,12 +23,13 @@ def main():
 
     # Encode inputs
     qasm_b64 = base64.b64encode(qasm_text.encode("utf-8")).decode("ascii")
-    shots_b64 = base64.b64encode(str(shots).encode("utf-8")).decode("ascii")
+   # shots_b64 = base64.b64encode(str(shots).encode("utf-8")).decode("ascii")
 
     payload = {
         "qasm_b64": qasm_b64,
-        "shots_b64": shots_b64
+        "shots": shots
     }
+    print(payload)
 
     try:
         resp = requests.post(URL, json=payload, timeout=60)
