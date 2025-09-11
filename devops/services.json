@@ -89,7 +89,7 @@
         "description": "Convert OpenQASM into QIR (Quantum Intermediate Representation).",
         "operationId": "compileQasmQir",
         "x-google-backend": {
-          "address": "https://api.quantag-it.com/compile",
+          "address": "https://api.quantag-it.com/qasm2qir",
           "protocol": "h2"
         },
         "parameters": [
@@ -123,7 +123,7 @@
         "summary": "CORS preflight for /qir-compile",
         "operationId": "QIRCompileOptions",
         "x-google-backend": {
-          "address": "https://api.quantag-it.com/compile",
+          "address": "https://api.quantag-it.com/qasm2qir",
           "protocol": "h2"
         },
         "responses": {
