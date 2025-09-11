@@ -14,6 +14,8 @@ from pathlib import Path
 from flask import Flask, request, jsonify
 from werkzeug.exceptions import BadRequest
 from flask_cors import CORS
+from datetime import datetime
+
 # -----------------------------------------------------------------------------
 # Configuration (equivalent to Application.mainFolder and Application.imageFolder)
 # -----------------------------------------------------------------------------
@@ -27,13 +29,22 @@ Path(IMAGE_FOLDER).mkdir(parents=True, exist_ok=True)
 # -----------------------------------------------------------------------------
 # Logging
 # -----------------------------------------------------------------------------
+log_dir = "./logs"
+os.makedirs(log_dir, exist_ok=True)
+
+timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+log_file = os.path.join(log_dir, f"server-{timestamp}.log")
+
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s"
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[
+        logging.FileHandler(log_file, mode="w"),
+        logging.StreamHandler()
+    ]
 )
 log = logging.getLogger("controller")
-
-
+log.info("Server starting, logging to %s", log_file)
 
 # -----------------------------------------------------------------------------
 # Load properties file (application.properties)
@@ -147,9 +158,13 @@ def submit_files():
         req = request.get_json(force=True, silent=False)
         session_id = req.get("sessionId")
         files = req.get("files", [])
+        opts = req.get("opts", {})
 
         if not session_id or not isinstance(files, list):
             raise BadRequest("Missing sessionId or files")
+
+        log.info("VSCode Mode: %s", opts.get("mode"))
+        log.info("QUANTAG_BASE_URL: %s", opts.get("baseUrl"))
 
         session_base = safe_join(Path(MAIN_FOLDER), session_id)
         session_base.mkdir(parents=True, exist_ok=True)
@@ -173,7 +188,8 @@ def submit_files():
             # Return relative paths as in the Java code
             stored_paths.append(str(Path(session_id) / rel).replace("\\", "/"))
 
-        return jsonify({"code": 0, "count": len(stored_paths), "paths": stored_paths}), 200
+        session_folder_abs = str(session_base.resolve())
+        return jsonify({"code": 0, "count": len(stored_paths), "sessionFolder": session_folder_abs}), 200
 
     except BadRequest as e:
         log.warning("submitFiles BAD_REQUEST: %s", e)
