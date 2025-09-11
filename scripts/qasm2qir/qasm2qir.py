@@ -7,6 +7,7 @@ from qiskit import qasm2
 import io
 import urllib, base64
 from qbraid_qir.qasm3 import qasm3_to_qir
+import os
 
 from flask_cors import CORS
 
@@ -42,4 +43,5 @@ def create_resource():
         return jsonify({"status": "2", "error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5007)  
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
