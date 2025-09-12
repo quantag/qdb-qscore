@@ -30,6 +30,7 @@ enum CodeFramework {
 	eQiskit = 1,
 	eTket = 2,
 	eCUDAQ = 3,
+	eGuppy = 4,
 	eUnknownFramework = 100
 };
 
