@@ -37,7 +37,36 @@ from laboneq.simple import DeviceSetup
 app = Flask(__name__)
 CORS(app)
 
-logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+#logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Create logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Formatter
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+# File handler
+file_handler = logging.FileHandler('app.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
+@app.before_request
+def log_request_info():
+    logging.info("---- Incoming Request ----")
+    logging.info("Method: %s URL: %s", request.method, request.url)
+    logging.info("Headers: %s", dict(request.headers))
+    try:
+        logging.info("Body: %s", request.get_data(as_text=True))
+    except Exception as e:
+        logging.warning("Could not log body: %s", str(e))
+    logging.info("--------------------------")
+
 
 def load_program_from_file(filename):
     try:
