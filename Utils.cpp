@@ -328,6 +328,9 @@ CodeFramework Utils::detectPythonFramework(const std::string & src) {
     if (src.find("pytket") != std::string::npos)
         return eTket;
 
+    if (src.find("@guppy") != std::string::npos)
+        return eGuppy;
+
     return eGeneric;
 }
 
