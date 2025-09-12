@@ -3,7 +3,7 @@ import base64
 import logging
 import datetime
 import json
-
+from flask_cors import CORS
 
 import numpy as np
 import sys
@@ -35,6 +35,8 @@ from laboneq.simple import *
 from laboneq.simple import DeviceSetup
 
 app = Flask(__name__)
+CORS(app)
+
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def load_program_from_file(filename):
