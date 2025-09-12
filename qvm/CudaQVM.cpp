@@ -14,9 +14,6 @@
 #include "../ConfigLoader.h"
 
 
-CudaQVM::CudaQVM() {
-    cudaqSource_.reset();
-}
 
 CudaQVM::CudaQVM(ConfigLoader* cfg){
 //    this->frontend = new WebFrontend();

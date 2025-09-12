@@ -26,6 +26,7 @@
 #define OUTPUT_FILE_KEY         "output.file"
 #define DAP_HOST_KEY            "dap.host"
 #define WS_HOST_KEY             "ws.host"
+#define NODENAME_KEY            "node"
 
  // defaults
 #define DEMO_FILE_DEFAULT       "./file1.qasm"
@@ -38,6 +39,9 @@
 #define OUTPUT_FILE_DEFAULT     "results.json"
 #define DAP_HOST_DEFAULT        "127.0.0.1"
 #define WS_HOST_DEFAULT         "127.0.0.1"
+#define NODENAME_DEFAULT        "node"
+
+
 
 class ConfigLoader {
 public:
@@ -100,6 +104,10 @@ public:
 
     std::string getCudaQSrvEndpoint() {
         return getOrDefault(CUDAQ_SRV_KEY, CUDAQ_SRV_DEFAULT);
+    }
+
+    std::string getNodeName() {
+        return getOrDefault(NODENAME_KEY, NODENAME_DEFAULT);
     }
 
     std::string getDemoFile() {

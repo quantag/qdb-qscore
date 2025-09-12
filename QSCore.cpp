@@ -44,6 +44,8 @@
 #define LOCALHOST           "127.0.0.1"
 #define CONFIG_FILE         "QSCore.ini"
 
+#define QSCORE_VERSION      "1.0.0"
+
 
 // sourceContent holds the synthetic file source.
 constexpr char sourceContent[] = R"(// OpenQASM 3.0;)";
@@ -189,7 +191,7 @@ int main(int argc, char *argv[]) {
 
     // initialize logger with required log level
     LOG_INIT(logLevel, "qs-core.log");
-    LOG(logLevel, "logLevel = %d", logLevel);
+    LOG(logLevel, "QSCore  v%s. logLevel = %d", QSCORE_VERSION, logLevel);
 
     if (configLoaded) {
         LOGI("Loaded config file from '%s'", configFile.c_str());
@@ -576,7 +578,7 @@ int main(int argc, char *argv[]) {
                 }
                 case ERR_OK:
                 {
-                    msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]\nCode type: "
+                    msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "] at ["+ session->debugger->getQVM()->getConfig()->getNodeName() + "]\nCode type: "
                         + Utils::getCodeTypeName(status.codeType);
 
                     if (status.codeType == ePython) {

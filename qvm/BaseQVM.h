@@ -20,8 +20,8 @@ public:
 	virtual int run(const std::string& code,
 		const std::string& path,
 		LaunchStatus& status) = 0;
+
 protected:
 	PythonProcessor* processor;
-	ConfigLoader* cfg;
 	IFrontend* frontend;
 };

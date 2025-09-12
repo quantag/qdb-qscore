@@ -20,7 +20,6 @@ class ConfigLoader;
 
 class QppQVM : public BaseQVM {
 public:
-	QppQVM();
 	QppQVM(ConfigLoader *cfg);
 	~QppQVM();
 

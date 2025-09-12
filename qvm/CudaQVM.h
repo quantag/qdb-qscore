@@ -9,7 +9,6 @@
 
 class CudaQVM : public BaseQVM {
 public:
-    CudaQVM();
     CudaQVM(ConfigLoader* cfg);
     ~CudaQVM();
 
