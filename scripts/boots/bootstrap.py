@@ -63,6 +63,33 @@ def prepare():
         "path": str(workspace.resolve())
     })
 
+@app.route("/del", methods=["POST"])
+def delete_workspace():
+    data = request.get_json(force=True)
+    email = data.get("email")
+    if not email:
+        return jsonify({"status": 2, "error": "email is required"}), 400
+
+    try:
+        user_id = email_to_user_id(email)
+        user_root = safe_join(Path(BASE_WORK_DIR), user_id)
+        workspace = user_root / DEFAULT_SUBDIR
+
+        if not workspace.exists():
+            log.info("Workspace for %s not found at %s", email, workspace)
+            return jsonify({"status": 1, "email": email, "user_id": user_id})
+
+        try:
+            shutil.rmtree(user_root)  # remove whole user root, not just workplace
+            log.info("Deleted workspace for %s at %s", email, user_root)
+            return jsonify({"status": 0, "email": email, "user_id": user_id})
+        except Exception as e:
+            log.error("Failed to delete workspace %s: %s", user_root, e, exc_info=True)
+            return jsonify({"status": 2, "email": email, "user_id": user_id}), 500
+
+    except Exception as e:
+        log.error("Unexpected error in /del: %s", e, exc_info=True)
+        return jsonify({"status": 2, "error": "internal server error"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("BOOTSTRAP_PORT", "5001"))
