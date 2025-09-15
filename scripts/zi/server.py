@@ -76,49 +76,56 @@ def load_program_from_file(filename):
     except FileNotFoundError:
         print(f"Error: File '{filename}' not found.")
         return None
-
 def execCode(src):
-    setup_db = generate_example_datastore(path="", filename=":memory:")
-    device_setup = get_first_named_entry(
-        db=setup_db,
-        name="12_tuneable_qubit_setup_shfsg_shfqa_shfqc_hdawg_pqsc_calibrated",
-    )
-    [q0, q1] = device_setup.qubits[:2]
-    qubit_map = {"_qubit0": q0, "_qubit1": q1}
-    gate_store = GateStore()
-
-    #print("Received OpenQASM:\n" + src)
     logging.info(f"Received code: {src}")
-    exp = exp_from_qasm(src, qubits=qubit_map, gate_store=gate_store)
-    logging.info(f"After exp_from_qasm ~~~~~")
-    my_session = Session(device_setup=device_setup)
-    my_session.connect(do_emulation=True)
-    compiled_exp = my_session.compile(exp)
-    my_results = my_session.run(compiled_exp)
-    return my_results.acquired_results
+
+    # Fake qubit map for testing
+    q0, q1 = "q0", "q1"
+    qubit_map = {"_qubit0": q0, "_qubit1": q1}
+
+    # Just return the input for now
+    result = {"received_qasm": src, "mapped_qubits": qubit_map}
+    return result
+
 
 @app.route('/run', methods=['POST'])
 def runCode():
-    logging.info(f"New request");
-    logging.info(f"Incoming request: {request.json}")
+    logging.info("New request")
+
     try:
         data = request.json
-        decodedSrc = base64.b64decode(data['src'])
-        logging.info(f"Incoming script: {decodedSrc.decode()}")
 
+        qasm_src = base64.b64decode(data['qasm']).decode()
+        yaml_src = base64.b64decode(data['setup']).decode()
+
+        logging.info("Incoming QASM: %s", qasm_src)
+        logging.info("Incoming YAML: %s", yaml_src)
+
+        # Save files (optional, for debugging)
         timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
-        script_filename = f"scripts/script{timestamp}.qasm"
-        with open(script_filename, 'w') as f:
-            f.write(decodedSrc.decode())
+        qasm_file = f"scripts/script{timestamp}.qasm"
+        yaml_file = f"scripts/setup{timestamp}.yaml"
+        with open(qasm_file, "w") as f: f.write(qasm_src)
+        with open(yaml_file, "w") as f: f.write(yaml_src)
 
-        result = execCode(decodedSrc.decode())
-        
-        encoded_result = base64.b64encode(str(result).encode()).decode()
-        logging.info(f"Execution result: {result}")
-        return jsonify({'status':0,'res': encoded_result})
+        # Load device setup
+        device_setup = DeviceSetup.from_yaml(yaml_file)
+
+        [q0, q1] = device_setup.qubits[:2]
+        qubit_map = {"_qubit0": q0, "_qubit1": q1}
+
+        exp = exp_from_qasm(qasm_src, qubits=qubit_map)
+        session = Session(device_setup=device_setup)
+        session.connect(do_emulation=True)
+        compiled = session.compile(exp)
+        results = session.run(compiled)
+
+        encoded_result = base64.b64encode(str(results.acquired_results).encode()).decode()
+        return jsonify({"status": 0, "res": encoded_result})
+
     except Exception as e:
-        logging.error(f"An error occurred: {str(e)}")
-        return jsonify({'status':2,'err': str(e)})
+        logging.error("Error: %s", str(e))
+        return jsonify({"status": 2, "err": str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5801)
