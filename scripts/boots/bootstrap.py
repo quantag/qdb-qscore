@@ -36,32 +36,52 @@ def safe_join(base: Path, *parts: str) -> Path:
         raise ValueError("path traversal detected")
     return p
 
-
 @app.route("/prepare", methods=["POST"])
 def prepare():
     data = request.get_json(force=True)
     email = data.get("email")
     if not email:
-        return jsonify({"error": "email is required"}), 400
+        return jsonify({"status": 2, "error": "email is required"}), 400
 
-    user_id = email_to_user_id(email)
-    user_root = safe_join(Path(BASE_WORK_DIR), user_id)
-    workspace = user_root / DEFAULT_SUBDIR
+    # Use provided name or default
+    folder_name = data.get("name", DEFAULT_SUBDIR)
 
-    if not workspace.exists():
-        workspace.mkdir(parents=True, exist_ok=True)
+    try:
+        user_id = email_to_user_id(email)
+        user_root = safe_join(Path(BASE_WORK_DIR), user_id)
+        workspace = user_root / folder_name
+
+        if workspace.exists():
+            log.info("Workspace for %s already exists: %s", email, workspace)
+            return jsonify({
+                "status": 1,
+                "email": email,
+                "user_id": user_id,
+                "path": str(workspace.resolve())
+            })
+
+        # Create folder
+        workspace.mkdir(parents=True, exist_ok=False)
+
+        # Copy sample if available
         if Path(SAMPLE_DIR).exists():
             log.info("Copying sample content to %s", workspace)
-            shutil.copytree(SAMPLE_DIR, workspace, dirs_exist_ok=True)
+            try:
+                shutil.copytree(SAMPLE_DIR, workspace, dirs_exist_ok=True)
+            except Exception as e:
+                log.error("Failed to copy sample content: %s", e)
 
-    log.info("Prepared workspace for %s at %s", email, workspace)
+        log.info("Prepared workspace for %s at %s", email, workspace)
 
-    return jsonify({
-        "status": 0,
-        "email": email,
-        "user_id": user_id,
-        "path": str(workspace.resolve())
-    })
+        return jsonify({
+            "status": 0,
+            "email": email,
+            "user_id": user_id,
+            "path": str(workspace.resolve())
+        })
+    except Exception as e:
+        log.error("Unexpected error in /prepare: %s", e, exc_info=True)
+        return jsonify({"status": 2, "error": "internal server error"}), 500
 
 @app.route("/del", methods=["POST"])
 def delete_workspace():
