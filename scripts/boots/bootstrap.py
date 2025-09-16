@@ -106,7 +106,10 @@ def get_workspaces():
         workspaces = []
         for entry in user_root.iterdir():
             if entry.is_dir():
-                workspaces.append(str(entry.resolve()))
+                workspaces.append({
+                    "name": entry.name,
+                    "path": str(entry.resolve())
+                })
 
         log.info("Listing workspaces for %s: %s", email, workspaces)
 
