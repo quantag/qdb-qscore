@@ -83,8 +83,8 @@ def prepare():
         log.error("Unexpected error in /prepare: %s", e, exc_info=True)
         return jsonify({"status": 2, "error": "internal server error"}), 500
 
-@app.route("/del", methods=["POST"])
-def delete_workspace():
+@app.route("/get", methods=["POST"])
+def get_workspaces():
     data = request.get_json(force=True)
     email = data.get("email")
     if not email:
@@ -93,19 +93,79 @@ def delete_workspace():
     try:
         user_id = email_to_user_id(email)
         user_root = safe_join(Path(BASE_WORK_DIR), user_id)
-        workspace = user_root / DEFAULT_SUBDIR
 
-        if not workspace.exists():
-            log.info("Workspace for %s not found at %s", email, workspace)
-            return jsonify({"status": 1, "email": email, "user_id": user_id})
+        if not user_root.exists():
+            log.info("User root not found for %s: %s", email, user_root)
+            return jsonify({
+                "status": 1,
+                "email": email,
+                "user_id": user_id,
+                "workspaces": []
+            })
+
+        workspaces = []
+        for entry in user_root.iterdir():
+            if entry.is_dir():
+                workspaces.append(str(entry.resolve()))
+
+        log.info("Listing workspaces for %s: %s", email, workspaces)
+
+        return jsonify({
+            "status": 0,
+            "email": email,
+            "user_id": user_id,
+            "workspaces": workspaces
+        })
+
+    except Exception as e:
+        log.error("Unexpected error in /get: %s", e, exc_info=True)
+        return jsonify({"status": 2, "error": "internal server error"}), 500
+
+@app.route("/del", methods=["POST"])
+def delete_workspace():
+    data = request.get_json(force=True)
+    email = data.get("email")
+    if not email:
+        return jsonify({"status": 2, "error": "email is required"}), 400
+
+    # Optional "name" field
+    folder_name = data.get("name")
+
+    try:
+        user_id = email_to_user_id(email)
+        user_root = safe_join(Path(BASE_WORK_DIR), user_id)
+
+        # Decide path to delete
+        target_path = user_root / folder_name if folder_name else user_root
+
+        if not target_path.exists():
+            log.info("Target for deletion not found: %s", target_path)
+            return jsonify({
+                "status": 1,
+                "email": email,
+                "user_id": user_id,
+                "path": str(target_path)
+            })
 
         try:
-            shutil.rmtree(user_root)  # remove whole user root, not just workplace
-            log.info("Deleted workspace for %s at %s", email, user_root)
-            return jsonify({"status": 0, "email": email, "user_id": user_id})
+            shutil.rmtree(target_path)
+            log.info("Deleted %s for %s at %s", 
+                     "workspace" if folder_name else "user root", 
+                     email, target_path)
+            return jsonify({
+                "status": 0,
+                "email": email,
+                "user_id": user_id,
+                "path": str(target_path)
+            })
         except Exception as e:
-            log.error("Failed to delete workspace %s: %s", user_root, e, exc_info=True)
-            return jsonify({"status": 2, "email": email, "user_id": user_id}), 500
+            log.error("Failed to delete %s: %s", target_path, e, exc_info=True)
+            return jsonify({
+                "status": 2,
+                "email": email,
+                "user_id": user_id,
+                "path": str(target_path)
+            }), 500
 
     except Exception as e:
         log.error("Unexpected error in /del: %s", e, exc_info=True)
