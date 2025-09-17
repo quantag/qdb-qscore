@@ -14,6 +14,7 @@ from flask_cors import CORS
 import uuid
 import secrets
 import requests
+import threading
 
 # Configure logging
 # Generate filename with timestamp
@@ -47,6 +48,97 @@ db_config = {
     "user": config["user"],
     "password": config["password"]
 }
+
+def create_job_record(user_id, qasm_b64, backend_type, instance="sim", status_str="QUEUED"):
+    """Insert a new job row and return its internal uid (uuid)."""
+    job_uid = str(uuid.uuid4())
+    # decode only for storing readable input
+    try:
+        qasm_str = base64.b64decode(qasm_b64).decode("utf-8")
+    except Exception:
+        qasm_str = "<invalid base64 QASM>"
+
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO jobs (uid, user_id, submitted_at, input, instance, qpu, status_str)
+            VALUES (%s, %s, %s, %s, %s, %s, %s);
+            """,
+            (job_uid, user_id, datetime.utcnow(), qasm_str, instance, backend_type, status_str)
+        )
+        conn.commit()
+        return job_uid
+    except Exception as e:
+        logging.error(f"create_job_record error: {e}")
+        raise
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+
+def update_job_status(job_uid, status_str, results_obj=None, error_msg=None):
+    """Update job status/results; set end_time when terminal."""
+    terminal = status_str in ("DONE", "ERROR")
+    results_json = None
+    if results_obj is not None:
+        results_json = json.dumps(results_obj)
+    elif error_msg is not None:
+        results_json = json.dumps({"error": error_msg})
+
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        if terminal:
+            cursor.execute(
+                """
+                UPDATE jobs
+                SET status_str = %s,
+                    results = %s,
+                    end_time = %s
+                WHERE uid = %s;
+                """,
+                (status_str, results_json, datetime.utcnow(), job_uid)
+            )
+        else:
+            cursor.execute(
+                "UPDATE jobs SET status_str = %s WHERE uid = %s;",
+                (status_str, job_uid)
+            )
+        conn.commit()
+    except Exception as e:
+        logging.error(f"update_job_status error: {e}")
+        raise
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+def _qvm_execute_job_async(job_uid, qasm_b64, shots, backend_type):
+    """Background worker: forward to Node B, update DB with result or error."""
+    try:
+        update_job_status(job_uid, "RUNNING")
+
+        node_b_url = "https://cloud.quantag-it.com/api1/run"
+        payload = {"qasm_b64": qasm_b64, "shots": int(shots)}
+
+        logging.info(f"[{job_uid}] forwarding to Node B: {node_b_url}")
+        resp = requests.post(node_b_url, json=payload, timeout=120)
+        resp.raise_for_status()
+        node_b_result = resp.json()
+
+        logging.info(f"[{job_uid}] Node B result received")
+        update_job_status(job_uid, "DONE", results_obj=node_b_result)
+
+    except Exception as e:
+        logging.error(f"[{job_uid}] async execution failed: {e}")
+        try:
+            update_job_status(job_uid, "ERROR", error_msg=str(e))
+        except Exception as e2:
+            logging.error(f"[{job_uid}] failed to write ERROR status: {e2}")
+
 
 def get_users():
     conn = None
@@ -83,6 +175,55 @@ def user_jobs(user_id):
             cursor.close()
         if conn:
             conn.close()
+
+@app.route("/qvm/job/<job_uid>", methods=["GET"])
+def qvm_job_status(job_uid):
+    # Validate API key and ownership
+    api_key = request.headers.get("X-API-Key") or request.args.get("apikey")
+    user_id = validate_api_key(api_key)
+    if not user_id:
+        return jsonify({"error": "Invalid or missing API key"}), 403
+
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT uid, user_id, status_str, results, submitted_at, end_time, qpu, instance FROM jobs WHERE uid = %s;",
+            (job_uid,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"error": "Job not found"}), 404
+
+        uid, owner_id, status_str, results, submitted_at, end_time, qpu, instance = row
+        if owner_id != user_id:
+            return jsonify({"error": "Forbidden"}), 403
+
+        payload = {
+            "job_uid": uid,
+            "status": status_str,
+            "backend": qpu,
+            "instance": instance,
+            "submitted_at": submitted_at.isoformat() if submitted_at else None,
+            "end_time": end_time.isoformat() if end_time else None,
+        }
+
+        # results column may be TEXT/JSON; return as dict if present
+        if results:
+            try:
+                payload["results"] = json.loads(results) if isinstance(results, str) else results
+            except Exception:
+                payload["results"] = results  # raw
+
+        return jsonify(payload), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
 
 @app.route("/apikeys/delete_all", methods=["POST"])
 def delete_all_apikeys():
@@ -258,6 +399,51 @@ def check_job():
         if cursor: cursor.close()
         if conn: conn.close()
 
+@app.route("/qvm/submit", methods=["POST"])
+def qvm_submit():
+    data = request.get_json(silent=True) or {}
+
+    # 1) Validate API key
+    api_key = data.get("apikey") or request.headers.get("X-API-Key")
+    user_id = validate_api_key(api_key)
+    if not user_id:
+        return jsonify({"error": "Invalid or missing API key"}), 403
+
+    # 2) Extract inputs
+    qasm_b64 = data.get("qasm")
+    shots = int(data.get("shots", 1024))
+    backend_type = data.get("backend", "cudaq")
+
+    if not qasm_b64:
+        return jsonify({"error": "qasm is required"}), 400
+
+    # 3) Create job record in DB
+    try:
+        job_uid = create_job_record(
+            user_id=user_id,
+            qasm_b64=qasm_b64,
+            backend_type=backend_type,
+            instance="sim",
+            status_str="QUEUED"
+        )
+    except Exception as e:
+        return jsonify({"error": f"DB insert failed: {e}"}), 500
+
+    # 4) Spawn background worker thread
+    t = threading.Thread(
+        target=_qvm_execute_job_async,
+        args=(job_uid, qasm_b64, shots, backend_type),
+        daemon=True
+    )
+    t.start()
+
+    # 5) Return response
+    return jsonify({
+        "job_uid": job_uid,
+        "status": "QUEUED",
+        "backend": backend_type,
+        "shots": shots
+    }), 202
 
 @app.route("/providers", methods=["GET"])
 def get_providers():
