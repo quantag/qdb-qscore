@@ -118,6 +118,39 @@ def delete_all_apikeys():
         if cursor: cursor.close()
         if conn: conn.close()
 
+def validate_api_key(api_key):
+    """Return user_id if API key is valid, else None"""
+    if not api_key:
+        return None
+
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT user_id FROM apikeys WHERE api_key = %s AND active = TRUE;",
+            (api_key,)
+        )
+        row = cursor.fetchone()
+        return row[0] if row else None
+    except Exception as e:
+        logging.error(f"API key validation error: {e}")
+        return None
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route("/check_apikey", methods=["POST"])
+def check_apikey():
+    data = request.get_json()
+    api_key = data.get("apikey")
+
+    user_id = validate_api_key(api_key)
+    if not user_id:
+        return jsonify({"valid": False, "error": "Invalid or missing API key"}), 403
+
+    return jsonify({"valid": True, "user_id": user_id}), 200
+
 @app.route("/check_job", methods=["POST"])
 def check_job():
     data = request.get_json()
