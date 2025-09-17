@@ -1,7 +1,7 @@
 import requests
 import sys
 
-BASE_URL = "https://quantum.quantag-it.com/api5"
+from config import BASE_URL
 
 def main():
     if len(sys.argv) < 2:

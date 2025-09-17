@@ -308,8 +308,13 @@ def run_qasm():
                 bitstring = bitstring.zfill(creg_size)
             histogram[bitstring] = count
 
-        payload = json.dumps({"histogram": histogram, "creg_size": creg_size})
-        return jsonify({"result_b64": b64e(payload)})
+        #payload = json.dumps({"histogram": histogram, "creg_size": creg_size})
+        #return jsonify({"result_b64": b64e(payload)})
+        return jsonify({
+            "histogram": histogram,
+            "creg_size": creg_size
+        })
+
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -347,4 +352,4 @@ def compile_qasm():
 # Main
 # -------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5005)
+    app.run(host="127.0.0.1", port=5005)

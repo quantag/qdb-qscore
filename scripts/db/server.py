@@ -13,10 +13,11 @@ from datetime import datetime
 from flask_cors import CORS
 import uuid
 import secrets
+import requests
 
 # Configure logging
 # Generate filename with timestamp
-log_filename = datetime.now().strftime("server_%Y%m%d_%H%M%S.log")
+log_filename = datetime.now().strftime("logs/server_%Y%m%d_%H%M%S.log")
 
 # Configure logging to file + console
 logging.basicConfig(
@@ -663,6 +664,43 @@ def delete_job():
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+
+@app.route("/qvm/run", methods=["POST"])
+def qvm_run():
+    data = request.get_json(silent=True) or {}
+
+    # 1) Validate API key
+    api_key = data.get("apikey") or request.headers.get("X-API-Key")
+    user_id = validate_api_key(api_key)
+    if not user_id:
+        return jsonify({"error": "Invalid or missing API key"}), 403
+
+    # 2) Extract circuit info
+    qasm = data.get("qasm")
+    shots = int(data.get("shots", 1024))
+    backend_type = data.get("backend", "cudaq")
+
+    if not qasm:
+        return jsonify({"error": "qasm is required"}), 400
+
+    # 3) Forward request to Node B
+    try:
+        node_b_url = "https://cloud.quantag-it.com/api1/run"
+        payload = {"qasm_b64": qasm, "shots": shots}
+        resp = requests.post(node_b_url, json=payload, timeout=60)
+        resp.raise_for_status()
+        node_b_result = resp.json()
+    except Exception as e:
+        return jsonify({"error": f"QVM node unreachable: {e}"}), 502
+
+    # 4) Return Node B result + job metadata
+    return jsonify({
+        "user_id": user_id,
+        "backend": backend_type,
+        "shots": shots,
+        "results": node_b_result
+    }), 200
+
 
 @app.route("/users", methods=["GET"])
 def users_endpoint():

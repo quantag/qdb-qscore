@@ -1,7 +1,7 @@
 import requests
 import sys
 
-BASE_URL = "https://quantum.quantag-it.com/api5"
+from config import BASE_URL
 
 def deactivate_apikey(key_uid):
     url = f"{BASE_URL}/apikeys/{key_uid}/deactivate"

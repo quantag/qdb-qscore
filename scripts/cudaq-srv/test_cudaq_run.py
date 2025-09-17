@@ -35,14 +35,9 @@ def main():
         resp = requests.post(URL, json=payload, timeout=60)
         if resp.status_code == 200:
             data = resp.json()
-            if "result_b64" in data:
-                result_json = base64.b64decode(data["result_b64"]).decode("utf-8")
-                result = json.loads(result_json)
-                print("Success")
-                print("Histogram:", result.get("histogram"))
-                print("CReg size:", result.get("creg_size"))
-            else:
-                print("Unexpected response:", data)
+            print("Success")
+            print("Histogram:", data.get("histogram"))
+            print("CReg size:", data.get("creg_size"))
         else:
             print("Error", resp.status_code)
             print(resp.text)
