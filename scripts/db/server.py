@@ -11,6 +11,8 @@ from datetime import datetime
 import os
 from datetime import datetime
 from flask_cors import CORS
+import uuid
+import secrets
 
 # Configure logging
 # Generate filename with timestamp
@@ -81,6 +83,40 @@ def user_jobs(user_id):
         if conn:
             conn.close()
 
+@app.route("/apikeys/delete_all", methods=["POST"])
+def delete_all_apikeys():
+    """Delete all API keys for a given user_id"""
+    data = request.get_json()
+    user_id = data.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
+
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM apikeys WHERE user_id = %s RETURNING uid;", (user_id,))
+        rows = cursor.fetchall()
+        conn.commit()
+
+        if not rows:
+            return jsonify({"message": "No API keys found for this user", "deleted": 0}), 200
+
+        deleted_keys = [row[0] for row in rows]
+        return jsonify({
+            "message": f"Deleted {len(deleted_keys)} API keys",
+            "deleted": len(deleted_keys),
+            "uids": deleted_keys
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 @app.route("/check_job", methods=["POST"])
 def check_job():
@@ -228,6 +264,104 @@ def get_subs():
             cursor.close()
         if conn:
             conn.close()
+
+def generate_api_key():
+    return secrets.token_hex(32)  # 64 chars
+
+@app.route("/apikeys/<user_id>", methods=["GET"])
+def list_apikeys(user_id):
+    """List API keys for a user"""
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute("SELECT uid, api_key, created_at, active FROM apikeys WHERE user_id = %s;", (user_id,))
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        return jsonify([dict(zip(columns, row)) for row in rows])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+
+@app.route("/apikeys", methods=["POST"])
+def create_apikey():
+    """Create new API key for a user"""
+    data = request.get_json()
+    user_id = data.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
+
+    new_uid = str(uuid.uuid4())
+    api_key = generate_api_key()
+
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO apikeys (uid, user_id, api_key)
+            VALUES (%s, %s, %s)
+            RETURNING uid, api_key, created_at, active;
+            """,
+            (new_uid, user_id, api_key)
+        )
+        row = cursor.fetchone()
+        conn.commit()
+        columns = [desc[0] for desc in cursor.description]
+        return jsonify(dict(zip(columns, row)))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+
+@app.route("/apikeys/<uuid:key_id>/deactivate", methods=["POST"])
+def deactivate_apikey(key_id):
+    """Deactivate an API key"""
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE apikeys SET active = FALSE WHERE uid = %s RETURNING uid, api_key, active;",
+            (str(key_id),)
+        )
+        row = cursor.fetchone()
+        conn.commit()
+        if not row:
+            return jsonify({"error": "API key not found"}), 404
+        columns = [desc[0] for desc in cursor.description]
+        return jsonify(dict(zip(columns, row)))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+
+@app.route("/apikeys/<uuid:key_id>", methods=["DELETE"])
+def delete_apikey(key_id):
+    """Delete an API key"""
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM apikeys WHERE uid = %s RETURNING uid;", (str(key_id),))
+        row = cursor.fetchone()
+        conn.commit()
+        if not row:
+            return jsonify({"error": "API key not found"}), 404
+        return jsonify({"message": "API key deleted", "uid": row[0]})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
 
 
 @app.route("/update_user", methods=["POST"])
