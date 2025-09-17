@@ -9,8 +9,19 @@ from datetime import datetime
 from typing import Tuple, Dict
 from flask_cors import CORS
 
+# NEW: extra imports for isolation + temp files + worker CLI
+import subprocess
+import tempfile
+import shlex
+
 app = Flask(__name__)
 CORS(app)
+
+# -------------------------
+# Config
+# -------------------------
+# You can override via env: CUDAQ_WORKER_TIMEOUT=600
+WORKER_TIMEOUT_SEC = int(os.getenv("CUDAQ_WORKER_TIMEOUT", "600"))
 
 # -------------------------
 # Helpers for base64 I/O
@@ -20,7 +31,6 @@ def b64e(s: str) -> str:
 
 def b64d(s: str) -> str:
     return base64.b64decode(s).decode("utf-8")
-
 
 # -------------------------
 # Logging helper
@@ -32,10 +42,7 @@ def log_qasm(qasm_text: str, prefix: str) -> str:
     fname = f"logs/{prefix}_{ts}.qasm"
     with open(fname, "w", encoding="ascii", errors="ignore") as f:
         f.write(qasm_text)
-
-    # log to console
     print(f"[LOG] {prefix} request saved to {fname} ({len(qasm_text)} chars)")
-
     return fname
 
 # -------------------------
@@ -49,7 +56,6 @@ def parse_angle(expr: str) -> float:
         denom = float(expr.split("/")[1])
         return math.pi / denom
     if "*" in expr and "pi" in expr:
-        # e.g. "3*pi/8"
         parts = expr.split("*")
         factor = float(parts[0])
         rest = parts[1]
@@ -81,12 +87,10 @@ def qasm_to_kernel(qasm: str) -> Tuple["cudaq.Kernel", int]:
             or line.startswith("OPENQASM")
             or line.startswith("include")):
             continue
-        #print(f"[DEBUG] parsing line: {line}", file=sys.stderr)
 
         if line.startswith("qreg"):
             n = int(line.split("[")[1].split("]")[0])
             q = kernel.qalloc(n)
-        #    print(f"[DEBUG] allocated qreg with {n} qubits", file=sys.stderr)
 
         elif line.startswith("creg"):
             creg_size = int(line.split("[")[1].split("]")[0])
@@ -198,12 +202,10 @@ def qasm_to_kernel_cpp(qasm: str) -> str:
     lines.append(f"// creg_size_hint = {creg_size}")
     return "\n".join(lines)
 
-
 # -------------------------
 # Parser -> Python kernel code (string)
 # -------------------------
 def qasm_to_kernel_code(qasm: str) -> str:
-    lines = []
     n_qubits = None
     body = []
     body.append("kernel = cudaq.make_kernel()")
@@ -252,7 +254,12 @@ def qasm_to_kernel_code(qasm: str) -> str:
             ctrl_idx = int(l2.split("[")[1].split("]")[0])
             tgt_idx  = int(l2.split("[")[2].split("]")[0])
             theta = parse_angle(angle_expr)
-            body.append(f"try:\n    kernel.cp({theta}, q[{ctrl_idx}], q[{tgt_idx}])\nexcept Exception:\n    kernel.cr1({theta}, q[{ctrl_idx}], q[{tgt_idx}])")
+            body.append(
+                "try:\n"
+                f"    kernel.cp({theta}, q[{ctrl_idx}], q[{tgt_idx}])\n"
+                "except Exception:\n"
+                f"    kernel.cr1({theta}, q[{ctrl_idx}], q[{tgt_idx}])"
+            )
 
         elif line.startswith("barrier"):
             continue
@@ -277,7 +284,95 @@ def qasm_to_kernel_code(qasm: str) -> str:
     return "\n".join(src)
 
 # -------------------------
-# /run endpoint
+# SUBPROCESS WORKER ENTRY
+# -------------------------
+def worker_run(qasm_path: str, shots: int) -> int:
+    """
+    Worker: load QASM, run cudaq.sample, print JSON to stdout.
+    Exit 0 on success, non-zero on failure.
+    """
+    try:
+        with open(qasm_path, "r", encoding="utf-8", errors="ignore") as f:
+            qasm = f.read()
+
+        kernel, creg_size = qasm_to_kernel(qasm)
+        result = cudaq.sample(kernel, shots_count=shots)
+
+        histogram: Dict[str, int] = {}
+        for bitstring, count in result.items():
+            k = bitstring if isinstance(bitstring, str) else "".join(str(b) for b in bitstring)
+            histogram[str(k)] = int(count)
+
+        out = {"histogram": histogram, "creg_size": creg_size}
+        sys.stdout.write(json.dumps(out))
+        sys.stdout.flush()
+        return 0
+
+    except Exception as e:
+        err = {"error": f"CUDA-Q worker failed: {str(e)}"}
+        sys.stderr.write(json.dumps(err))
+        sys.stderr.flush()
+        return 1
+
+# -------------------------
+# Parent -> run CUDA-Q in subprocess
+# -------------------------
+def run_cudaq_in_subprocess(qasm_text: str, shots: int, timeout_sec: int) -> Tuple[bool, dict, str]:
+    """
+    Returns (ok, result_json_dict, error_message)
+    - ok == True: result_json_dict filled (histogram, creg_size)
+    - ok == False: error_message filled
+    """
+    # Write QASM to a temp file to avoid huge argv/env
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".qasm", mode="w", encoding="utf-8") as tf:
+        tf.write(qasm_text)
+        qasm_path = tf.name
+
+    try:
+        # Invoke this same file with --worker
+        cmd = [
+            sys.executable,
+            __file__,
+            "--worker",
+            "--qasm_path", qasm_path,
+            "--shots", str(int(shots))
+        ]
+
+        completed = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout_sec
+        )
+
+        if completed.returncode == 0:
+            try:
+                data = json.loads(completed.stdout.strip() or "{}")
+                return True, data, ""
+            except Exception as e:
+                return False, {}, f"Worker returned invalid JSON: {e}"
+        else:
+            # Try to parse JSON stderr, else plain text
+            msg = completed.stderr.strip()
+            try:
+                err = json.loads(msg or "{}")
+                return False, {}, err.get("error", "Worker failed.")
+            except Exception:
+                # Map common kill codes to a friendly message
+                if completed.returncode in (137, 9):
+                    return False, {}, "Worker was killed (likely OOM)."
+                return False, {}, (msg or f"Worker failed with code {completed.returncode}.")
+
+    except subprocess.TimeoutExpired:
+        return False, {}, f"Worker timed out after {timeout_sec} seconds."
+    finally:
+        try:
+            os.unlink(qasm_path)
+        except Exception:
+            pass
+
+# -------------------------
+# /run endpoint (uses subprocess isolation)
 # -------------------------
 @app.route("/run", methods=["POST"])
 def run_qasm():
@@ -287,40 +382,23 @@ def run_qasm():
         if not qasm_b64:
             return jsonify({"error": "qasm_b64 is required"}), 400
 
-        shots = 1000
-        if "shots" in data and data["shots"]:
-            shots = data["shots"]
+        shots = int(data.get("shots", 1000))
         qasm = b64d(qasm_b64)
 
-        print(qasm)
-        print(shots)
-        # log input
+        # Optional: log request
         log_qasm(qasm, "run")
 
-        kernel, creg_size = qasm_to_kernel(qasm)
-        result = cudaq.sample(kernel, shots_count=shots)
-
-        histogram: Dict[str, int] = {}
-        for bitstring, count in result.items():
-            if not isinstance(bitstring, str):
-                bitstring = "".join(str(b) for b in bitstring)
-            if creg_size and len(bitstring) < creg_size:
-                bitstring = bitstring.zfill(creg_size)
-            histogram[bitstring] = count
-
-        #payload = json.dumps({"histogram": histogram, "creg_size": creg_size})
-        #return jsonify({"result_b64": b64e(payload)})
-        return jsonify({
-            "histogram": histogram,
-            "creg_size": creg_size
-        })
-
+        ok, result_dict, err = run_cudaq_in_subprocess(qasm, shots, WORKER_TIMEOUT_SEC)
+        if ok:
+            return jsonify(result_dict), 200
+        else:
+            return jsonify({"error": err}), 500
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 # -------------------------
-# /compile endpoint
+# /compile endpoint (unchanged)
 # -------------------------
 @app.route("/compile", methods=["POST"])
 def compile_qasm():
@@ -333,23 +411,51 @@ def compile_qasm():
         qasm = b64d(qasm_b64)
         target_type = (data.get("type") or "python").lower()
 
-        # log input
         log_qasm(qasm, f"compile_{target_type}")
 
-        #src = qasm_to_kernel_code(qasm)
         if target_type == "cpp":
             src = qasm_to_kernel_cpp(qasm)
             return jsonify({"output": b64e(src)})
         else:
             src = qasm_to_kernel_code(qasm)
             return jsonify({"output": b64e(src)})
-        return jsonify({"output": b64e(src)})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 # -------------------------
-# Main
+# Main + Worker CLI
 # -------------------------
+def parse_worker_args(argv):
+    args = {"--worker": False, "--qasm_path": None, "--shots": 1000}
+    i = 0
+    while i < len(argv):
+        tok = argv[i]
+        if tok == "--worker":
+            args["--worker"] = True
+        elif tok == "--qasm_path" and i + 1 < len(argv):
+            args["--qasm_path"] = argv[i + 1]
+            i += 1
+        elif tok == "--shots" and i + 1 < len(argv):
+            try:
+                args["--shots"] = int(argv[i + 1])
+            except Exception:
+                args["--shots"] = 1000
+            i += 1
+        i += 1
+    return args
+
 if __name__ == "__main__":
+    # Worker mode: invoked by subprocess to run CUDA-Q safely
+    if len(sys.argv) > 1 and "--worker" in sys.argv:
+        wa = parse_worker_args(sys.argv[1:])
+        qp = wa.get("--qasm_path")
+        sh = int(wa.get("--shots", 1000))
+        if not qp:
+            sys.stderr.write(json.dumps({"error": "Missing --qasm_path"}))
+            sys.exit(2)
+        ec = worker_run(qp, sh)
+        sys.exit(ec)
+
+    # Normal server mode
     app.run(host="127.0.0.1", port=5005)
