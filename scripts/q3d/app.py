@@ -284,9 +284,12 @@ CORS(
 
 
 @app.route("/", methods=["GET"])
-def health():
+def health2():
     return jsonify({"ok": True, "service": "qasm->cudaq-viz (Qiskit/IBM)", "time": datetime.utcnow().isoformat() + "Z"})
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": 0}), 200
 
 @app.route("/list_backends", methods=["GET"])
 def list_backends():

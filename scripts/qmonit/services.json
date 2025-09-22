@@ -5,5 +5,6 @@
   { "name": "pyzx node3", "url": "https://cryspprod3.quantag-it.com:444/api16" },
   { "name": "cmp_sql node3", "url": "https://cryspprod3.quantag-it.com:444/api14" },
   { "name": "qbin node3", "url": "https://cryspprod3.quantag-it.com:444/api18" },
-  { "name": "CUDAQ node3", "url": "https://cryspprod3.quantag-it.com:444/api19" }
+  { "name": "CUDAQ node3", "url": "https://cryspprod3.quantag-it.com:444/api19" },
+  { "name": "transpile node3", "url": "https://cryspprod3.quantag-it.com:444/api15" }
 ]
