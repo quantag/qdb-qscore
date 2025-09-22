@@ -29,9 +29,12 @@ def check_services(config_file: str):
             resp = requests.get(health_url, timeout=5)
             if resp.status_code == 200:
                 data = resp.json()
+                print(data)
                 if isinstance(data, dict) and data.get("status") == 0:
-                    version = data.get("version", "unknown")
-                    results.append((name, f"OK (v{version})"))
+                    version = data.get("version", "?")
+                    disk_free_gb = data.get("disk_free_gb", "")
+                    cpu_load = data.get("cpu_load", "")
+                    results.append((name, f"OK (v{version} {disk_free_gb}Gb {cpu_load})"))
                     ok_count += 1
                 else:
                     results.append((name, f"FAIL (status={data.get('status')})"))
