@@ -26,6 +26,7 @@ import io
 import json
 import os
 import sys
+import time
 from typing import Dict, Any, List
 
 from flask import Flask, request, jsonify
@@ -44,6 +45,18 @@ from flask_cors import CORS
 
 import logging
 logger = logging.getLogger("guppy")
+
+LOG_DIR = Path(__file__).parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler(LOG_DIR / "service.log"),
+        logging.StreamHandler(sys.stdout)
+    ],
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
 
 # Optional: if you plan to run in Selene locally later
 # pip install selene-sim
@@ -199,17 +212,36 @@ def detect_endpoint():
     except Exception as e:
         return jsonify({"ok": False, "error": f"Base64 decode failed: {e}"}), 400
 
+    fname = LOG_DIR / f"detect_{int(time.time())}.py"
+    fname.write_text(src, encoding="utf-8")
+    logger.info(f"Saved uploaded source to {fname}")
+    infos = []
     try:
-        _, infos = detect_guppy_functions(src)
+        tree = ast.parse(src)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                # Check if @guppy decorator is present
+                has_guppy = any(
+                    (isinstance(dec, ast.Name) and dec.id == "guppy") or
+                    (isinstance(dec, ast.Attribute) and dec.attr == "guppy")
+                    for dec in node.decorator_list
+                )
+                if has_guppy:
+                    infos.append({
+                        "name": node.name,
+                        "lineno": getattr(node, "lineno", None),
+                        "end_lineno": getattr(node, "end_lineno", None),
+                        "has_compile": True,
+                        "compile_sig": None  # not available without execution
+                    })
     except Exception as e:
-        return jsonify({"ok": False, "error": f"Execution/detection failed: {e}"}), 400
+        return jsonify({"ok": False, "error": f"AST parse failed: {e}"}), 400
 
     return jsonify({
         "ok": True,
         "count": len(infos),
         "functions": infos
     })
-
 
 
 if __name__ == "__main__":
