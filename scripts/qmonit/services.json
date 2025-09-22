@@ -9,5 +9,6 @@
   { "name": "transpile node3", "url": "https://cryspprod3.quantag-it.com:444/api15" },
   { "name": "DAPP node3", "url": "https://cryspprod3.quantag-it.com:444/api2" },
   { "name": "qdb-decom node3", "url": "https://cryspprod3.quantag-it.com:444/api3" },
-  { "name": "qimage node3", "url": "https://cryspprod3.quantag-it.com:444/api13" }
+  { "name": "qimage node3", "url": "https://cryspprod3.quantag-it.com:444/api13" },
+  { "name": "qdb node1", "url": "https://quantum.quantag-it.com/api5" }
 ]

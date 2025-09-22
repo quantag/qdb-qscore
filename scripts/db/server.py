@@ -125,7 +125,7 @@ def _qvm_execute_job_async(job_uid, qasm_b64, shots, backend_type):
         payload = {"qasm_b64": qasm_b64, "shots": int(shots)}
 
         logging.info(f"[{job_uid}] forwarding to Node B: {node_b_url}")
-        resp = requests.post(node_b_url, json=payload, timeout=120)
+        resp = requests.post(node_b_url, json=payload, timeout=600)
         resp.raise_for_status()
         node_b_result = resp.json()
 
@@ -155,6 +155,11 @@ def get_users():
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": 0}), 200
+
 
 @app.route("/users/<user_id>/jobs", methods=["GET"])
 def user_jobs(user_id):
@@ -855,13 +860,11 @@ def delete_job():
 def qvm_run():
     data = request.get_json(silent=True) or {}
 
-    # 1) Validate API key
     api_key = data.get("apikey") or request.headers.get("X-API-Key")
     user_id = validate_api_key(api_key)
     if not user_id:
         return jsonify({"error": "Invalid or missing API key"}), 403
 
-    # 2) Extract circuit info
     qasm = data.get("qasm")
     shots = int(data.get("shots", 1024))
     backend_type = data.get("backend", "cudaq")
@@ -869,23 +872,41 @@ def qvm_run():
     if not qasm:
         return jsonify({"error": "qasm is required"}), 400
 
-    # 3) Forward request to Node B
+    node_b_url = "https://cloud.quantag-it.com/api1/run"
+    payload = {"qasm_b64": qasm, "shots": shots}
+
     try:
-        node_b_url = "https://cloud.quantag-it.com/api1/run"
-        payload = {"qasm_b64": qasm, "shots": shots}
+        logging.info(f"Forwarding job to Node B at {node_b_url}, shots={shots}, qasm_size={len(qasm)} bytes")
         resp = requests.post(node_b_url, json=payload, timeout=60)
-        resp.raise_for_status()
-        node_b_result = resp.json()
-    except Exception as e:
+
+        # Log raw response
+        logging.info(f"Node B response status: {resp.status_code}")
+        logging.debug(f"Node B response text: {resp.text[:500]}...")
+
+        # Try to parse JSON always
+        try:
+            node_b_result = resp.json()
+        except Exception:
+            node_b_result = {"error": resp.text.strip()}
+
+        if resp.status_code != 200:
+            return jsonify({
+                "error": "QVM node error",
+                "details": node_b_result
+            }), resp.status_code
+
+    except requests.RequestException as e:
+        logging.error(f"Error forwarding to Node B: {e}")
         return jsonify({"error": f"QVM node unreachable: {e}"}), 502
 
-    # 4) Return Node B result + job metadata
+    # Success case
     return jsonify({
         "user_id": user_id,
         "backend": backend_type,
         "shots": shots,
         "results": node_b_result
     }), 200
+
 
 
 @app.route("/users", methods=["GET"])
