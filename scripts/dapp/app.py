@@ -152,6 +152,10 @@ def bytes_to_b64(b: bytes) -> str:
 # -----------------------------------------------------------------------------
 app = Flask(__name__)
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": 0}), 200
+
 @app.post("/public/submitFiles")
 def submit_files():
     try:
