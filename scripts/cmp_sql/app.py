@@ -119,7 +119,7 @@ def b64_to_text(b64_str: str) -> str:
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok"}), 200
+    return jsonify({"status": 0}), 200
 
 @app.route("/compare", methods=["POST"])
 def compare():
