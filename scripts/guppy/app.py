@@ -33,6 +33,7 @@ from flask import Flask, request, jsonify
 import inspect
 from typing import Tuple, List, Dict, Any
 import ast
+import subprocess, time, shutil
 
 # You need guppylang installed:
 # pip install guppylang
@@ -123,8 +124,64 @@ def detect_guppy_functions(src_code: str) -> Tuple[Dict[str, Any], List[Dict[str
 def health():
     return jsonify({"status": 0}), 200
 
+
 @app.route("/compile", methods=["POST"])
 def compile_endpoint():
+    try:
+        data = request.get_json(force=True)
+        formats = data.get("formats", ["json"])
+        funcs = data.get("functions", [])
+        logger.info(f"[Compile] Requested formats: {formats}, functions: {funcs}")
+    except Exception:
+        return jsonify({"ok": False, "error": "Invalid JSON"}), 400
+
+    if not data or "source_b64" not in data:
+        return jsonify({"ok": False, "error": "Missing 'source_b64'"}), 400
+
+    try:
+        src = base64.b64decode(data["source_b64"]).decode("utf-8")
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Base64 decode failed: {e}"}), 400
+
+    if not funcs:
+        return jsonify({"ok": False, "error": "Missing 'functions' array"}), 400
+    formats = data.get("formats") or ["bytes_b64"]
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        src_path = Path(tmpdir) / "user_module.py"
+        src_path.write_text(src, encoding="utf-8")
+
+        # Save code for audit
+        try:
+            fname = LOG_DIR / f"compile_{int(time.time())}.py"
+            fname.write_text(src, encoding="utf-8")
+            logger.info(f"Saved uploaded source to {fname}")
+        except Exception as e:
+            logger.error(f"Failed to save uploaded source: {e}")
+
+        # Run worker in subprocess
+        try:
+            result = subprocess.run(
+                [sys.executable, str(Path(__file__).parent / "compile_worker.py"),
+                 str(src_path), json.dumps(funcs), json.dumps(formats)],
+                capture_output=True, text=True, timeout=10
+            )
+        except subprocess.TimeoutExpired:
+            return jsonify({"ok": False, "error": "Compile worker timeout"}), 400
+
+        if result.returncode != 0:
+            return jsonify({"ok": False, "error": result.stderr or result.stdout}), 400
+
+        try:
+            output = json.loads(result.stdout)
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"Worker JSON parse failed: {e}"}), 400
+
+        return jsonify(output)
+
+
+@app.route("/compile2", methods=["POST"])
+def compile_endpoint2():
     try:
         data = request.get_json(force=True)
         formats = data.get("formats", ["json"])
@@ -148,6 +205,14 @@ def compile_endpoint():
         return jsonify({"ok": False, "error": "Missing 'functions' array"}), 400
 
     formats = data.get("formats") or ["bytes_b64"]
+
+    # --- Save uploaded code to /logs ---
+    try:
+        fname = LOG_DIR / f"compile_{int(time.time())}.py"
+        fname.write_text(src, encoding="utf-8")
+        logger.info(f"Saved uploaded source to {fname}")
+    except Exception as e:
+        logger.error(f"Failed to save uploaded source: {e}")
 
     # --- Save source into a temp file ---
     with tempfile.TemporaryDirectory() as tmpdir:
