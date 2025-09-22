@@ -1,3 +1,4 @@
 [
-  { "name": "qasm2qir node3", "url": "https://cryspprod3.quantag-it.com:444/api7" }
+  { "name": "qasm2qir node3", "url": "https://cryspprod3.quantag-it.com:444/api7" },
+  { "name": "gauth node3", "url": "https://cryspprod3.quantag-it.com:444/api10" }
 ]

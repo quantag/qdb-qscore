@@ -26,6 +26,11 @@ SCOPE = ['openid', 'email', 'profile']
 # === Memory store for issued tokens per session ===
 issued_tokens = {}
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": 0}), 200
+
+
 @app.route('/google-auth-start')
 def login():
     login_token = request.args.get('login_token')
