@@ -12,6 +12,10 @@ logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": 0}), 200
+
 @app.route('/render', methods=['POST'])
 def render_pyzx():
     try:

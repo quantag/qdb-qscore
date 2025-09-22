@@ -49,7 +49,6 @@ logger = logging.getLogger("guppy")
 # pip install selene-sim
 # from selene_sim import build as selene_build
 
-#app = Flask(__name__)
 app = Flask(__name__)
 CORS(app)
 
@@ -107,6 +106,9 @@ def detect_guppy_functions(src_code: str) -> Tuple[Dict[str, Any], List[Dict[str
 
     return ns, infos
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": 0}), 200
 
 @app.route("/compile", methods=["POST"])
 def compile_endpoint():
@@ -180,11 +182,6 @@ def compile_endpoint():
 
     return jsonify({"ok": True, "results": results})
 
-
-
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({"ok": True})
 
 
 @app.route("/detect", methods=["POST"])
