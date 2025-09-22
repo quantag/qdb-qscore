@@ -17,13 +17,16 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-#app = Flask(__name__)
 
 def image_to_base64(img_array):
     img = Image.fromarray(img_array)
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
     return base64.b64encode(buffer.getvalue()).decode()
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": 0}), 200
 
 @app.route('/process', methods=['POST'])
 def process_image():
