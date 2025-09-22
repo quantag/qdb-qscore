@@ -1,461 +1,245 @@
+import os
+import base64
+import json
+import sys
+import tempfile
+import importlib.util
 from flask import Flask, request, jsonify
 import cudaq
-import math
-import sys
-import json
-import base64
-import os
-from datetime import datetime
-from typing import Tuple, Dict
-from flask_cors import CORS
-
-# NEW: extra imports for isolation + temp files + worker CLI
 import subprocess
-import tempfile
-import shlex
 
 app = Flask(__name__)
-CORS(app)
 
-# -------------------------
-# Config
-# -------------------------
-# You can override via env: CUDAQ_WORKER_TIMEOUT=600
-WORKER_TIMEOUT_SEC = int(os.getenv("CUDAQ_WORKER_TIMEOUT", "600"))
+# Default target (can be overridden in request)
+DEFAULT_TARGET = os.environ.get("CUDAQ_TARGET", "qpp-cpu")
 
-# -------------------------
-# Helpers for base64 I/O
-# -------------------------
-def b64e(s: str) -> str:
-    return base64.b64encode(s.encode("utf-8")).decode("ascii")
+def save_to_tempfile(source_code: str, suffix=".py"):
+    """Save code to a temporary file and return path."""
+    tmp = tempfile.NamedTemporaryFile("w", suffix=suffix, delete=False)
+    tmp.write(source_code)
+    tmp_path = tmp.name
+    tmp.close()
+    return tmp_path
 
-def b64d(s: str) -> str:
-    return base64.b64decode(s).decode("utf-8")
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": 0}), 200
 
-# -------------------------
-# Logging helper
-# -------------------------
-def log_qasm(qasm_text: str, prefix: str) -> str:
-    """Save QASM text into logs/ with timestamp, return path, and print."""
-    os.makedirs("logs", exist_ok=True)
-    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
-    fname = f"logs/{prefix}_{ts}.qasm"
-    with open(fname, "w", encoding="ascii", errors="ignore") as f:
-        f.write(qasm_text)
-    print(f"[LOG] {prefix} request saved to {fname} ({len(qasm_text)} chars)")
-    return fname
-
-# -------------------------
-# Angle parsing
-# -------------------------
-def parse_angle(expr: str) -> float:
-    expr = expr.strip().replace(";", "")
-    if expr == "pi":
-        return math.pi
-    if expr.startswith("pi/"):
-        denom = float(expr.split("/")[1])
-        return math.pi / denom
-    if "*" in expr and "pi" in expr:
-        parts = expr.split("*")
-        factor = float(parts[0])
-        rest = parts[1]
-        if "/" in rest:
-            denom = float(rest.split("/")[1])
-            return factor * math.pi / denom
-        return factor * math.pi
-    if "/" in expr and "pi" in expr:
-        num, denom = expr.split("/")
-        num = num.replace("pi", str(math.pi))
-        return float(num) / float(denom)
-    try:
-        return float(expr)
-    except Exception:
-        raise ValueError(f"Unsupported angle format: {expr}")
-
-# -------------------------
-# Parser -> executable kernel
-# -------------------------
-def qasm_to_kernel(qasm: str) -> Tuple["cudaq.Kernel", int]:
-    kernel = cudaq.make_kernel()
-    q = None
-    creg_size = 0
-
-    for line in qasm.splitlines():
-        line = line.strip()
-        if (not line
-            or line.startswith("//")
-            or line.startswith("OPENQASM")
-            or line.startswith("include")):
-            continue
-
-        if line.startswith("qreg"):
-            n = int(line.split("[")[1].split("]")[0])
-            q = kernel.qalloc(n)
-
-        elif line.startswith("creg"):
-            creg_size = int(line.split("[")[1].split("]")[0])
-
-        elif line.startswith("h "):
-            idx = int(line.split("[")[1].split("]")[0])
-            kernel.h(q[idx])
-
-        elif line.startswith("x "):
-            idx = int(line.split("[")[1].split("]")[0])
-            kernel.x(q[idx])
-
-        elif line.startswith("cx"):
-            parts = line.replace(";", "").split(",")
-            c1 = int(parts[0].split("[")[1].split("]")[0])
-            c2 = int(parts[1].split("[")[1].split("]")[0])
-            kernel.cx(q[c1], q[c2])
-
-        elif line.startswith("rz"):
-            angle = line[line.find("(")+1:line.find(")")]
-            idx = int(line.split("[")[1].split("]")[0])
-            kernel.rz(parse_angle(angle), q[idx])
-
-        elif line.startswith("cu1"):
-            line2 = line.replace(";", "")
-            angle = line2[line2.find("(")+1:line2.find(")")]
-            ctrl_idx = int(line2.split("[")[1].split("]")[0])
-            tgt_idx  = int(line2.split("[")[2].split("]")[0])
-            theta = parse_angle(angle)
-            try:
-                kernel.cp(theta, q[ctrl_idx], q[tgt_idx])
-            except Exception:
-                kernel.cr1(theta, q[ctrl_idx], q[tgt_idx])
-
-        elif line.startswith("barrier"):
-            continue
-
-        elif line.startswith("measure"):
-            continue
-
-        else:
-            raise ValueError(f"Unsupported or unrecognized statement: {line}")
-
-    return kernel, creg_size
-
-# -------------------------
-# Parser -> C++ kernel code (string)
-# -------------------------
-def qasm_to_kernel_cpp(qasm: str) -> str:
-    lines = []
-    lines.append("#include <cudaq.h>")
-    lines.append("")
-    lines.append("cudaq::kernel auto make_kernel_from_qasm() {")
-    creg_size = 0
-
-    for raw in qasm.splitlines():
-        line = raw.strip()
-        if (not line
-            or line.startswith("//")
-            or line.startswith("OPENQASM")
-            or line.startswith("include")):
-            continue
-
-        if line.startswith("qreg"):
-            n = int(line.split("[")[1].split("]")[0])
-            lines.append(f"    auto q = cudaq::qalloc({n});")
-
-        elif line.startswith("creg"):
-            creg_size = int(line.split("[")[1].split("]")[0])
-
-        elif line.startswith("h "):
-            idx = int(line.split("[")[1].split("]")[0])
-            lines.append(f"    h(q[{idx}]);")
-
-        elif line.startswith("x "):
-            idx = int(line.split("[")[1].split("]")[0])
-            lines.append(f"    x(q[{idx}]);")
-
-        elif line.startswith("cx"):
-            parts = line.replace(";", "").split(",")
-            c1 = int(parts[0].split("[")[1].split("]")[0])
-            c2 = int(parts[1].split("[")[1].split("]")[0])
-            lines.append(f"    cx(q[{c1}], q[{c2}]);")
-
-        elif line.startswith("rz"):
-            angle_expr = line[line.find("(")+1:line.find(")")]
-            idx = int(line.split("[")[1].split("]")[0])
-            theta = parse_angle(angle_expr)
-            lines.append(f"    rz({theta}, q[{idx}]);")
-
-        elif line.startswith("cu1"):
-            l2 = line.replace(";", "")
-            angle_expr = l2[l2.find("(")+1:l2.find(")")]
-            ctrl_idx = int(l2.split("[")[1].split("]")[0])
-            tgt_idx  = int(l2.split("[")[2].split("]")[0])
-            theta = parse_angle(angle_expr)
-            lines.append(f"    cp({theta}, q[{ctrl_idx}], q[{tgt_idx}]);")
-
-        elif line.startswith("barrier"):
-            continue
-
-        elif line.startswith("measure"):
-            continue
-
-        else:
-            raise ValueError(f"Unsupported or unrecognized statement: {line}")
-
-    lines.append("}")
-    lines.append(f"// creg_size_hint = {creg_size}")
-    return "\n".join(lines)
-
-# -------------------------
-# Parser -> Python kernel code (string)
-# -------------------------
-def qasm_to_kernel_code(qasm: str) -> str:
-    n_qubits = None
-    body = []
-    body.append("kernel = cudaq.make_kernel()")
-    body.append("q = None")
-    creg_size = 0
-
-    for raw in qasm.splitlines():
-        line = raw.strip()
-        if (not line
-            or line.startswith("//")
-            or line.startswith("OPENQASM")
-            or line.startswith("include")):
-            continue
-
-        if line.startswith("qreg"):
-            n = int(line.split("[")[1].split("]")[0])
-            n_qubits = n
-            body.append(f"q = kernel.qalloc({n})")
-
-        elif line.startswith("creg"):
-            creg_size = int(line.split("[")[1].split("]")[0])
-
-        elif line.startswith("h "):
-            idx = int(line.split("[")[1].split("]")[0])
-            body.append(f"kernel.h(q[{idx}])")
-
-        elif line.startswith("x "):
-            idx = int(line.split("[")[1].split("]")[0])
-            body.append(f"kernel.x(q[{idx}])")
-
-        elif line.startswith("cx"):
-            parts = line.replace(";", "").split(",")
-            c1 = int(parts[0].split("[")[1].split("]")[0])
-            c2 = int(parts[1].split("[")[1].split("]")[0])
-            body.append(f"kernel.cx(q[{c1}], q[{c2}])")
-
-        elif line.startswith("rz"):
-            angle_expr = line[line.find("(")+1:line.find(")")]
-            idx = int(line.split("[")[1].split("]")[0])
-            theta = parse_angle(angle_expr)
-            body.append(f"kernel.rz({theta}, q[{idx}])")
-
-        elif line.startswith("cu1"):
-            l2 = line.replace(";", "")
-            angle_expr = l2[l2.find("(")+1:l2.find(")")]
-            ctrl_idx = int(l2.split("[")[1].split("]")[0])
-            tgt_idx  = int(l2.split("[")[2].split("]")[0])
-            theta = parse_angle(angle_expr)
-            body.append(
-                "try:\n"
-                f"    kernel.cp({theta}, q[{ctrl_idx}], q[{tgt_idx}])\n"
-                "except Exception:\n"
-                f"    kernel.cr1({theta}, q[{ctrl_idx}], q[{tgt_idx}])"
-            )
-
-        elif line.startswith("barrier"):
-            continue
-
-        elif line.startswith("measure"):
-            continue
-
-        else:
-            raise ValueError(f"Unsupported or unrecognized statement: {line}")
-
-    if n_qubits is None:
-        raise ValueError("qreg declaration not found.")
-
-    src = [
-        "import cudaq",
-        "",
-        "def make_kernel_from_qasm() -> 'cudaq.Kernel':",
-    ]
-    src.extend(["    " + b for b in body])
-    src.append("    return kernel")
-    src.append(f"# creg_size_hint = {creg_size}")
-    return "\n".join(src)
-
-# -------------------------
-# SUBPROCESS WORKER ENTRY
-# -------------------------
-def worker_run(qasm_path: str, shots: int) -> int:
+@app.route("/cudaq/ir", methods=["POST"])
+def get_ir():
     """
-    Worker: load QASM, run cudaq.sample, print JSON to stdout.
-    Exit 0 on success, non-zero on failure.
+    Return MLIR IR of a CUDA-Q kernel.
+    Request:
+    { "source_b64": "...", "lang": "python", "kernel": "bell" }
     """
     try:
-        with open(qasm_path, "r", encoding="utf-8", errors="ignore") as f:
-            qasm = f.read()
+        body = request.get_json(force=True)
+        src_b64 = body.get("source_b64")
+        kernel_name = body.get("kernel", "kernel")
+        lang = body.get("lang", "python")
 
-        kernel, creg_size = qasm_to_kernel(qasm)
-        result = cudaq.sample(kernel, shots_count=shots)
+        if not src_b64:
+            return jsonify({"error": "Missing source_b64"}), 400
 
-        histogram: Dict[str, int] = {}
-        for bitstring, count in result.items():
-            k = bitstring if isinstance(bitstring, str) else "".join(str(b) for b in bitstring)
-            histogram[str(k)] = int(count)
+        if lang != "python":
+            return jsonify({"error": "Only python supported"}), 400
 
-        out = {"histogram": histogram, "creg_size": creg_size}
-        sys.stdout.write(json.dumps(out))
-        sys.stdout.flush()
-        return 0
+        source_code = base64.b64decode(src_b64).decode("utf-8")
+        kernel = load_python_kernel(source_code, kernel_name)
+
+        if not kernel:
+            return jsonify({"error": f"Kernel {kernel_name} not found"}), 400
+
+        ir_text = cudaq.get_ir(kernel)
+        return jsonify({"ir": ir_text})
 
     except Exception as e:
-        err = {"error": f"CUDA-Q worker failed: {str(e)}"}
-        sys.stderr.write(json.dumps(err))
-        sys.stderr.flush()
-        return 1
+        return jsonify({"error": str(e)}), 500
 
-# -------------------------
-# Parent -> run CUDA-Q in subprocess
-# -------------------------
-def run_cudaq_in_subprocess(qasm_text: str, shots: int, timeout_sec: int) -> Tuple[bool, dict, str]:
+@app.route("/cudaq/qasm", methods=["POST"])
+def to_qasm():
     """
-    Returns (ok, result_json_dict, error_message)
-    - ok == True: result_json_dict filled (histogram, creg_size)
-    - ok == False: error_message filled
+    Convert CUDA-Q source to OpenQASM 3.0.
+    Request JSON:
+    {
+      "source_b64": "<base64 python/cpp source>",
+      "lang": "python" | "cpp"
+    }
     """
-    # Write QASM to a temp file to avoid huge argv/env
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".qasm", mode="w", encoding="utf-8") as tf:
-        tf.write(qasm_text)
-        qasm_path = tf.name
-
     try:
-        # Invoke this same file with --worker
-        cmd = [
-            sys.executable,
-            __file__,
-            "--worker",
-            "--qasm_path", qasm_path,
-            "--shots", str(int(shots))
-        ]
+        body = request.get_json(force=True)
+        src_b64 = body.get("source_b64")
+        lang = body.get("lang", "python")
 
-        completed = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout_sec
+        if not src_b64:
+            return jsonify({"error": "Missing source_b64"}), 400
+
+        source_code = base64.b64decode(src_b64).decode("utf-8")
+
+        suffix = ".py" if lang == "python" else ".cpp"
+        tmp_path = save_to_tempfile(source_code, suffix)
+
+        # Run q-convert (must be installed and in PATH)
+        cmd = ["q-convert", "--from", "cudaq", "--to", "qasm3", tmp_path]
+        sys.stdout.write("[CMD] " + " ".join(cmd) + "\n")
+        sys.stdout.flush()
+
+        result = subprocess.run(
+            cmd, capture_output=True, text=True
         )
 
-        if completed.returncode == 0:
-            try:
-                data = json.loads(completed.stdout.strip() or "{}")
-                return True, data, ""
-            except Exception as e:
-                return False, {}, f"Worker returned invalid JSON: {e}"
-        else:
-            # Try to parse JSON stderr, else plain text
-            msg = completed.stderr.strip()
-            try:
-                err = json.loads(msg or "{}")
-                return False, {}, err.get("error", "Worker failed.")
-            except Exception:
-                # Map common kill codes to a friendly message
-                if completed.returncode in (137, 9):
-                    return False, {}, "Worker was killed (likely OOM)."
-                return False, {}, (msg or f"Worker failed with code {completed.returncode}.")
+        if result.returncode != 0:
+            return jsonify({
+                "error": "q-convert failed",
+                "stderr": result.stderr
+            }), 500
 
-    except subprocess.TimeoutExpired:
-        return False, {}, f"Worker timed out after {timeout_sec} seconds."
-    finally:
+        qasm = result.stdout
+
+        return jsonify({
+            "qasm": qasm,
+            "lang": lang
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def load_python_kernel(source_code: str, kernel_name: str):
+    """
+    Save source_code to a temporary file and import it as a module.
+    This avoids the 'could not get source code' error from @cudaq.kernel.
+    """
+    try:
+        with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as tmp:
+            tmp.write(source_code)
+            tmp_path = tmp.name
+
+        spec = importlib.util.spec_from_file_location("user_module", tmp_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        if hasattr(module, kernel_name):
+            return getattr(module, kernel_name)
+
+        # Fallback: find any CUDA-Q kernel in the module
+        for name in dir(module):
+            obj = getattr(module, name)
+            if hasattr(obj, "__cudaq_kernel__"):
+                sys.stdout.write(f"[INFO] Auto-detected kernel: {name}\n")
+                sys.stdout.flush()
+                return obj
+
+        return None
+    except Exception as e:
+        sys.stderr.write(f"[ERROR] load_python_kernel failed: {e}\n")
+        sys.stderr.flush()
+        raise
+
+
+@app.route("/cudaq/run", methods=["POST"])
+def run_kernel():
+    """
+    Run a CUDA-Q kernel.
+    Request JSON:
+    {
+      "source_b64": "<base64 of Python source>",
+      "lang": "python",
+      "kernel": "bell",
+      "target": "nvidia" | "qpp-cpu" | "density-matrix-cpu" | "ionq" | "quantinuum",
+      "shots": 1000,
+      "state": true|false
+    }
+    """
+    try:
+        body = request.get_json(force=True)
+        sys.stdout.write("[REQUEST] " + json.dumps(body) + "\n")
+        sys.stdout.flush()
+
+        src_b64 = body.get("source_b64")
+        lang = body.get("lang", "python")
+        kernel_name = body.get("kernel", "kernel")
+        target = body.get("target", DEFAULT_TARGET)
+        shots = int(body.get("shots", 1000))
+        want_state = bool(body.get("state", False))
+
+        if not src_b64:
+            return jsonify({"error": "Missing source_b64"}), 400
+
+        source_code = base64.b64decode(src_b64).decode("utf-8")
+
+        # --- Set target ---
         try:
-            os.unlink(qasm_path)
-        except Exception:
-            pass
+            cudaq.set_target(target)
+        except Exception as e:
+            sys.stderr.write(f"[ERROR] Failed to set target {target}: {e}\n")
+            sys.stderr.flush()
+            return jsonify({"error": f"Invalid target {target}"}), 400
 
-# -------------------------
-# /run endpoint (uses subprocess isolation)
-# -------------------------
-@app.route("/run", methods=["POST"])
-def run_qasm():
-    try:
-        data = request.get_json(force=True) or {}
-        qasm_b64 = data.get("qasm_b64")
-        if not qasm_b64:
-            return jsonify({"error": "qasm_b64 is required"}), 400
-
-        shots = int(data.get("shots", 1000))
-        qasm = b64d(qasm_b64)
-
-        # Optional: log request
-        log_qasm(qasm, "run")
-
-        ok, result_dict, err = run_cudaq_in_subprocess(qasm, shots, WORKER_TIMEOUT_SEC)
-        if ok:
-            return jsonify(result_dict), 200
+        # --- Load kernel ---
+        if lang == "python":
+            kernel = load_python_kernel(source_code, kernel_name)
+            if not kernel:
+                return jsonify({"error": f"Kernel {kernel_name} not found"}), 400
+        elif lang == "cpp":
+            return jsonify({"error": "C++ CUDA-Q not supported yet"}), 501
         else:
-            return jsonify({"error": err}), 500
+            return jsonify({"error": "Unsupported language"}), 400
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # --- Run kernel ---
+        try:
+            result = cudaq.sample(kernel, shots_count=shots)
+        except Exception as e:
+            sys.stderr.write("[ERROR] cudaq.sample failed: " + str(e) + "\n")
+            sys.stderr.flush()
+            return jsonify({"error": "cudaq.sample failed: " + str(e)}), 500
 
-# -------------------------
-# /compile endpoint (unchanged)
-# -------------------------
-@app.route("/compile", methods=["POST"])
-def compile_qasm():
-    try:
-        data = request.get_json(force=True) or {}
-        qasm_b64 = data.get("qasm")
-        if not qasm_b64:
-            return jsonify({"error": "qasm is required"}), 400
+        payload = {"counts": dict(result)}
 
-        qasm = b64d(qasm_b64)
-        target_type = (data.get("type") or "python").lower()
-
-        log_qasm(qasm, f"compile_{target_type}")
-
-        if target_type == "cpp":
-            src = qasm_to_kernel_cpp(qasm)
-            return jsonify({"output": b64e(src)})
-        else:
-            src = qasm_to_kernel_code(qasm)
-            return jsonify({"output": b64e(src)})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# -------------------------
-# Main + Worker CLI
-# -------------------------
-def parse_worker_args(argv):
-    args = {"--worker": False, "--qasm_path": None, "--shots": 1000}
-    i = 0
-    while i < len(argv):
-        tok = argv[i]
-        if tok == "--worker":
-            args["--worker"] = True
-        elif tok == "--qasm_path" and i + 1 < len(argv):
-            args["--qasm_path"] = argv[i + 1]
-            i += 1
-        elif tok == "--shots" and i + 1 < len(argv):
+        if want_state:
             try:
-                args["--shots"] = int(argv[i + 1])
-            except Exception:
-                args["--shots"] = 1000
-            i += 1
-        i += 1
-    return args
+                state = cudaq.get_state(kernel)
+                payload["statevector_amplitudes"] = [str(a) for a in state]
+            except Exception as e:
+                sys.stderr.write("[WARN] get_state failed: " + str(e) + "\n")
+                sys.stderr.flush()
+
+        sys.stdout.write("[RESPONSE] " + json.dumps(payload) + "\n")
+        sys.stdout.flush()
+        return jsonify(payload)
+
+    except Exception as e:
+        sys.stderr.write("[ERROR] " + str(e) + "\n")
+        sys.stderr.flush()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/cudaq/targets", methods=["GET"])
+def list_targets():
+    """List available CUDA-Q targets (simulators + hardware)."""
+    try:
+        targets = cudaq.get_targets()
+        return jsonify({"targets": targets})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/cudaq/selftest", methods=["GET"])
+def selftest():
+    """Run a built-in Bell kernel to verify CUDA-Q works."""
+    try:
+        @cudaq.kernel
+        def bell():
+            q = cudaq.qvector(2)
+            cudaq.h(q[0])
+            cudaq.cx(q[0], q[1])
+
+        cudaq.set_target(DEFAULT_TARGET)
+        result = cudaq.sample(bell, shots_count=100)
+        return jsonify({"counts": dict(result)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
-    # Worker mode: invoked by subprocess to run CUDA-Q safely
-    if len(sys.argv) > 1 and "--worker" in sys.argv:
-        wa = parse_worker_args(sys.argv[1:])
-        qp = wa.get("--qasm_path")
-        sh = int(wa.get("--shots", 1000))
-        if not qp:
-            sys.stderr.write(json.dumps({"error": "Missing --qasm_path"}))
-            sys.exit(2)
-        ec = worker_run(qp, sh)
-        sys.exit(ec)
-
-    # Normal server mode
-    app.run(host="127.0.0.1", port=5005)
+    port = int(os.environ.get("PORT", 5040))
+    app.run(host="0.0.0.0", port=port)
