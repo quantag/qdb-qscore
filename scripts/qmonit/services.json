@@ -3,5 +3,6 @@
   { "name": "gauth node3", "url": "https://cryspprod3.quantag-it.com:444/api10" },
   { "name": "guppy node3", "url": "https://cryspprod3.quantag-it.com:444/api17" },
   { "name": "pyzx node3", "url": "https://cryspprod3.quantag-it.com:444/api16" },
-  { "name": "cmp_sql node3", "url": "https://cryspprod3.quantag-it.com:444/api14" }
+  { "name": "cmp_sql node3", "url": "https://cryspprod3.quantag-it.com:444/api14" },
+  { "name": "qbin node3", "url": "https://cryspprod3.quantag-it.com:444/api18" }
 ]
