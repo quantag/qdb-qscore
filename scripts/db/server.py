@@ -15,6 +15,9 @@ import uuid
 import secrets
 import requests
 import threading
+import psutil
+
+VERSION = "1.0.0"
 
 # Configure logging
 # Generate filename with timestamp
@@ -158,7 +161,19 @@ def get_users():
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({"status": 0}), 200
+    # Disk space in GB
+    disk_usage = psutil.disk_usage('/')
+    free_gb = round(disk_usage.free / (1024**3), 2)
+
+    # CPU load (1-minute average)
+    cpu_load = psutil.getloadavg()[0] if hasattr(psutil, "getloadavg") else psutil.cpu_percent(interval=0.1)
+
+    return jsonify({
+        "status": 0,
+        "version": VERSION,
+        "disk_free_gb": free_gb,
+        "cpu_load": cpu_load
+    }), 200
 
 
 @app.route("/users/<user_id>/jobs", methods=["GET"])
