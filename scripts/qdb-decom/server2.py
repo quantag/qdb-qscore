@@ -6,6 +6,10 @@ import datetime
 app = Flask(__name__)
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": 0}), 200
+
 @app.route('/dec', methods=['POST'])
 def dec():
     try:
