@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 import pandas as pd
 from quantag import QAOASolver
 from flask_cors import CORS
+from io import StringIO
+import base64
 
 app = Flask(__name__)
 CORS(app)
@@ -27,8 +29,8 @@ def solve():
 
         # Input options: CSV text or JSON array
         if "csv" in data:
-            from io import StringIO
-            df = pd.read_csv(StringIO(data["csv"]))
+            csv_bytes = base64.b64decode(data["csv"])
+            df = pd.read_csv(StringIO(csv_bytes.decode("utf-8")))
         elif "data" in data:
             df = pd.DataFrame(data["data"])
         else:
