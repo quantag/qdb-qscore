@@ -576,6 +576,148 @@
           }
         }
       }
+    },
+    "/generate-script": {
+      "post": {
+        "summary": "Generate Quantum Script",
+        "description": "Generate Quantum script based on the provided parameters",
+        "operationId": "generateScript",
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api11/gen_init_qasm",
+          "protocol": "http/1.1"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": { "type": "string" }
+              },
+              "required": ["data"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful generated",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "norm": { "type": "number" },
+                "num_qubits": { "type": "number" },
+                "qasm_base64": { "type": "string" },
+                "used_length": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /generate-script",
+        "operationId": "generateScriptOptions",
+        "security": [],
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api11/gen_init_qasm",
+          "protocol": "http/1.1"
+        },
+        "responses": {
+          "200": {
+            "description": "Successful preflight",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portfolio-optimize": {
+      "post": {
+        "summary": "Optimize Portfolio",
+        "description": "Optimize a portfolio based on the provided parameters",
+        "operationId": "portfolioOptimize",
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api20/solve",
+          "protocol": "http/1.1"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "backend": { "type": "string" },
+                "csv": { "type": "string" }
+              },
+              "required": ["backend", "csv"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful optimized",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "energy": { "type": "number" },
+                "selected_assets": { "type": "array" },
+                "status": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /portfolio-optimize",
+        "operationId": "portfolioOptimizeOptions",
+        "security": [],
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api20/solve",
+          "protocol": "http/1.1"
+        },
+        "responses": {
+          "200": {
+            "description": "Successful preflight",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
