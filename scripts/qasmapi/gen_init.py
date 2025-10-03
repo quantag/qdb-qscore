@@ -6,8 +6,10 @@ from qiskit import QuantumCircuit
 from qiskit.circuit.library import Initialize
 from qiskit.qasm2 import dumps
 from math import ceil, log2
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route("/gen_init_qasm", methods=["POST"])
 def gen_init_qasm():
