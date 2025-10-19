@@ -805,7 +805,8 @@ def get_config_for_user():
         "qasm2qir": "https://api.quantag-it.com/qasm2qir",
         "circuit.web": "https://quantag-it.com/quantum/#/qcd?id=",
         "getuser.by_googleid": "https://quantum.quantag-it.com/api5/getuser_by_googleid",
-        "get.config": "https://quantum.quantag-it.com/api5/get_config"
+        "get.config": "https://quantum.quantag-it.com/api5/get_config",
+        "qvm.submit": "https://quantum.quantag-it.com/api5/qvm/submit"
     }
 
     # If no user_id = return default config immediately
