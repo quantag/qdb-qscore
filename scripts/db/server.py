@@ -67,10 +67,10 @@ def create_job_record(user_id, qasm_b64, backend_type, instance="sim", status_st
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO jobs (uid, user_id, submitted_at, input, instance, qpu, status_str)
-            VALUES (%s, %s, %s, %s, %s, %s, %s);
+            INSERT INTO jobs (uid, user_id, input, instance, qpu, status_str)
+            VALUES (%s, %s, %s, %s, %s, %s);
             """,
-            (job_uid, user_id, datetime.utcnow(), qasm_str, instance, backend_type, status_str)
+            (job_uid, user_id, qasm_str, instance, backend_type, status_str)
         )
         conn.commit()
         return job_uid
@@ -423,6 +423,98 @@ def check_job():
 def qvm_submit():
     data = request.get_json(silent=True) or {}
 
+    # --- 1. Validate required params ---
+    api_key = data.get("apikey") or request.headers.get("X-API-Key")
+    if not api_key:
+        return jsonify({"error": "Missing API key"}), 400
+
+    user_id = validate_api_key(api_key)
+    if not user_id:
+        return jsonify({"error": "Invalid API key"}), 403
+
+    src_b64 = data.get("src") or data.get("qasm")
+    if not src_b64:
+        return jsonify({"error": "Missing 'src' (base64)"}), 400
+
+    src_type = (data.get("src_type") or "qasm").lower()
+
+    exec_cfg = data.get("execution") or {}
+    mode = (exec_cfg.get("mode") or "sampler").lower()
+    shots = int(exec_cfg.get("shots", 1024))
+
+    backend = (data.get("backend") or "").lower()
+    if not backend:
+        return jsonify({"error": "Missing 'backend'"}), 400
+
+    options = data.get("options") or {}
+
+    # --- 2. Create job record ---
+    try:
+        job_uid = create_job_record(
+            user_id=user_id,
+            qasm_b64=src_b64,
+            backend_type=backend,
+            instance=options.get("instance", "sim"),
+            status_str="QUEUED"
+        )
+    except Exception as e:
+        logging.exception("DB insert failed")
+        return jsonify({"error": f"DB insert failed: {e}"}), 500
+
+    # --- 3. Backend-specific execution ---
+    if backend == "ibm":
+        try:
+            status, payload = _submit_ibm_job_core(
+                job_uid,
+                src_b64,
+                user_id,
+                options.get("token"),
+                options.get("instance"),
+                options.get("device")
+            )
+            if status != 200:
+                update_job_status(job_uid, "ERROR", error_msg=payload.get("error"))
+                return jsonify(payload), status
+        except Exception as e:
+            logging.exception("IBM submit failed")
+            update_job_status(job_uid, "ERROR", error_msg=str(e))
+            return jsonify({"error": str(e), "job_uid": job_uid}), 500
+
+    elif backend == "cudaq":
+        try:
+            t = threading.Thread(
+                target=_qvm_execute_job_async,
+                args=(job_uid, src_b64, shots, backend),
+                daemon=True
+            )
+            t.start()
+        except Exception as e:
+            logging.exception("CUDA-Q submit failed")
+            update_job_status(job_uid, "ERROR", error_msg=str(e))
+            return jsonify({"error": str(e), "job_uid": job_uid}), 500
+
+    else:
+        update_job_status(job_uid, "ERROR", error_msg=f"Unsupported backend: {backend}")
+        return jsonify({
+            "error": "Unsupported backend",
+            "job_uid": job_uid,
+            "details": {"supported": ["ibm", "cudaq"], "received": backend}
+        }), 400
+
+    # --- 4. Return response ---
+    return jsonify({
+        "job_uid": job_uid,
+        "status": "QUEUED",
+        "backend": backend,
+        "shots": shots,
+        "mode": mode
+    }), 202
+
+
+@app.route("/qvm/submit2", methods=["POST"])
+def qvm_submit2():
+    data = request.get_json(silent=True) or {}
+
     # 1) Validate API key
     api_key = data.get("apikey") or request.headers.get("X-API-Key")
     user_id = validate_api_key(api_key)
@@ -751,57 +843,35 @@ def get_config_for_user():
         if conn: conn.close()
 
 
-
-@app.route("/submit_ibm_job", methods=["POST"])
-def submit_ibm_job():
-    data = request.get_json()
-    qasm_b64 = data.get("qasm")
-    user_id = data.get("user_id")
-    token = data.get("token")
-    inst = data.get("instance")
-    back = data.get("backend")
-
+# ===== 1) Helper to submit IBM job (factored out of the route) =====
+def _submit_ibm_job_core(job_uid: str, qasm_b64: str, user_id: str, token: str, inst: str, back: str):
     if not qasm_b64:
-        logging.error("missing 'qasm' field in request")
-        return jsonify({"error": "Missing 'qasm' field"}), 400
-
+        return 400, {"error": "Missing 'qasm' field"}
     if not user_id:
-        logging.error("missing 'user_id' field in request")
-        return jsonify({"error": "Missing 'user_id' field"}), 400
-
+        return 400, {"error": "Missing 'user_id' field"}
     if not token:
-        logging.error("missing 'token' field in request")
-        return jsonify({"error": "Missing 'token' field"}), 400
-
+        return 400, {"error": "Missing 'token' field"}
     if not inst or not back:
-        logging.error("missing some required field")
-        return jsonify({"error": "Missing instance or backend"}), 400
-
+        return 400, {"error": "Missing instance or backend"}
 
     try:
         # Decode and parse QASM
         qasm_str = base64.b64decode(qasm_b64).decode("utf-8")
-        logging.info(f"received QASM: {qasm_str}")
+        logging.info(f"received QASM (len={len(qasm_str)})")
         qc = qasm3_loads(qasm_str)
 
-        logging.info(f"Loaded QASM")
         # Save account and connect
         QiskitRuntimeService.save_account(
             token=token,
             instance=inst,
-#            name="myacc",
             set_as_default=True,
             overwrite=True
         )
 
-        # Connect to IBM backend
-        logging.info(f"Connecting to IBM service..")
         service = QiskitRuntimeService()
-        logging.info(f"Connecting to IBM backend..")
         backend = service.backend(name=back, instance=inst)
-        logging.info(f"Connected to backend: {back}")
 
-        # Transpile and submit job
+        # Transpile and submit
         tqc = transpile(qc, backend=backend)
         sampler = SamplerV2(backend)
         job = sampler.run([tqc])
@@ -810,13 +880,16 @@ def submit_ibm_job():
         # Store in DB
         conn = psycopg2.connect(**db_config)
         cursor = conn.cursor()
+        logging.info(f"[DB] update_job_info: job_id={job_id}, uid={job_uid}")
         cursor.execute(
             """
-            INSERT INTO jobs (job_id, user_id, submitted_at, input, instance, qpu)
-            VALUES (%s, %s, %s, %s, %s, %s);
+            UPDATE jobs
+            SET job_id = %s,
+                qpu = %s
+            WHERE uid = %s;
             """,
-            (job_id, user_id, datetime.utcnow(), qasm_str, inst, back)
-        )
+            (job_id, back, job_uid)
+        )        
 
         # Update token in users table
         cursor.execute(
@@ -828,15 +901,76 @@ def submit_ibm_job():
             (token, user_id)
         )
         conn.commit()
+        cursor.close()
+        conn.close()
 
-        return jsonify({"message": "Job submitted", "job_id": job_id})
+        return 200, {"message": "Job submitted", "job_id": job_id}
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logging.exception("IBM job submit failed")
+        return 500, {"error": str(e)}
 
-    finally:
-        if 'cursor' in locals(): cursor.close()
-        if 'conn' in locals(): conn.close()
+
+# ===== 2) Keep the old route, but forward to the helper =====
+@app.route("/submit_ibm_job", methods=["POST"])
+def submit_ibm_job():
+    data = request.get_json() or {}
+    qasm_b64 = data.get("qasm")
+    user_id = data.get("user_id")
+    token = data.get("token")
+    inst = data.get("instance")
+    back = data.get("backend")
+
+    status, payload = _submit_ibm_job_core(qasm_b64, user_id, token, inst, back)
+    return jsonify(payload), status
+
+
+# ===== 3) do not use. New generic route =====
+@app.route("/submit_job", methods=["POST"])
+def submit_job():
+    """
+    Generic entry point.
+    Body:
+      {
+        "qasm": "<base64>",
+        "user_id": "<uid>",
+        "config": {
+          "type": "ibm",
+          "... provider-specific fields ..."
+        }
+      }
+    """
+    data = request.get_json(silent=True) or {}
+
+    qasm_b64 = data.get("qasm")
+    user_id = data.get("user_id")
+    config_obj = data.get("config") or {}
+
+    if not qasm_b64:
+        return jsonify({"error": "Missing 'qasm' (base64)"}), 400
+    if not isinstance(config_obj, dict):
+        return jsonify({"error": "Missing or invalid 'config' object"}), 400
+
+    provider_type = config_obj.get("type")
+    if not provider_type:
+        return jsonify({"error": "Missing 'config.type'"}), 400
+
+    # Dispatch by provider type
+    if provider_type == "ibm":
+        token = config_obj.get("token")
+        inst = config_obj.get("instance")
+        back = config_obj.get("backend")
+        status, payload = _submit_ibm_job_core(qasm_b64, user_id, token, inst, back)
+        return jsonify(payload), status
+
+    # Unsupported (for now)
+    return jsonify({
+        "error": "Unsupported provider type",
+        "details": {
+            "supported": ["ibm"],
+            "received": provider_type
+        }
+    }), 400
 
 @app.route("/del_job", methods=["POST"])
 def delete_job():
