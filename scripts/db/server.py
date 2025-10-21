@@ -196,6 +196,56 @@ def user_jobs(user_id):
         if conn:
             conn.close()
 
+def _submit_qctrl_job_core(job_uid: str, src_b64: str, options: dict):
+    """
+    Forward the job to the Q-CTRL microservice and persist status/results.
+    Expects options to contain whatever your Q-CTRL service needs (e.g. qctrl_api_key, ibm_token, etc.).
+    You can override the endpoint with options['service_url'] or env QCTRL_SERVICE_URL.
+    """
+    try:
+        update_job_status(job_uid, "RUNNING")
+
+        service_url = (
+            (options or {}).get("service_url")
+            or os.getenv("QCTRL_SERVICE_URL")
+            or "https://cloud.quantag-it.com/api21/run"
+        )
+
+        # Pass the whole options dict as the microservice's "config"
+        payload = {
+            "src": src_b64,
+            "config": options or {},
+            # If caller provided "wait" inside options, honor it (default True)
+            "wait": (options or {}).get("wait", True),
+        }
+
+        logging.info(f"[{job_uid}] forwarding to Q-CTRL service: {service_url}")
+        resp = requests.post(service_url, json=payload, timeout=600)
+        text_preview = (resp.text or "")[:500]
+        logging.info(f"[{job_uid}] Q-CTRL resp.status={resp.status_code} body[0:500]={text_preview}")
+
+        # Try to parse JSON either way for consistent DB storage
+        try:
+            resp_json = resp.json()
+        except Exception:
+            resp_json = {"raw": text_preview}
+
+        if resp.status_code >= 400:
+            update_job_status(job_uid, "ERROR", error_msg=f"Q-CTRL error: {resp.status_code} {text_preview}")
+            return resp.status_code, {"error": "Q-CTRL service error", "details": resp_json}
+
+        update_job_status(job_uid, "DONE", results_obj=resp_json)
+        return 200, {"message": "Q-CTRL job finished", "result": resp_json}
+
+    except Exception as e:
+        logging.exception(f"[{job_uid}] Q-CTRL submit failed")
+        try:
+            update_job_status(job_uid, "ERROR", error_msg=str(e))
+        except Exception:
+            pass
+        return 500, {"error": str(e)}
+
+
 @app.route("/qvm/job/<job_uid>", methods=["GET"])
 def qvm_job_status(job_uid):
     # Validate API key and ownership
@@ -279,6 +329,7 @@ def delete_all_apikeys():
     finally:
         if cursor: cursor.close()
         if conn: conn.close()
+
 
 def validate_api_key(api_key):
     """Return user_id if API key is valid, else None"""
@@ -493,6 +544,19 @@ def qvm_submit():
             update_job_status(job_uid, "ERROR", error_msg=str(e))
             return jsonify({"error": str(e), "job_uid": job_uid}), 500
 
+    elif backend == "qctrl":
+        try:
+            status, payload = _submit_qctrl_job_core(
+                job_uid=job_uid,
+                src_b64=src_b64,
+                options=options
+            )
+            if status != 200:
+                return jsonify({"job_uid": job_uid, **payload}), status
+        except Exception as e:
+            logging.exception("Q-CTRL submit failed")
+            return jsonify({"error": str(e), "job_uid": job_uid}), 500
+
     else:
         update_job_status(job_uid, "ERROR", error_msg=f"Unsupported backend: {backend}")
         return jsonify({
@@ -511,51 +575,6 @@ def qvm_submit():
     }), 202
 
 
-@app.route("/qvm/submit2", methods=["POST"])
-def qvm_submit2():
-    data = request.get_json(silent=True) or {}
-
-    # 1) Validate API key
-    api_key = data.get("apikey") or request.headers.get("X-API-Key")
-    user_id = validate_api_key(api_key)
-    if not user_id:
-        return jsonify({"error": "Invalid or missing API key"}), 403
-
-    # 2) Extract inputs
-    qasm_b64 = data.get("qasm")
-    shots = int(data.get("shots", 1024))
-    backend_type = data.get("backend", "cudaq")
-
-    if not qasm_b64:
-        return jsonify({"error": "qasm is required"}), 400
-
-    # 3) Create job record in DB
-    try:
-        job_uid = create_job_record(
-            user_id=user_id,
-            qasm_b64=qasm_b64,
-            backend_type=backend_type,
-            instance="sim",
-            status_str="QUEUED"
-        )
-    except Exception as e:
-        return jsonify({"error": f"DB insert failed: {e}"}), 500
-
-    # 4) Spawn background worker thread
-    t = threading.Thread(
-        target=_qvm_execute_job_async,
-        args=(job_uid, qasm_b64, shots, backend_type),
-        daemon=True
-    )
-    t.start()
-
-    # 5) Return response
-    return jsonify({
-        "job_uid": job_uid,
-        "status": "QUEUED",
-        "backend": backend_type,
-        "shots": shots
-    }), 202
 
 @app.route("/providers", methods=["GET"])
 def get_providers():
@@ -925,53 +944,6 @@ def submit_ibm_job():
     status, payload = _submit_ibm_job_core(qasm_b64, user_id, token, inst, back)
     return jsonify(payload), status
 
-
-# ===== 3) do not use. New generic route =====
-@app.route("/submit_job", methods=["POST"])
-def submit_job():
-    """
-    Generic entry point.
-    Body:
-      {
-        "qasm": "<base64>",
-        "user_id": "<uid>",
-        "config": {
-          "type": "ibm",
-          "... provider-specific fields ..."
-        }
-      }
-    """
-    data = request.get_json(silent=True) or {}
-
-    qasm_b64 = data.get("qasm")
-    user_id = data.get("user_id")
-    config_obj = data.get("config") or {}
-
-    if not qasm_b64:
-        return jsonify({"error": "Missing 'qasm' (base64)"}), 400
-    if not isinstance(config_obj, dict):
-        return jsonify({"error": "Missing or invalid 'config' object"}), 400
-
-    provider_type = config_obj.get("type")
-    if not provider_type:
-        return jsonify({"error": "Missing 'config.type'"}), 400
-
-    # Dispatch by provider type
-    if provider_type == "ibm":
-        token = config_obj.get("token")
-        inst = config_obj.get("instance")
-        back = config_obj.get("backend")
-        status, payload = _submit_ibm_job_core(qasm_b64, user_id, token, inst, back)
-        return jsonify(payload), status
-
-    # Unsupported (for now)
-    return jsonify({
-        "error": "Unsupported provider type",
-        "details": {
-            "supported": ["ibm"],
-            "received": provider_type
-        }
-    }), 400
 
 @app.route("/del_job", methods=["POST"])
 def delete_job():
