@@ -52,7 +52,7 @@ db_config = {
     "password": config["password"]
 }
 
-def create_job_record(user_id, qasm_b64, backend_type, instance="sim", status_str="QUEUED"):
+def create_job_record(user_id, qasm_b64, backend_type, instance="sim", status_str="QUEUED", mode=None, shots=None):
     """Insert a new job row and return its internal uid (uuid)."""
     job_uid = str(uuid.uuid4())
     # decode only for storing readable input
@@ -67,11 +67,13 @@ def create_job_record(user_id, qasm_b64, backend_type, instance="sim", status_st
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO jobs (uid, user_id, input, instance, qpu, status_str)
-            VALUES (%s, %s, %s, %s, %s, %s);
+            INSERT INTO jobs (uid, user_id, input, instance, qpu, status_str, mode, shots)
+            VALUES (%s,   %s,      %s,    %s,      %s,  %s,        %s,   %s);
             """,
-            (job_uid, user_id, qasm_str, instance, backend_type, status_str)
+            (job_uid, user_id, qasm_str, instance, backend_type, status_str, mode,
+             int(shots) if shots is not None else None)
         )
+
         conn.commit()
         return job_uid
     except Exception as e:
@@ -197,6 +199,83 @@ def user_jobs(user_id):
             conn.close()
 
 def _submit_qctrl_job_core(job_uid: str, src_b64: str, options: dict):
+    """
+    Forward the job to the Q-CTRL microservice (async) and persist provider fields.
+    """
+    try:
+        # mark running while we submit
+        update_job_status(job_uid, "RUNNING")
+
+        service_url = (
+            (options or {}).get("service_url")
+            or os.getenv("QCTRL_SERVICE_URL")
+            or "https://cloud.quantag-it.com/api21/run"
+        )
+
+        # Force async submit (never wait here)
+        cfg = dict(options or {})
+        cfg["wait"] = False
+
+        payload = {"src": src_b64, "config": cfg}
+
+        logging.info(f"[{job_uid}] forwarding to Q-CTRL service: {service_url}")
+        resp = requests.post(service_url, json=payload, timeout=120)
+        text_preview = (resp.text or "")[:500]
+        logging.info(f"[{job_uid}] Q-CTRL resp.status={resp.status_code} body[0:500]={text_preview}")
+
+        try:
+            resp_json = resp.json()
+        except Exception:
+            resp_json = {"raw": text_preview}
+
+        if resp.status_code >= 400:
+            update_job_status(job_uid, "ERROR",
+                              error_msg=f"Q-CTRL error: {resp.status_code} {text_preview}")
+            return resp.status_code, {"error": "Q-CTRL service error", "details": resp_json}
+
+        action_id = resp_json.get("action_id") or resp_json.get("job_id")
+        backend_name = resp_json.get("backend_name")
+        # Initial provider status (what we know right after submit)
+        provider_status = "STARTED"
+
+        # Persist provider fields (and keep job queued)
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE jobs
+               SET provider_job_id = %s,
+                   provider_job_status = %s,
+                   qpu = COALESCE(%s, qpu),
+                   status_str = %s
+             WHERE uid = %s;
+            """,
+            (str(action_id) if action_id else None, provider_status,
+             backend_name, "QUEUED", job_uid)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        # Optionally stash submit response for traceability (non-terminal)
+        update_job_status(job_uid, "QUEUED", results_obj={"submit_response": resp_json})
+
+        return 202, {
+            "message": "Q-CTRL job submitted",
+            "action_id": action_id,
+            "backend": backend_name
+        }
+
+    except Exception as e:
+        logging.exception(f"[{job_uid}] Q-CTRL submit failed")
+        try:
+            update_job_status(job_uid, "ERROR", error_msg=str(e))
+        except Exception:
+            pass
+        return 500, {"error": str(e)}
+
+
+def _submit_qctrl_job_core2(job_uid: str, src_b64: str, options: dict):
     """
     Forward the job to the Q-CTRL microservice and persist status/results.
     Expects options to contain whatever your Q-CTRL service needs (e.g. qctrl_api_key, ibm_token, etc.).
@@ -506,7 +585,9 @@ def qvm_submit():
             qasm_b64=src_b64,
             backend_type=backend,
             instance=options.get("instance", "sim"),
-            status_str="QUEUED"
+            status_str="QUEUED",
+            mode=mode,
+            shots=shots
         )
     except Exception as e:
         logging.exception("DB insert failed")
