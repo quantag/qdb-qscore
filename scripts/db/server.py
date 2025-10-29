@@ -16,6 +16,7 @@ import secrets
 import requests
 import threading
 import psutil
+import traceback
 
 VERSION = "1.0.0"
 
@@ -274,55 +275,6 @@ def _submit_qctrl_job_core(job_uid: str, src_b64: str, options: dict):
             pass
         return 500, {"error": str(e)}
 
-
-def _submit_qctrl_job_core2(job_uid: str, src_b64: str, options: dict):
-    """
-    Forward the job to the Q-CTRL microservice and persist status/results.
-    Expects options to contain whatever your Q-CTRL service needs (e.g. qctrl_api_key, ibm_token, etc.).
-    You can override the endpoint with options['service_url'] or env QCTRL_SERVICE_URL.
-    """
-    try:
-        update_job_status(job_uid, "RUNNING")
-
-        service_url = (
-            (options or {}).get("service_url")
-            or os.getenv("QCTRL_SERVICE_URL")
-            or "https://cloud.quantag-it.com/api21/run"
-        )
-
-        # Pass the whole options dict as the microservice's "config"
-        payload = {
-            "src": src_b64,
-            "config": options or {},
-            # If caller provided "wait" inside options, honor it (default True)
-            "wait": (options or {}).get("wait", True),
-        }
-
-        logging.info(f"[{job_uid}] forwarding to Q-CTRL service: {service_url}")
-        resp = requests.post(service_url, json=payload, timeout=600)
-        text_preview = (resp.text or "")[:500]
-        logging.info(f"[{job_uid}] Q-CTRL resp.status={resp.status_code} body[0:500]={text_preview}")
-
-        # Try to parse JSON either way for consistent DB storage
-        try:
-            resp_json = resp.json()
-        except Exception:
-            resp_json = {"raw": text_preview}
-
-        if resp.status_code >= 400:
-            update_job_status(job_uid, "ERROR", error_msg=f"Q-CTRL error: {resp.status_code} {text_preview}")
-            return resp.status_code, {"error": "Q-CTRL service error", "details": resp_json}
-
-        update_job_status(job_uid, "DONE", results_obj=resp_json)
-        return 200, {"message": "Q-CTRL job finished", "result": resp_json}
-
-    except Exception as e:
-        logging.exception(f"[{job_uid}] Q-CTRL submit failed")
-        try:
-            update_job_status(job_uid, "ERROR", error_msg=str(e))
-        except Exception:
-            pass
-        return 500, {"error": str(e)}
 
 
 @app.route("/qvm/job/<job_uid>", methods=["GET"])
@@ -628,11 +580,11 @@ def qvm_submit():
         try:
             status, payload = _submit_ibm_job_core(
                 job_uid=job_uid,
-                src_b64=src_b64,
+                qasm_b64=src_b64,
                 user_id=user_id,
                 token=options.get("token") or options.get("ibm_token"),
-                instance=options.get("instance"),
-                device=options.get("device"),
+                inst=options.get("instance"),
+                back=options.get("device"),
             )
             if status != 200:
                 update_job_status(job_uid, "ERROR", error_msg=payload.get("error"))
@@ -687,113 +639,6 @@ def qvm_submit():
         "shots": shots,
         "mode": mode,
         "src_type": src_type,
-    }), 202
-
-
-@app.route("/qvm/submit2", methods=["POST"])
-def qvm_submit2():
-    data = request.get_json(silent=True) or {}
-
-    # --- 1. Validate required params ---
-    api_key = data.get("apikey") or request.headers.get("X-API-Key")
-    if not api_key:
-        return jsonify({"error": "Missing API key"}), 400
-
-    user_id = validate_api_key(api_key)
-    if not user_id:
-        return jsonify({"error": "Invalid API key"}), 403
-
-    src_b64 = data.get("src") or data.get("qasm")
-    if not src_b64:
-        return jsonify({"error": "Missing 'src' (base64)"}), 400
-
-    src_type = (data.get("src_type") or "qasm").lower()
-
-    exec_cfg = data.get("execution") or {}
-    mode = (exec_cfg.get("mode") or "sampler").lower()
-    shots = int(exec_cfg.get("shots", 1024))
-
-    backend = (data.get("backend") or "").lower()
-    if not backend:
-        return jsonify({"error": "Missing 'backend'"}), 400
-
-    options = data.get("options") or {}
-
-    # --- 2. Create job record ---
-    try:
-        job_uid = create_job_record(
-            user_id=user_id,
-            qasm_b64=src_b64,
-            backend_type=backend,
-            instance=options.get("instance", "sim"),
-            status_str="QUEUED",
-            mode=mode,
-            shots=shots
-        )
-    except Exception as e:
-        logging.exception("DB insert failed")
-        return jsonify({"error": f"DB insert failed: {e}"}), 500
-
-    # --- 3. Backend-specific execution ---
-    if backend == "ibm":
-        try:
-            status, payload = _submit_ibm_job_core(
-                job_uid,
-                src_b64,
-                user_id,
-                options.get("token"),
-                options.get("instance"),
-                options.get("device")
-            )
-            if status != 200:
-                update_job_status(job_uid, "ERROR", error_msg=payload.get("error"))
-                return jsonify(payload), status
-        except Exception as e:
-            logging.exception("IBM submit failed")
-            update_job_status(job_uid, "ERROR", error_msg=str(e))
-            return jsonify({"error": str(e), "job_uid": job_uid}), 500
-
-    elif backend == "cudaq":
-        try:
-            t = threading.Thread(
-                target=_qvm_execute_job_async,
-                args=(job_uid, src_b64, shots, backend),
-                daemon=True
-            )
-            t.start()
-        except Exception as e:
-            logging.exception("CUDA-Q submit failed")
-            update_job_status(job_uid, "ERROR", error_msg=str(e))
-            return jsonify({"error": str(e), "job_uid": job_uid}), 500
-
-    elif backend == "qctrl":
-        try:
-            status, payload = _submit_qctrl_job_core(
-                job_uid=job_uid,
-                src_b64=src_b64,
-                options=options
-            )
-            if status != 200:
-                return jsonify({"job_uid": job_uid, **payload}), status
-        except Exception as e:
-            logging.exception("Q-CTRL submit failed")
-            return jsonify({"error": str(e), "job_uid": job_uid}), 500
-
-    else:
-        update_job_status(job_uid, "ERROR", error_msg=f"Unsupported backend: {backend}")
-        return jsonify({
-            "error": "Unsupported backend",
-            "job_uid": job_uid,
-            "details": {"supported": ["ibm", "cudaq"], "received": backend}
-        }), 400
-
-    # --- 4. Return response ---
-    return jsonify({
-        "job_uid": job_uid,
-        "status": "QUEUED",
-        "backend": backend,
-        "shots": shots,
-        "mode": mode
     }), 202
 
 
@@ -1150,7 +995,8 @@ def _submit_ibm_job_core(job_uid: str, qasm_b64: str, user_id: str, token: str, 
         return 200, {"message": "Job submitted", "job_id": job_id}
 
     except Exception as e:
-        logging.exception("IBM job submit failed")
+        logging.error(f"IBM job submit failed: {repr(e)}")
+        logging.error(traceback.format_exc())
         return 500, {"error": str(e)}
 
 
