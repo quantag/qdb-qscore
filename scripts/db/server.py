@@ -552,6 +552,147 @@ def check_job():
 @app.route("/qvm/submit", methods=["POST"])
 def qvm_submit():
     data = request.get_json(silent=True) or {}
+    cfg = data.get("config") or {}
+
+    # --- 1) Resolve inputs (new format first, keep old as fallback) ---
+    # API key for your gateway
+    api_key = (
+        data.get("apikey")
+        or request.headers.get("X-API-Key")
+        or cfg.get("apikey")
+    )
+    if not api_key:
+        return jsonify({"error": "Missing API key"}), 400
+
+    user_id = validate_api_key(api_key)
+    if not user_id:
+        return jsonify({"error": "Invalid API key"}), 403
+
+    # QASM (base64)
+    src_b64 = data.get("src") or data.get("qasm")
+    if not src_b64:
+        return jsonify({"error": "Missing 'src' (base64)"}), 400
+
+    src_type = (data.get("src_type") or cfg.get("src_type") or "qasm").lower()
+
+    # Execution (prefer explicit `execution` object; else pull mode/shots from config)
+    exec_cfg = data.get("execution") or cfg.get("execution") or {}
+    mode = (exec_cfg.get("mode") or cfg.get("mode") or "sampler").lower()
+    try:
+        shots = int(exec_cfg.get("shots", cfg.get("shots", 1024)))
+    except Exception:
+        shots = 1024
+
+    # Backend (prefer top-level in new format; else from config)
+    backend = (data.get("backend") or cfg.get("backend") or "").lower()
+    if not backend:
+        return jsonify({"error": "Missing 'backend'"}), 400
+
+    # Options: pass through as-is when present; otherwise synthesize from cfg
+    options = data.get("options") or cfg.get("options") or {}
+    if not isinstance(options, dict):
+        options = {}
+
+    # Common alias normalization (non-breaking, only fills if missing)
+    # IBM-related
+    if "instance" not in options and "instance" in cfg:
+        options["instance"] = cfg["instance"]
+    if "device" not in options and "device" in cfg:
+        options["device"] = cfg["device"]
+    if "token" not in options and "ibm_token" in cfg:
+        options["token"] = cfg["ibm_token"]
+
+    # Q-CTRL-specific (if you keep these in config root, surface into options)
+    if "qctrl_api_key" not in options and "qctrl_api_key" in cfg:
+        options["qctrl_api_key"] = cfg["qctrl_api_key"]
+    if "ibm_token" not in options and "ibm_token" in cfg:
+        options["ibm_token"] = cfg["ibm_token"]
+
+    # --- 2) Create job record ---
+    try:
+        job_uid = create_job_record(
+            user_id=user_id,
+            qasm_b64=src_b64,
+            backend_type=backend,
+            instance=options.get("instance", "sim"),
+            status_str="QUEUED",
+            mode=mode,
+            shots=shots,
+        )
+    except Exception as e:
+        logging.exception("DB insert failed")
+        return jsonify({"error": f"DB insert failed: {e}"}), 500
+
+    # --- 3) Backend-specific execution ---
+    if backend == "ibm":
+        try:
+            status, payload = _submit_ibm_job_core(
+                job_uid=job_uid,
+                src_b64=src_b64,
+                user_id=user_id,
+                token=options.get("token") or options.get("ibm_token"),
+                instance=options.get("instance"),
+                device=options.get("device"),
+            )
+            if status != 200:
+                update_job_status(job_uid, "ERROR", error_msg=payload.get("error"))
+                return jsonify(payload | {"job_uid": job_uid}), status
+        except Exception as e:
+            logging.exception("IBM submit failed")
+            update_job_status(job_uid, "ERROR", error_msg=str(e))
+            return jsonify({"error": str(e), "job_uid": job_uid}), 500
+
+    elif backend == "cudaq":
+        try:
+            t = threading.Thread(
+                target=_qvm_execute_job_async,
+                args=(job_uid, src_b64, shots, backend),
+                daemon=True,
+            )
+            t.start()
+        except Exception as e:
+            logging.exception("CUDA-Q submit failed")
+            update_job_status(job_uid, "ERROR", error_msg=str(e))
+            return jsonify({"error": str(e), "job_uid": job_uid}), 500
+
+    elif backend == "qctrl":
+        try:
+            # Pass through options as provided (they may contain qctrl_api_key, ibm_token, instance, device, etc.)
+            status, payload = _submit_qctrl_job_core(
+                job_uid=job_uid,
+                src_b64=src_b64,
+                options=options,
+            )
+            if status != 200:
+                update_job_status(job_uid, "ERROR", error_msg=payload.get("error"))
+                return jsonify({"job_uid": job_uid, **payload}), status
+        except Exception as e:
+            logging.exception("Q-CTRL submit failed")
+            update_job_status(job_uid, "ERROR", error_msg=str(e))
+            return jsonify({"error": str(e), "job_uid": job_uid}), 500
+
+    else:
+        update_job_status(job_uid, "ERROR", error_msg=f"Unsupported backend: {backend}")
+        return jsonify({
+            "error": "Unsupported backend",
+            "job_uid": job_uid,
+            "details": {"supported": ["ibm", "cudaq", "qctrl"], "received": backend},
+        }), 400
+
+    # --- 4) Response ---
+    return jsonify({
+        "job_uid": job_uid,
+        "status": "QUEUED",
+        "backend": backend,
+        "shots": shots,
+        "mode": mode,
+        "src_type": src_type,
+    }), 202
+
+
+@app.route("/qvm/submit2", methods=["POST"])
+def qvm_submit2():
+    data = request.get_json(silent=True) or {}
 
     # --- 1. Validate required params ---
     api_key = data.get("apikey") or request.headers.get("X-API-Key")
@@ -900,6 +1041,7 @@ def get_config_for_user():
         "transpile": "https://cryspprod3.quantag-it.com:444/api15/transpile",
         "pyzx.optimize": "https://cryspprod3.quantag-it.com:444/api16/optimize",
         "pyzx.render": "https://cryspprod3.quantag-it.com:444/api16/render",
+        "pyzx.render2": "https://cryspprod3.quantag-it.com:444/api16/rend",
         "ibmq.submit": "https://quantum.quantag-it.com/api5/submit_ibm_job",
         "zi.run": "https://cryspprod2.quantag-it.com:4043/api2/run",
         "qasm2qir": "https://api.quantag-it.com/qasm2qir",
@@ -1023,6 +1165,43 @@ def submit_ibm_job():
     back = data.get("backend")
 
     status, payload = _submit_ibm_job_core(qasm_b64, user_id, token, inst, back)
+    return jsonify(payload), status
+
+# --- helper (put near other DB helpers) ---
+def _delete_job_owned_by(user_id: str, job_uid: str) -> tuple[int, dict]:
+    conn = cursor = None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        # verify ownership
+        cursor.execute("SELECT 1 FROM jobs WHERE uid = %s AND user_id = %s;", (job_uid, user_id))
+        if cursor.fetchone() is None:
+            return 404, {"error": "Job not found for this user"}
+        # delete
+        cursor.execute("DELETE FROM jobs WHERE uid = %s;", (job_uid,))
+        conn.commit()
+        return 204, {}
+    except Exception as e:
+        return 500, {"error": str(e)}
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+
+# --- NEW: DELETE /qvm/job/<job_uid> (used by VS Code) ---
+@app.route("/qvm/job/<job_uid>", methods=["DELETE"])
+def qvm_delete_job(job_uid: str):
+    # 1) auth via API key (same style as other /qvm/* endpoints)
+    api_key = request.headers.get("X-API-Key") or request.args.get("apikey")
+    user_id = validate_api_key(api_key)
+    if not user_id:
+        return jsonify({"error": "Invalid or missing API key"}), 403
+
+    # 2) delete if owned by this user
+    status, payload = _delete_job_owned_by(user_id, job_uid)
+    if status == 204:
+        # No content on success (panel accepts 204 or 200)
+        return ("", 204)
     return jsonify(payload), status
 
 
