@@ -1,0 +1,1 @@
+python test_submit.py qasm\ibm1.qasm config_cudaq.json 

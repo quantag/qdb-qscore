@@ -1,0 +1,1 @@
+python test_ibm_submit.py qasm\ibm1.qasm --config ./config_ibm.json 
