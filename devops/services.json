@@ -718,6 +718,77 @@
           }
         }
       }
+    },
+    "/qasm-to-qir": {
+      "post": {
+        "summary": "Convert QASM to QIR",
+        "description": "Convert QASM code to QIR format",
+        "operationId": "qasmToQir",
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api7/qasm2qir",
+          "protocol": "http/1.1"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "qasm": { "type": "string" },
+                "format": { "type": "string" }
+              },
+              "required": ["qasm", "format"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful optimized",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "format": { "type": "string" },
+                "qir": { "type": "string" },
+                "status": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /qasm-to-qir",
+        "operationId": "qasmToQirOptions",
+        "security": [],
+        "x-google-backend": {
+          "address": "https://cryspprod3.quantag-it.com:444/api7/qasm2qir",
+          "protocol": "http/1.1"
+        },
+        "responses": {
+          "200": {
+            "description": "Successful preflight",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
