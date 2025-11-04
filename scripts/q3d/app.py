@@ -87,15 +87,20 @@ def _resolve_sample_path(name: str) -> Path:
     return candidate
 
 
-
 def choose_backend(service: QiskitRuntimeService, name: str):
-    if name:
+    # Try exact match
+    try:
         return service.backend(name)
-    # fallback: any non-simulator backend
-    cands = [b for b in service.backends() if not getattr(b.configuration(), "simulator", False)]
-    if not cands:
-        raise RuntimeError("No hardware backends found for this account.")
-    return cands[0]
+    except Exception:
+        # Search across all instances
+        for inst in service.instances():
+            try:
+                s = QiskitRuntimeService(instance=inst)
+                return s.backend(name)
+            except Exception:
+                continue
+        raise RuntimeError(f"Backend {name} not found in any instance.")
+
 
 
 def get_coupling_edges(backend):
@@ -370,7 +375,7 @@ def transpile_endpoint():
     JSON body:
       {
         "qasm_b64": "<base64 string>",  # required
-        "backend": "ibm_brisbane",      # required
+        "backend": "ibm_brisbane",      # optional
         "opt": 3                        # optional, default 3
       }
     Returns:
@@ -385,8 +390,8 @@ def transpile_endpoint():
         backend_name = payload.get("backend")
         opt = int(payload.get("opt", 3))
 
-        if not qasm_b64 or not backend_name:
-            return jsonify({"error": "Missing required fields: qasm_b64, backend"}), 400
+        if not qasm_b64:
+            return jsonify({"error": "Missing required field: qasm_b64"}), 400
 
         try:
             qasm_src = base64.b64decode(qasm_b64).decode("utf-8")
