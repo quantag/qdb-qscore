@@ -17,6 +17,9 @@ import requests
 import threading
 import psutil
 import traceback
+from laboneq.simple import Session, DeviceSetup
+from laboneq.openqasm3.openqasm3_importer import exp_from_qasm
+
 
 VERSION = "1.0.0"
 
@@ -144,6 +147,59 @@ def _qvm_execute_job_async(job_uid, qasm_b64, shots, backend_type):
             update_job_status(job_uid, "ERROR", error_msg=str(e))
         except Exception as e2:
             logging.error(f"[{job_uid}] failed to write ERROR status: {e2}")
+
+
+def _submit_zi_job_core(job_uid: str, qasm_b64: str, options: dict):
+    """
+    Execute a Zurich Instruments (LabOne Q) job.
+    Requires options["setup_b64"] containing base64-encoded YAML setup.
+    """
+    logging.info(f"Options keys: {list(options.keys())}")
+
+    try:
+        qasm_str = base64.b64decode(qasm_b64).decode("utf-8")
+        setup_b64 = options.get("setup_b64")
+        if not setup_b64:
+            return 400, {"error": "Missing 'setup_b64' in options"}
+
+        yaml_str = base64.b64decode(setup_b64).decode("utf-8")
+
+        # --- Save temporary files for debugging ---
+        os.makedirs("scripts", exist_ok=True)
+        ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S_%f")
+        qasm_path = f"scripts/script_{ts}.qasm"
+        yaml_path = f"scripts/setup_{ts}.yaml"
+        with open(qasm_path, "w") as f: f.write(qasm_str)
+        with open(yaml_path, "w") as f: f.write(yaml_str)
+
+        # --- Load device setup and prepare experiment ---
+        device_setup = DeviceSetup.from_yaml(yaml_path)
+        qubits = device_setup.qubits
+        qubit_map = {f"_qubit{i}": q for i, q in enumerate(qubits)}
+
+        exp = exp_from_qasm(qasm_str, qubits=qubit_map)
+
+        # --- Run (emulation mode by default) ---
+        session = Session(device_setup=device_setup)
+        session.connect(do_emulation=True)
+        compiled = session.compile(exp)
+        results = session.run(compiled)
+
+        results_json = {
+            "acquired_results": str(results.acquired_results),
+            "timestamp": datetime.utcnow().isoformat(),
+            "success": True
+        }
+
+        update_job_status(job_uid, "DONE", results_obj=results_json)
+        logging.info(f"[{job_uid}] ZI job completed successfully")
+        return 200, {"message": "ZI job completed", "results": results_json}
+
+    except Exception as e:
+        logging.error(f"[{job_uid}] ZI job failed: {e}")
+        logging.error(traceback.format_exc())
+        update_job_status(job_uid, "ERROR", error_msg=str(e))
+        return 500, {"error": str(e)}
 
 
 def get_users():
@@ -536,14 +592,17 @@ def qvm_submit():
         shots = 1024
 
     # Backend (prefer top-level in new format; else from config)
-    backend = (data.get("backend") or cfg.get("backend") or "").lower()
+    #backend = (data.get("backend") or cfg.get("backend") or "").lower()
+    backend = (data.get("backend") or cfg.get("backend") or cfg.get("submit", {}).get("backend") or "").lower()
+
     if not backend:
         return jsonify({"error": "Missing 'backend'"}), 400
 
     # Options: pass through as-is when present; otherwise synthesize from cfg
-    options = data.get("options") or cfg.get("options") or {}
+    options = data.get("options") or cfg.get("options") or cfg.get("submit", {}).get("options") or {}
     if not isinstance(options, dict):
         options = {}
+    logging.info(f"Backend: {backend}, Options keys: {list(options.keys())}")
 
     # Common alias normalization (non-breaking, only fills if missing)
     # IBM-related
@@ -620,6 +679,21 @@ def qvm_submit():
                 return jsonify({"job_uid": job_uid, **payload}), status
         except Exception as e:
             logging.exception("Q-CTRL submit failed")
+            update_job_status(job_uid, "ERROR", error_msg=str(e))
+            return jsonify({"error": str(e), "job_uid": job_uid}), 500
+
+    elif backend == "zi":
+        try:
+            status, payload = _submit_zi_job_core(
+                job_uid=job_uid,
+                qasm_b64=src_b64,
+                options=options,
+            )
+            if status != 200:
+                update_job_status(job_uid, "ERROR", error_msg=payload.get("error"))
+                return jsonify({"job_uid": job_uid, **payload}), status
+        except Exception as e:
+            logging.exception("ZI submit failed")
             update_job_status(job_uid, "ERROR", error_msg=str(e))
             return jsonify({"error": str(e), "job_uid": job_uid}), 500
 
