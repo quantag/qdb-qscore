@@ -352,7 +352,9 @@ int main(int argc, char *argv[]) {
             [&](const dap::DisassemblyRequest& request)
             -> dap::ResponseOrError<dap::DisassemblyResponse> {
 
-                LOGI("[DisassemblyRequest] %d", session->debugger->numSourceLines);
+                LOGI("[DisassemblyRequest] numSourceLines=%d %d %d", session->debugger->numSourceLines, 
+			session->debugger->getQVM()->getSourcePerLines().size(), 
+			session->debugger->getQVM()->isSourceCodeParsed());
                 dap::DisassemblyResponse response;
 
                 if (session->debugger->getQVM()->isSourceCodeParsed()) {
@@ -366,6 +368,8 @@ int main(int argc, char *argv[]) {
 
                         response.instructions.push_back(code);
                     }
+                } else {
+                      LOGI("[DisassemblyRequest] isSourceCodeParsed is FALSE, no Disassemply available");                
                 }
 
                 return response;
