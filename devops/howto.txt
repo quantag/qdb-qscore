@@ -12,12 +12,12 @@ Create a new API config
 
 Configs are immutable, so you make a new version:
 
-gcloud api-gateway api-configs create qcloud-config-v21 --api=qcloud --openapi-spec=services.json --project=quantum-464212
+gcloud api-gateway api-configs create qcloud-config-v24 --api=qcloud --openapi-spec=services.json --project=quantum-464212
 
 
 Update your gateway to use the new config
 
-gcloud api-gateway gateways update qcloud-gateway --api=qcloud --api-config=qcloud-config-v21 --location=europe-west1 --project=quantum-464212
+gcloud api-gateway gateways update qcloud-gateway --api=qcloud --api-config=qcloud-config-v24 --location=europe-west1 --project=quantum-464212
 
 
 Verify
@@ -25,4 +25,4 @@ Verify
 gcloud api-gateway gateways describe qcloud-gateway --location=europe-west1 --project=quantum-464212
 
 
-The apiConfig: field will now point to your new config (qcloud-config-v21).
+The apiConfig: field will now point to your new config (qcloud-config-v24).
