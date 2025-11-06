@@ -38,15 +38,39 @@ export function initMBQCViewer(THREE, OrbitControls) {
     scene.background = new THREE.Color(0x0b0f14);
 
     camera = new THREE.PerspectiveCamera(
-      55,
+      45,
       sceneEl.clientWidth / sceneEl.clientHeight,
-      0.1,
+      0.01,
       2000
     );
     camera.position.set(12, 10, 22);
 
-    controls = new OrbitControls(camera, renderer.domElement);
+/*    controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
+    controls.zoomSpeed = 0.3;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 1;
+    controls.maxDistance = 300; // prevent zooming too far away
+*/
+controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.enableZoom = false;  // disable built-in zoom
+controls.minDistance = 3;
+controls.maxDistance = 120;
+
+// custom smooth zoom
+renderer.domElement.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const dir = camera.getWorldDirection(new THREE.Vector3());
+  const step = 0.4; // tune this
+  const delta = e.deltaY < 0 ? -step : step;
+  camera.position.addScaledVector(dir, delta);
+  const dist = camera.position.length();
+  if (dist < controls.minDistance) camera.position.setLength(controls.minDistance);
+  if (dist > controls.maxDistance) camera.position.setLength(controls.maxDistance);
+  controls.update();
+}, { passive: false });
+
 
     const amb = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(amb);
@@ -166,13 +190,6 @@ function makeEdges(edges, positions, group) {
     });
 
     // edges
-//    const matLine = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.6 });
-//    edges.forEach(([a,b])=>{
-//      const pa=positions.get(a), pb=positions.get(b);
-//      if(!pa||!pb) return;
-//      const geom=new THREE.BufferGeometry().setFromPoints([pa,pb]);
-//      edgesGroup.add(new THREE.Line(geom, matLine));
-//    });
     makeEdges(edges, positions, edgesGroup);  
     // nodes
     verts.forEach(v=>{
