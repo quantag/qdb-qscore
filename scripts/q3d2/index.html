@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MBQC Graph Viewer</title>
+  <link rel="icon" href="data:," />
+  <style>
+    body {
+      margin: 0;
+      background: #0b0f14;
+      color: #e6edf3;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: #111827;
+      border-bottom: 1px solid #1f2937;
+      padding: 8px 12px;
+    }
+    h1 {
+      font-size: 16px;
+      margin: 0;
+      color: #93c5fd;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    select, button, input[type="file"] {
+      background: #1e293b;
+      color: #e6edf3;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 13px;
+    }
+    button:hover {
+      background: #2563eb;
+      color: white;
+    }
+    #qasmInput {
+      width: 100%;
+      min-height: 140px;
+      background: #0b1220;
+      color: #e6edf3;
+      border: 1px solid #263043;
+      border-radius: 6px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+    #status {
+      font-size: 12px;
+      color: #9ca3af;
+      min-height: 16px;
+    }
+    #scene {
+      position: absolute;
+      top: 210px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MBQC Graph Viewer</h1>
+
+    <div class="toolbar">
+      <label for="sampleSelect">Samples:</label>
+      <select id="sampleSelect"></select>
+
+      <input type="file" id="fileInput" accept=".qasm" />
+      <button id="btnRun">Compile & Render MBQC</button>
+      <label style="margin-left:8px;">
+        <input type="checkbox" id="animate" checked /> Animate flow
+      </label>
+    </div>
+
+    <textarea id="qasmInput" placeholder="Paste or load OpenQASM code here..."></textarea>
+    <div id="status"></div>
+  </header>
+
+  <main>
+    <div id="scene"></div>
+  </main>
+
+  <!-- Local Three.js and MBQC renderer -->
+  <script type="module">
+    import * as THREE from './three.module.js';
+    import { OrbitControls } from './OrbitControls.js';
+    import { initMBQCViewer } from './mbqc_viewer.js';
+
+    // === Verified API bases ===
+    const API_BASE  = "https://cryspprod3.quantag-it.com:444/api15"; // original Q3D backend (samples)
+    const MBQC_BASE = "https://cloud.quantag-it.com/api2";           // new MBQC compiler service
+
+    // Initialize MBQC renderer
+    const app = initMBQCViewer(THREE, OrbitControls, { apiBase: MBQC_BASE });
+
+    // DOM elements
+    const elSamples  = document.getElementById("sampleSelect");
+    const elFile     = document.getElementById("fileInput");
+    const elQasm     = document.getElementById("qasmInput");
+    const elRun      = document.getElementById("btnRun");
+    const elStatus   = document.getElementById("status");
+
+    const setStatus = msg => elStatus.textContent = msg;
+    const niceBytes = n => {
+      if (!Number.isFinite(n)) return "0 B";
+      const u = ["B","KB","MB","GB"]; let i=0; while(n>=1024 && i<u.length-1){ n/=1024; i++; }
+      return `${n.toFixed(1)} ${u[i]}`;
+    };
+
+    let samplesLoaded = false;
+
+    // ============ Fetch sample list from old API ============
+    async function fetchSamples() {
+      setStatus("Loading samples…");
+      try {
+        const res = await fetch(`${API_BASE}/samples`, { headers: { "Accept": "application/json" } });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const payload = await res.json();
+        const files = Array.isArray(payload.files) ? payload.files : [];
+        files.sort((a, b) => String(a.name).localeCompare(b.name));
+        elSamples.innerHTML = "";
+        const ph = document.createElement('option');
+        ph.value = ""; ph.textContent = "— choose sample —";
+        elSamples.appendChild(ph);
+        for (const f of files) {
+          const opt = document.createElement('option');
+          opt.value = f.name;
+          opt.textContent = `${f.name} (${niceBytes(f.size_bytes ?? 0)})`;
+          elSamples.appendChild(opt);
+        }
+        samplesLoaded = true;
+        setStatus(`Samples: ${files.length} found`);
+      } catch (e) {
+        setStatus(`Failed to load samples: ${e}`);
+        samplesLoaded = false;
+      }
+    }
+
+    // ============ Load selected sample ============
+    async function loadSampleByName(name) {
+      if (!name) return;
+      setStatus(`Fetching sample: ${name}…`);
+      const res = await fetch(`${API_BASE}/samples/${encodeURIComponent(name)}?format=raw`, { headers: { "Accept": "text/plain" } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const qasm = await res.text();
+      elQasm.value = qasm;
+      setStatus(`Loaded sample: ${name}`);
+    }
+
+    // ============ UI event handlers ============
+    elSamples.addEventListener("change", async (e) => {
+      const name = e.target.value;
+      if (!name) return;
+      try { await loadSampleByName(name); } catch (err) { setStatus(String(err)); }
+    });
+
+    elFile.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      elQasm.value = text;
+      setStatus(`Loaded file: ${file.name}`);
+    });
+
+    elRun.addEventListener("click", async () => {
+      const qasm = elQasm.value.trim();
+      if (!qasm) { setStatus("Please provide a QASM circuit first."); return; }
+      setStatus("Sending to MBQC compiler…");
+      try {
+        await app.compileAndRender(qasm);  // posts to `${MBQC_BASE}/translate`
+        setStatus("Rendered successfully.");
+      } catch (err) {
+        console.error(err);
+        setStatus("Error during compile/render.");
+      }
+    });
+
+    // ============ Boot ============
+    await fetchSamples();
+  </script>
+</body>
+</html>
