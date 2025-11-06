@@ -56,6 +56,12 @@ console_handler = logging.StreamHandler()
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
+
+logging.getLogger("laboneq").setLevel(logging.DEBUG)
+logging.getLogger("laboneq.simple").setLevel(logging.DEBUG)
+logging.getLogger("laboneq.openqasm3").setLevel(logging.DEBUG)
+
+
 @app.before_request
 def log_request_info():
     logging.info("---- Incoming Request ----")
@@ -66,7 +72,6 @@ def log_request_info():
     except Exception as e:
         logging.warning("Could not log body: %s", str(e))
     logging.info("--------------------------")
-
 
 def load_program_from_file(filename):
     try:
