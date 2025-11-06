@@ -104,6 +104,46 @@ export function initMBQCViewer(THREE, OrbitControls) {
     }
   }
 
+
+function makeEdges(edges, positions, group) {
+  // visual style – same blue hue as before
+  const edgeColor = 0x3b82f6;
+  const edgeRadius = 0.06; // controls thickness
+
+  edges.forEach(([a, b]) => {
+    const pa = positions.get(a);
+    const pb = positions.get(b);
+    if (!pa || !pb) return;
+
+    // compute midpoint, length, and orientation
+    const dir = new THREE.Vector3().subVectors(pb, pa);
+    const len = dir.length();
+    const mid = new THREE.Vector3().addVectors(pa, pb).multiplyScalar(0.5);
+
+    // geometry & material
+    const geom = new THREE.CylinderGeometry(edgeRadius, edgeRadius, len, 8, 1);
+    const mat = new THREE.MeshStandardMaterial({
+      color: edgeColor,
+      transparent: true,
+      opacity: 0.85,
+      metalness: 0.4,
+      roughness: 0.25,
+      emissive: new THREE.Color(0x1d4ed8), // faint glow
+      emissiveIntensity: 0.25
+    });
+
+    const cyl = new THREE.Mesh(geom, mat);
+    cyl.position.copy(mid);
+    cyl.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      dir.clone().normalize()
+    );
+
+    group.add(cyl);
+  });
+}
+
+
   function buildGraph(zxGraph, mbqc) {
     nodesGroup.clear();
     edgesGroup.clear();
@@ -126,14 +166,14 @@ export function initMBQCViewer(THREE, OrbitControls) {
     });
 
     // edges
-    const matLine = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.6 });
-    edges.forEach(([a,b])=>{
-      const pa=positions.get(a), pb=positions.get(b);
-      if(!pa||!pb) return;
-      const geom=new THREE.BufferGeometry().setFromPoints([pa,pb]);
-      edgesGroup.add(new THREE.Line(geom, matLine));
-    });
-
+//    const matLine = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.6 });
+//    edges.forEach(([a,b])=>{
+//      const pa=positions.get(a), pb=positions.get(b);
+//      if(!pa||!pb) return;
+//      const geom=new THREE.BufferGeometry().setFromPoints([pa,pb]);
+//      edgesGroup.add(new THREE.Line(geom, matLine));
+//    });
+    makeEdges(edges, positions, edgesGroup);  
     // nodes
     verts.forEach(v=>{
       const p=positions.get(v.id);
@@ -175,27 +215,42 @@ export function initMBQCViewer(THREE, OrbitControls) {
     controls.update();
   }
 
-  function makeLabel(text,fontSize=12,color="#e6edf3"){
-    const canvas=document.createElement("canvas");
-    const ctx=canvas.getContext("2d");
-    const pad=8;
-    ctx.font=`${fontSize}px monospace`;
-    const w=ctx.measureText(text).width+pad*2;
-    const h=fontSize+pad*2;
-    canvas.width=w*2; canvas.height=h*2;
-    ctx.scale(2,2);
-    ctx.font=`${fontSize}px monospace`;
-    ctx.fillStyle="rgba(11,15,20,0.7)";
-    ctx.fillRect(0,0,w,h);
-    ctx.fillStyle=color;
-    ctx.fillText(text,pad,pad+fontSize*0.8);
-    const tex=new THREE.CanvasTexture(canvas);
-    tex.needsUpdate=true;
-    const mat=new THREE.SpriteMaterial({map:tex,transparent:true});
-    const sprite=new THREE.Sprite(mat);
-    sprite.scale.set(w/20,h/20,1);
-    return sprite;
-  }
+function makeLabel(text, fontSize = 10, color = "#e6edf3") {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const pad = 6;
+
+  ctx.font = `${fontSize}px monospace`;
+  const w = ctx.measureText(text).width + pad * 2;
+  const h = fontSize + pad * 2;
+
+  canvas.width = w * 2;
+  canvas.height = h * 2;
+  ctx.scale(2, 2);
+
+  ctx.font = `${fontSize}px monospace`;
+  ctx.fillStyle = "rgba(11,15,20,0.5)"; // lighter background
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = color;
+  ctx.fillText(text, pad, pad + fontSize * 0.8);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+
+  const mat = new THREE.SpriteMaterial({
+    map: tex,
+    transparent: true,
+    opacity: 0.75,
+    depthWrite: false
+  });
+  const sprite = new THREE.Sprite(mat);
+
+  // smaller overall scale
+  const scale = 0.5;
+  sprite.scale.set((w / 20) * scale, (h / 20) * scale, 1);
+  return sprite;
+}
+
 
   function highlightNode(nodeId){
     nodesGroup.children.forEach(obj=>{
