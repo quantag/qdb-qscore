@@ -15,36 +15,26 @@ def main():
     config_file = sys.argv[2]
 
     # read source file
-    with open(qasm_file, "r") as f:
+    with open(qasm_file, "r", encoding="utf-8") as f:
         qasm_code = f.read()
     src_b64 = base64.b64encode(qasm_code.encode("utf-8")).decode("ascii")
 
-    # read config
-    with open(config_file, "r") as f:
+    # read config (send it as-is under "config")
+    with open(config_file, "r", encoding="utf-8") as f:
         cfg = json.load(f)
 
-    api_key = cfg["apikey"]
-    backend = cfg.get("backend", "ibm")
-    options = cfg.get("options", {})
-    mode = cfg.get("mode", "sampler")
-    shots = cfg.get("shots", 1024)
-    src_type = cfg.get("src_type", "qasm")
-
     payload = {
-        "apikey": api_key,
         "src": src_b64,
-        "src_type": src_type,
-        "execution": {
-            "mode": mode,
-            "shots": shots
-        },
-        "backend": backend,
-        "options": options
+        "config": cfg
     }
 
-    # send request
+    # Prefer header for gateway auth if available
+    headers = {"Content-Type": "application/json; charset=UTF-8"}
+    if isinstance(cfg, dict) and cfg.get("apikey"):
+        headers["X-API-Key"] = str(cfg["apikey"])
+
     print("Submitting job to:", API_URL)
-    resp = requests.post(API_URL, json=payload)
+    resp = requests.post(API_URL, json=payload, headers=headers)
     print("Status:", resp.status_code)
     try:
         print(json.dumps(resp.json(), indent=2))
@@ -53,4 +43,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
