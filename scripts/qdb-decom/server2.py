@@ -2,8 +2,10 @@ from flask import Flask, request, jsonify
 import base64
 import logging
 import datetime
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 @app.route('/health', methods=['GET'])
