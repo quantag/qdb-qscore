@@ -151,6 +151,7 @@ def bytes_to_b64(b: bytes) -> str:
 # Flask app
 # -----------------------------------------------------------------------------
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -322,8 +323,10 @@ def get_image():
     """
     try:
         req = request.get_json(force=True, silent=False)
+        log.info(f"getImage incoming JSON: {req}")
         session_id = req.get("sessionId")
         if not session_id:
+            log.exception(f"get_image failed. no session_id")
             return jsonify({"code": 1}), 400
 
         path = safe_join(Path(IMAGE_FOLDER), f"{session_id}.png")
