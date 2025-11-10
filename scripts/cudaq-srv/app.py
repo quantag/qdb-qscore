@@ -8,10 +8,13 @@ from flask import Flask, request, jsonify
 import cudaq
 import subprocess
 import psutil
+from flask_cors import CORS
 
 VERSION = "1.0.0"
 
 app = Flask(__name__)
+CORS(app)
+
 
 # Default target (can be overridden in request)
 DEFAULT_TARGET = os.environ.get("CUDAQ_TARGET", "qpp-cpu")
