@@ -44,7 +44,7 @@
 #define LOCALHOST           "127.0.0.1"
 #define CONFIG_FILE         "QSCore.ini"
 
-#define QSCORE_VERSION      "1.0.1"
+#define QSCORE_VERSION      "1.0.2"
 
 
 // sourceContent holds the synthetic file source.
@@ -192,6 +192,7 @@ int main(int argc, char *argv[]) {
     // initialize logger with required log level
     LOG_INIT(logLevel, "qs-core.log");
     LOG(logLevel, "QSCore  v%s. logLevel = %d", QSCORE_VERSION, logLevel);
+    LOG(logLevel, "PythonExecEndpoint = [%s]", cfg.getPytohnExecutorEndpoint().c_str());
 
     if (configLoaded) {
         LOGI("Loaded config file from '%s'", configFile.c_str());

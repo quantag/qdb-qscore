@@ -13,12 +13,16 @@
 #include <string>
 #include <map>
 
-#define RENDER_CIRCUIT_KEY      "render.circuit"
-#define DEMO_FILE_KEY           "demo.file"
-#define SOURCE_FOLDER_KEY       "source.folder"
-#define LOG_LEVEL_KEY           "log.level"
-#define QVM_TYPE_KEY            "qvm.type"
-#define CUDAQ_SRV_KEY           "cudaq.srv"
+#define RENDER_CIRCUIT_KEY          "render.circuit"
+#define DEMO_FILE_KEY               "demo.file"
+#define SOURCE_FOLDER_KEY           "source.folder"
+#define LOG_LEVEL_KEY               "log.level"
+#define QVM_TYPE_KEY                "qvm.type"
+#define CUDAQ_SRV_KEY               "cudaq.srv"
+
+
+#define PYTHON_EXEC_ENDPOINT_KEY    "python.exec.endpoint"
+
 
 #define MODE_KEY                "mode"
 #define FILE_KEY                "file"
@@ -100,6 +104,10 @@ public:
 
     std::string getSourceFolder() {
         return getOrDefault(SOURCE_FOLDER_KEY, SOURCE_FOLDER_DEFAULT);
+    }
+
+    std::string getPytohnExecutorEndpoint() {
+        return getOrDefault(PYTHON_EXEC_ENDPOINT_KEY, PYTHON_EXECUTER_ENDPONT_URL);
     }
 
     std::string getCudaQSrvEndpoint() {

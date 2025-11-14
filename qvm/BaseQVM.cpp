@@ -18,7 +18,8 @@ void BaseQVM::updateProcessor(CodeFramework framework) {
 		if (this->processor->getFramework() == framework)
 			return;
 
-		delete processor;
+		delete this->processor;
+        this->processor = NULL;
 	}
 
 	switch (framework) {
