@@ -96,7 +96,7 @@ ScriptExecResult RestClient::execCode(const std::string& code) {
 
 
 ScriptExecResult RestClient::execCode(const std::string& code, const std::string& env) {
-    LOGD("'%s' endpoint = [%s]", code.c_str(), url.c_str());
+    LOGI("'%s' endpoint = [%s] venv=[%s]", code.c_str(), url.c_str(), env.c_str());
 
     std::string encoded = Utils::encode64(code);
 

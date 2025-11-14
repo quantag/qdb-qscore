@@ -44,7 +44,7 @@
 #define LOCALHOST           "127.0.0.1"
 #define CONFIG_FILE         "QSCore.ini"
 
-#define QSCORE_VERSION      "1.0.7"
+#define QSCORE_VERSION      "1.0.8"
 
 
 // sourceContent holds the synthetic file source.
