@@ -45,8 +45,27 @@ def create_venv(workspace: Path) -> None:
             check=True,
         )
         log.info("Venv created at %s", venv_dir)
+
+        # Adjust owner so code-server user can write into this venv
+        try:
+            subprocess.run(
+                ["chown", "-R", "dev:codeserver", str(venv_dir)],
+                check=True,
+            )
+            subprocess.run(
+                ["chmod", "-R", "g+rwX", str(venv_dir)],
+                check=True,
+            )
+            log.info("Adjusted ownership and permissions for %s", venv_dir)
+        except Exception as e:
+            log.error(
+                "Failed to adjust ownership/permissions for %s: %s",
+                venv_dir,
+                e,
+                exc_info=True,
+            )
+
     except Exception as e:
-        # Do not fail the whole /prepare, just log the error
         log.error("Failed to create venv at %s: %s", venv_dir, e, exc_info=True)
 
 def safe_join(base: Path, *parts: str) -> Path:

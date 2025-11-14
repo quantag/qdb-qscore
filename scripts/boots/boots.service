@@ -3,9 +3,9 @@ Description=Quantag Bootstrap service
 After=network.target
 
 [Service]
-User=admin
-WorkingDirectory=/home/admin/work/boots
-ExecStart=/home/admin/work/boots/.venv/bin/python /home/admin/work/boots/app.py
+User=dev
+WorkingDirectory=/home/dev/boots
+ExecStart=/home/dev/boots/.venv/bin/python /home/dev/boots/app.py
 Restart=always
 RestartSec=5
 StandardOutput=journal
