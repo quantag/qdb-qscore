@@ -5,6 +5,7 @@ from flask import Flask, request, jsonify
 import logging
 from datetime import datetime
 from flask_cors import CORS
+import subprocess
 
 SAMPLE_DIR = "/var/codeserver/sample"
 BASE_WORK_DIR = os.environ.get("BASE_WORK_DIR", "/var/codeserver/users")
@@ -29,6 +30,24 @@ CORS(app)
 def email_to_user_id(email: str) -> str:
     return hashlib.sha256(email.strip().lower().encode("utf-8")).hexdigest()[:32]
 
+def create_venv(workspace: Path) -> None:
+    """Create a Python venv in workspace/.venv if it does not exist."""
+    venv_dir = workspace / ".venv"
+    if venv_dir.exists():
+        log.info("Venv already exists at %s", venv_dir)
+        return
+
+    log.info("Creating venv at %s", venv_dir)
+    try:
+        subprocess.run(
+            ["python3", "-m", "venv", ".venv"],
+            cwd=str(workspace),
+            check=True,
+        )
+        log.info("Venv created at %s", venv_dir)
+    except Exception as e:
+        # Do not fail the whole /prepare, just log the error
+        log.error("Failed to create venv at %s: %s", venv_dir, e, exc_info=True)
 
 def safe_join(base: Path, *parts: str) -> Path:
     p = (base.joinpath(*parts)).resolve()
@@ -70,6 +89,8 @@ def prepare():
                 shutil.copytree(SAMPLE_DIR, workspace, dirs_exist_ok=True)
             except Exception as e:
                 log.error("Failed to copy sample content: %s", e)
+
+        create_venv(workspace)
 
         log.info("Prepared workspace for %s at %s", email, workspace)
 
