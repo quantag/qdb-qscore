@@ -1,0 +1,15 @@
+[Unit]
+Description=Quantag Bootstrap service
+After=network.target
+
+[Service]
+User=admin
+WorkingDirectory=/home/admin/work/boots
+ExecStart=/home/admin/work/boots/.venv/bin/python /home/admin/work/boots/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
