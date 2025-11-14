@@ -16,7 +16,7 @@ public:
 
 protected:
 	virtual void findAllQuantumCircuitDeclarations(std::vector<int>& result);
-	virtual ScriptExecResult parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId);
+	virtual ScriptExecResult parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId, const std::string& venv);
 
 
 };

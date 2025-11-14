@@ -33,8 +33,8 @@ void TketProcessor::findAllQuantumCircuitDeclarations(std::vector<int>& result) 
 	}
 }
 
-ScriptExecResult TketProcessor::parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) {
-	LOGI("%s [%s]", sourceCode.c_str(), sessionId.c_str());
+ScriptExecResult TketProcessor::parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId, const std::string& venv) {
+	LOGI("%s sessionId=[%s] venv=[%s]", sourceCode.c_str(), sessionId.c_str(), venv.c_str());
 
 	Utils::parseSourcePerLines(sourceCode, sourceLines);
 	Utils::logSource(sourceLines);
@@ -88,7 +88,7 @@ ScriptExecResult TketProcessor::parsePythonToOpenQASM(const std::string& sourceC
 	LOGI("Updated sources:\n%s", updatedSource.c_str());
 
 	restClient.setEndpoint(cfg->getPythonExecutorEndpoint().c_str());
-	ScriptExecResult out = restClient.execCode(updatedSource);
+	ScriptExecResult out = restClient.execCode(updatedSource, venv);
 	LOGI("rest api returned status '%d'", out.status);
 
 	return out;

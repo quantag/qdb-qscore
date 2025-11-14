@@ -11,7 +11,8 @@
 #include "../WebFrontend.h"
 #include "../ws/WSServer.h"
 
-
+#include <filesystem>
+namespace fs = std::filesystem;
 
 void BaseQVM::updateProcessor(CodeFramework framework) {
 	if (this->processor != NULL) {
@@ -99,7 +100,7 @@ int BaseQVM::prepareSource( const std::string& fileName,
     if (status.codeType == CodeType::ePython) {
         status.pythonFramework = Utils::detectPythonFramework(sourceCode);
         updateProcessor(status.pythonFramework);
-        ScriptExecResult result = processor->parsePythonToOpenQASM(sourceCode, sessionId);
+        ScriptExecResult result = processor->parsePythonToOpenQASM(sourceCode, sessionId, this->venv);
         if (result.status != 0) {
             status.errorMessage = Utils::getPlainTextFromHTML(result.err);
             return ERR_PARSEERROR;
@@ -111,4 +112,34 @@ int BaseQVM::prepareSource( const std::string& fileName,
     }
 
     return ret;
+}
+
+std::string BaseQVM::getVenvIfPresent(const std::string& fileName) {
+    try {
+        fs::path filePath(fileName);
+        fs::path dirPath = filePath.parent_path();
+
+        if (dirPath.empty()) {
+            LOGI("getVenvIfPresent: no parent directory for file: %s", fileName.c_str());
+            return std::string();
+        }
+
+        fs::path venvPath = dirPath / ".venv";
+
+        if (fs::exists(venvPath) && fs::is_directory(venvPath)) {
+            std::string venvStr = venvPath.string();
+            LOGI("getVenvIfPresent: detected venv folder: %s", venvStr.c_str());
+            return venvStr;
+        }
+
+        LOGI(
+            "getVenvIfPresent: no venv folder in directory: %s",
+            dirPath.string().c_str()
+        );
+        return std::string();
+    }
+    catch (...) {
+        LOGI("getVenvIfPresent: exception while checking venv for file: %s", fileName.c_str());
+        return std::string();
+    }
 }

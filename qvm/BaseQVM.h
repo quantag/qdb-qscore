@@ -21,7 +21,11 @@ public:
 		const std::string& path,
 		LaunchStatus& status) = 0;
 
+	std::string getVenvIfPresent(const std::string& fileName);
+
 protected:
 	PythonProcessor* processor;
 	IFrontend* frontend;
+
+	std::string venv;
 };

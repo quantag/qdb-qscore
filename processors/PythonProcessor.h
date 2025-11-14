@@ -25,7 +25,7 @@ public:
 
 	virtual ~PythonProcessor();
 
-	virtual ScriptExecResult parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) = 0;
+	virtual ScriptExecResult parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId, const std::string& venv) = 0;
 	int findMathImport();
 
 	CodeFramework getFramework() const {

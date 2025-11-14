@@ -30,8 +30,8 @@ void QiskitProcessor::findAllQuantumCircuitDeclarations(std::vector<int>& result
 	}
 }
 
-ScriptExecResult QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) {
-	LOGI("QiskitProcessor: '%s' [%s]", sourceCode.c_str(), sessionId.c_str());
+ScriptExecResult QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId, const std::string& venv) {
+	LOGI("%s sessionId=[%s] venv=[%s]", sourceCode.c_str(), sessionId.c_str(), venv.c_str());
 
 	Utils::parseSourcePerLines(sourceCode, sourceLines);
 	Utils::logSource(sourceLines);
@@ -72,7 +72,7 @@ ScriptExecResult QiskitProcessor::parsePythonToOpenQASM(const std::string& sourc
 
 	std::string out;
 	restClient.setEndpoint( cfg->getPythonExecutorEndpoint().c_str() );
-	ScriptExecResult  result = restClient.execCode(updatedSource);
+	ScriptExecResult  result = restClient.execCode(updatedSource, venv);
 	LOGI("result status: %d", result.status);
 
 	return result;
