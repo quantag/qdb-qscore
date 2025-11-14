@@ -7,10 +7,13 @@
 
 
 #include "TketProcessor.h"
+
 #include "../Log.h"
 #include "../Utils.h"
+#include "../ConfigLoader.h"
 
-TketProcessor::TketProcessor() : PythonProcessor(eTket) {
+TketProcessor::TketProcessor(ConfigLoader* cfg) : PythonProcessor(eTket, cfg) {
+	this->cfg = cfg;
 }
 
 TketProcessor::~TketProcessor() {
@@ -84,6 +87,7 @@ ScriptExecResult TketProcessor::parsePythonToOpenQASM(const std::string& sourceC
 	std::string updatedSource = Utils::combineVector(this->sourceLines);
 	LOGI("Updated sources:\n%s", updatedSource.c_str());
 
+	restClient.setEndpoint(cfg->getPythonExecutorEndpoint().c_str());
 	ScriptExecResult out = restClient.execCode(updatedSource);
 	LOGI("rest api returned status '%d'", out.status);
 

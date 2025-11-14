@@ -63,7 +63,7 @@ size_t RestClient::writeCallback(void* contents, size_t size, size_t nmemb, std:
 }
 
 ScriptExecResult RestClient::execCode(const std::string& code) {
-    LOGD("'%s'", code.c_str());
+    LOGD("'%s' endpoint = [%s]", code.c_str(), url.c_str());
 
     std::string encoded = Utils::encode64(code);
     std::string req = "{\"src\":\"" + encoded + "\"}";

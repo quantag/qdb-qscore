@@ -106,7 +106,7 @@ public:
         return getOrDefault(SOURCE_FOLDER_KEY, SOURCE_FOLDER_DEFAULT);
     }
 
-    std::string getPytohnExecutorEndpoint() {
+    std::string getPythonExecutorEndpoint() {
         return getOrDefault(PYTHON_EXEC_ENDPOINT_KEY, PYTHON_EXECUTER_ENDPONT_URL);
     }
 

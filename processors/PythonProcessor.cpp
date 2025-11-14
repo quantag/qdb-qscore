@@ -9,12 +9,17 @@
 
 #include "../Utils.h"
 #include "../Log.h"
+#include "../ConfigLoader.h"
 #include <algorithm>
 
-PythonProcessor::PythonProcessor() : framework (eGeneric) {
+
+PythonProcessor::PythonProcessor(ConfigLoader* cfg) : framework (eGeneric) {
+	this->cfg = cfg;
 }
 
-PythonProcessor::PythonProcessor(CodeFramework fw) : framework(fw) {
+
+PythonProcessor::PythonProcessor(CodeFramework fw, ConfigLoader* cfg) : framework(fw) {
+	this->cfg = cfg;
 }
 
 PythonProcessor::~PythonProcessor() {
@@ -196,6 +201,7 @@ ScriptExecResult PythonProcessor::renderOpenQASMCircuit(const std::string& sourc
 	Utils::logSource(sourceLines);
 	std::string updatedSource = Utils::combineVector(this->sourceLines);
 	std::string out;
+	restClient.setEndpoint(cfg->getPythonExecutorEndpoint().c_str());
 	ScriptExecResult  result = restClient.execCode(updatedSource);
 	LOGI("result status: %d", result.status);
 

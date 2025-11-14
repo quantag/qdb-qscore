@@ -24,7 +24,7 @@
 QppQVM::QppQVM(ConfigLoader* cfg) : engine(nullptr) {
 	this->frontend = new WebFrontend();
 	this->sourceCodeParsed = 0;
-	processor = new QiskitProcessor();
+	processor = new QiskitProcessor(cfg);
 	this->cfg = cfg;
 }
 

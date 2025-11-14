@@ -11,9 +11,10 @@
 #include "../Log.h"
 #include "../Utils.h"
 #include "../RestClient.h"
+#include "../ConfigLoader.h"
 
 // where store generated circuit images on server
-QiskitProcessor::QiskitProcessor() : PythonProcessor(eQiskit) {
+QiskitProcessor::QiskitProcessor(ConfigLoader* cfg) : PythonProcessor(eQiskit, cfg) {
 }
 
 QiskitProcessor::~QiskitProcessor() {
@@ -70,6 +71,7 @@ ScriptExecResult QiskitProcessor::parsePythonToOpenQASM(const std::string& sourc
 	std::string updatedSource = Utils::combineVector(this->sourceLines);
 
 	std::string out;
+	restClient.setEndpoint( cfg->getPythonExecutorEndpoint().c_str() );
 	ScriptExecResult  result = restClient.execCode(updatedSource);
 	LOGI("result status: %d", result.status);
 

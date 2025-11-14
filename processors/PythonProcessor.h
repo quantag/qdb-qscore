@@ -16,10 +16,13 @@
 #define SERVER_IMAGE_FOLDER		"/var/dap/images/"
 #define BRIDGE_VAR				"code777"
 
+class ConfigLoader;
+
 class PythonProcessor {
 public:
-	PythonProcessor();
-	PythonProcessor(CodeFramework fw);
+	PythonProcessor(ConfigLoader* cfg);
+	PythonProcessor(CodeFramework fw, ConfigLoader* cfg);
+
 	virtual ~PythonProcessor();
 
 	virtual ScriptExecResult parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId) = 0;
@@ -50,5 +53,7 @@ protected:
 
 	CodeFramework framework;
 	RestClient restClient;
+
+	ConfigLoader* cfg;
 };
 

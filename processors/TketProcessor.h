@@ -10,7 +10,7 @@
 
 class TketProcessor : public PythonProcessor {
 public:
-	TketProcessor();
+	TketProcessor(ConfigLoader* cfg);
 	virtual ~TketProcessor();
 
 protected:

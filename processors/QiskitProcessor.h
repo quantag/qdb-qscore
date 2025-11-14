@@ -11,7 +11,7 @@
 
 class QiskitProcessor : public PythonProcessor {
 public:
-	QiskitProcessor();
+	QiskitProcessor(ConfigLoader* cfg);
 	virtual ~QiskitProcessor();
 
 protected:

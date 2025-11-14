@@ -25,10 +25,10 @@ void BaseQVM::updateProcessor(CodeFramework framework) {
 	switch (framework) {
 	    case eQiskit:
 	    case eGeneric:
-		    this->processor = new QiskitProcessor();
+		    this->processor = new QiskitProcessor(cfg);
 		    break;
 	    case eTket:
-		    this->processor = new TketProcessor();
+		    this->processor = new TketProcessor(cfg);
 		    break;
 	    }
 }
