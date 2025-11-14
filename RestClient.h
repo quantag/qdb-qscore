@@ -17,6 +17,7 @@ public:
 
     std::string doPost(const std::string& jsonData);
     ScriptExecResult execCode(const std::string& code);
+    ScriptExecResult execCode(const std::string& code, const std::string& env);
 
     void setEndpoint(const char* _url) {
         this->url = _url;
