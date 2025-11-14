@@ -116,30 +116,38 @@ int BaseQVM::prepareSource( const std::string& fileName,
 
 std::string BaseQVM::getVenvIfPresent(const std::string& fileName) {
     try {
-        fs::path filePath(fileName);
-        fs::path dirPath = filePath.parent_path();
+        fs::path current = fs::absolute(fileName).parent_path();
 
-        if (dirPath.empty()) {
+        if (current.empty()) {
             LOGI("getVenvIfPresent: no parent directory for file: %s", fileName.c_str());
             return std::string();
         }
 
-        fs::path venvPath = dirPath / ".venv";
+        for (; !current.empty(); current = current.parent_path()) {
+            fs::path venvPath = current / ".venv";
 
-        if (fs::exists(venvPath) && fs::is_directory(venvPath)) {
-            std::string venvStr = venvPath.string();
-            LOGI("getVenvIfPresent: detected venv folder: %s", venvStr.c_str());
-            return venvStr;
+            if (fs::exists(venvPath) && fs::is_directory(venvPath)) {
+                std::string venvStr = venvPath.string();
+                LOGI("getVenvIfPresent: detected venv folder: %s", venvStr.c_str());
+                return venvStr;
+            }
+
+            // Stop when we reach a root (parent is the same as current)
+            fs::path parent = current.parent_path();
+            if (parent.empty() || parent == current) {
+                break;
+            }
         }
 
-        LOGI(
-            "getVenvIfPresent: no venv folder in directory: %s",
-            dirPath.string().c_str()
-        );
+        LOGI("getVenvIfPresent: no venv folder found for file: %s", fileName.c_str());
         return std::string();
     }
     catch (...) {
-        LOGI("getVenvIfPresent: exception while checking venv for file: %s", fileName.c_str());
+        LOGI(
+            "getVenvIfPresent: exception while searching venv for file: %s",
+            fileName.c_str()
+        );
         return std::string();
     }
 }
+
