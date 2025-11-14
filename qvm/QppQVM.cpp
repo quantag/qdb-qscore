@@ -38,12 +38,15 @@ QppQVM::~QppQVM() {
 int QppQVM::loadSourceCode(const std::string& fileName,
 	const std::string& sessionId,
 	LaunchStatus& status) {
+
+	venv = getVenvIfPresent(fileName);
+
 	std::string preparedSource;
 	int ret = prepareSource(fileName, sessionId, status, preparedSource);
 	if (ret != ERR_OK && ret != ERR_DEMOFILE) 
 		return ret;
 
-	venv = getVenvIfPresent(fileName);
+
 	LOGI("prepared source = [%s]", preparedSource.c_str());
 
 	int nLines = Utils::parseSourcePerLines(preparedSource, this->sourceCodePerLines);

@@ -31,12 +31,13 @@ CudaQVM::~CudaQVM() {
 int CudaQVM::loadSourceCode(const std::string& code,
                             const std::string& path,
                             LaunchStatus& status) {
+    venv = getVenvIfPresent(path);
     this->sourceCode = code;
     this->originalSourceCode = code;
     this->cudaqSource_ = code;
     this->sourceCodeParsed = 1;
     status.codeType = eOpenQASM;
-    venv = getVenvIfPresent(path);
+
     LOGI("CudaQVM: loaded QASM source from [%s], %d lines.",
          path.c_str(),
          Utils::calcNumberOfLines(code));
