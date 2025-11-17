@@ -120,77 +120,87 @@ double QppQVM::stepForward() {
 		return 0;
 	}
 
-	if (mIt != circuit->end()) {
-		LOGI("Executing next line.. %d", this->currentState.currentLine);
+	// Number of source lines from mapping (BaseQVM)
+	int totalLines = static_cast<int>(sourceToQasmLines.size());
+	if (totalLines == 0) {
+		LOGI("QppQVM::stepForward] sourceToQasmLines is empty, fallback to old behavior");
+		// fallback: old behavior with getNextLine if you really want
+		return 0;
+	}
 
-		LOGI("currentLine before getNextLine = %d", this->currentState.currentLine);
-		this->currentState.currentLine =
-			Utils::getNextLine(this->currentState.currentLine - 1,
-				this->originalParsedCode,
-				2) + 1; // in UI line numbers starts from 1..
-		LOGI("currentLine after getNextLine = %d", this->currentState.currentLine);
-
-		this->currentState.code = Utils::encode64(this->sourceCode);
-
-		// NEW: check mapping for this source line
-		int srcIdx = this->currentState.currentLine - 1; // 0-based
-		bool hasOp = false;
-		if (srcIdx >= 0 &&
-			srcIdx < static_cast<int>(sourceToQasmLines.size())) {
-			hasOp = !sourceToQasmLines[srcIdx].empty();
-		}
-		LOGI("QppQVM::stepForward] src line %d, hasOp=%d",
-			this->currentState.currentLine, hasOp ? 1 : 0);
-
-		try {
-			auto start = std::chrono::steady_clock::now();
-
-			qpp::ket psi0 = engine->get_psi();
-			logState(psi0, hasOp ? "state before" : "state (no-op line, before)");
-
-			double timeSec = 0.0;
-
-			if (hasOp) {
-				// Only here we actually advance the circuit and change the state
-				engine->execute(mIt++);
-
-				qpp::ket psi = engine->get_psi();
-				logState(psi, "state after");
-
-				setCurrentState(psi);
-				int ret1 = frontend->updateState(currentState);
-				LOGI("frontend.updateState ret %d", ret1);
-
-				auto stop = std::chrono::steady_clock::now();
-				auto duration = std::chrono::duration<double>(stop - start);
-				timeSec = duration.count();
-				LOGI("Execution time: (%f sec)", timeSec);
-			}
-			else {
-				// No operation on this line: do NOT call engine->execute
-				// State remains the same as psi0
-				qpp::ket psi = engine->get_psi();
-				logState(psi, "state (no-op line, after)");
-
-				setCurrentState(psi);
-				int ret1 = frontend->updateState(currentState);
-				LOGI("frontend.updateState (no-op) ret %d", ret1);
-
-				// timeSec stays 0.0 so your DAP won't print "Step execution time"
-			}
-
-			return timeSec;
-		}
-		catch (...) {
-			LOGE("Error executing next line");
-		}
+	// Move to next source line (UI is 1-based)
+	if (this->currentState.currentLine <= 0) {
+		this->currentState.currentLine = 1;
 	}
 	else {
-		LOGI("Reached end of circuit..");
+		this->currentState.currentLine++;
+	}
+
+	// End of file -> stop stepping
+	if (this->currentState.currentLine > totalLines) {
+		LOGI("Reached end of source lines..");
 		return -1;
 	}
+
+	LOGI("QppQVM::stepForward] currentLine = %d", this->currentState.currentLine);
+
+	this->currentState.code = Utils::encode64(this->sourceCode);
+
+	// Check mapping for this line
+	int srcIdx = this->currentState.currentLine - 1; // 0-based
+	bool hasOp = false;
+	if (srcIdx >= 0 && srcIdx < totalLines) {
+		hasOp = !sourceToQasmLines[srcIdx].empty();
+	}
+	LOGI("QppQVM::stepForward] src line %d, hasOp=%d",
+		this->currentState.currentLine, hasOp ? 1 : 0);
+
+	try {
+		auto start = std::chrono::steady_clock::now();
+
+		qpp::ket psi0 = engine->get_psi();
+		logState(psi0, hasOp ? "state before" : "state (no-op line, before)");
+
+		double timeSec = 0.0;
+
+		if (hasOp && mIt != circuit->end()) {
+			// Execute exactly one gate (next in circuit)
+			engine->execute(mIt++);
+
+			qpp::ket psi = engine->get_psi();
+			logState(psi, "state after");
+
+			setCurrentState(psi);
+			int ret1 = frontend->updateState(currentState);
+			LOGI("frontend.updateState ret %d", ret1);
+
+			auto stop = std::chrono::steady_clock::now();
+			auto duration = std::chrono::duration<double>(stop - start);
+			timeSec = duration.count();
+
+			LOGI("Execution time: (%f sec)", timeSec);
+		}
+		else {
+			// No QVM op on this line: state stays the same
+			qpp::ket psi = engine->get_psi();
+			logState(psi, "state (no-op line, after)");
+
+			setCurrentState(psi);
+			int ret1 = frontend->updateState(currentState);
+			LOGI("frontend.updateState (no-op) ret %d", ret1);
+
+			// timeSec stays 0.0, so DAP won't show timing text
+		}
+
+		return timeSec;
+	}
+	catch (...) {
+		LOGE("Error executing next line");
+	}
+
 	return 0;
 }
+
 
 /*
 // Execute next line
