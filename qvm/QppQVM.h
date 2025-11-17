@@ -11,6 +11,9 @@
 #include "BaseQVM.h"
 #include <qpp.h>
 
+#include "../Version.h"
+
+
 using namespace qpp;
 
 class WSSession;
@@ -28,7 +31,7 @@ public:
 	int debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
 
 	virtual std::string getQVMName() {
-		return "QPP 1.0.15";
+		return "QPP 1.0.15 [" + std::string( QSCORE_VERSION )+ "]";
 	}
 
 

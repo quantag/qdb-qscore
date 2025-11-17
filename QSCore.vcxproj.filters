@@ -251,5 +251,8 @@
     <ClInclude Include="processors\TketProcessor.h">
       <Filter>Header Files\processors</Filter>
     </ClInclude>
+    <ClInclude Include="Version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

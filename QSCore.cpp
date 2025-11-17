@@ -28,6 +28,8 @@
 #include "qvm/QppQVM.h"
 #include "ConfigLoader.h"
 
+#include "Version.h"
+
 #ifdef ENABLE_CUDAQ
 #include "qvm/CudaQVM.h"
 #endif
@@ -44,7 +46,6 @@
 #define LOCALHOST           "127.0.0.1"
 #define CONFIG_FILE         "QSCore.ini"
 
-#define QSCORE_VERSION      "1.0.9"
 
 
 // sourceContent holds the synthetic file source.

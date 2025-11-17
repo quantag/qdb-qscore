@@ -206,6 +206,7 @@
     <ClInclude Include="TketProcessor.h" />
     <ClInclude Include="Typedefs.h" />
     <ClInclude Include="Utils.h" />
+    <ClInclude Include="Version.h" />
     <ClInclude Include="WebFrontend.h" />
     <ClInclude Include="ws\WSListener.h" />
     <ClInclude Include="ws\WSServer.h" />
