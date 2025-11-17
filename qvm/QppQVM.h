@@ -39,6 +39,7 @@ public:
 
 	static std::vector<complexNumber> convertToStdVector(const qpp::ket& eigenVector);
 	static matrix2d convertToMatrix2D(const qpp::cmat& eigenMatrix);
+	static void logState(const qpp::ket& eigenVector, const std::string& msg);
 
 private:
 	// Smart pointer to store QCircuit object
@@ -48,5 +49,7 @@ private:
 
 	QCircuit::iterator mIt; // current state
 	void setCurrentState(const qpp::ket& psi);
+
+	int currentExecIndex = 0;
 
 };

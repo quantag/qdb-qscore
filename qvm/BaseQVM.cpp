@@ -110,7 +110,8 @@ int BaseQVM::prepareSource( const std::string& fileName,
     else {
         preparedSource = sourceCode;
     }
-
+    generateCodeMapping(preparedSource, status.codeType);
+    logCodeMapping();
     return ret;
 }
 
@@ -149,5 +150,143 @@ std::string BaseQVM::getVenvIfPresent(const std::string& fileName) {
         );
         return std::string();
     }
+}
+
+// Return true if this QASM line corresponds to an operation that
+// actually changes or uses the QVM state (gate, measure, reset, etc.).
+bool BaseQVM::isExecutableQasmLine(const std::string& rawLine) {
+    std::string line = rawLine;
+    Utils::trim(line);
+    if (line.empty())
+        return false;
+
+    // Comments
+    if (line[0] == '/' || line[0] == '#')
+        return false;
+
+    // Declarations and includes
+    if (line.rfind("OPENQASM", 0) == 0)
+        return false;
+    if (line.rfind("include", 0) == 0)
+        return false;
+    if (line.rfind("qreg", 0) == 0)
+        return false;
+    if (line.rfind("creg", 0) == 0)
+        return false;
+    if (line.rfind("gate", 0) == 0)
+        return false;
+    if (line.rfind("opaque", 0) == 0)
+        return false;
+    if (line == "{" || line == "}")
+        return false;
+    if (line.rfind("barrier", 0) == 0)
+        return false;
+
+    // Everything else we treat as executable for now:
+    // - standard gates: h, x, y, z, rx, ry, rz, u, u3, cx, cz, swap, etc.
+    // - measure, reset, conditional ops like "if (c==1) x q[0];"
+    return true;
+}
+
+void BaseQVM::generateCodeMapping(const std::string& preparedSource,
+    CodeType codeType) {
+ 
+    switch (codeType) {
+        case CodeType::ePython: {
+                generatePythonCodeMapping(preparedSource);
+                break;
+        }
+        case CodeType::eOpenQASM: {
+                generateOpenQASMCodeMapping(preparedSource);
+                break;
+            }
+        default:
+            LOGE("Not supported source type: %d", codeType);
+    }
+
+}
+
+void BaseQVM::logCodeMapping() const {
+    LOGI("==== Code mapping: original source line -> QASM instruction indices ====");
+
+    if (sourceToQasmLines.empty()) {
+        LOGI("  (mapping is empty)");
+        return;
+    }
+
+    for (std::size_t srcIdx = 0; srcIdx < sourceToQasmLines.size(); ++srcIdx) {
+        const auto& instrList = sourceToQasmLines[srcIdx];
+
+        std::string listStr = "[";
+        for (std::size_t j = 0; j < instrList.size(); ++j) {
+            // Now we treat values as 0-based instruction indices, no +1
+            listStr += std::to_string(instrList[j]);
+            if (j + 1 < instrList.size()) {
+                listStr += ", ";
+            }
+        }
+        listStr += "]";
+
+        int srcLineOneBased = static_cast<int>(srcIdx) + 1;
+        LOGI("  src %d -> %s", srcLineOneBased, listStr.c_str());
+    }
+
+    LOGI("==== End of code mapping ====");
+}
+
+
+void BaseQVM::generateOpenQASMCodeMapping(const std::string& preparedSource) {
+    std::vector<std::string> originalLines;
+    std::vector<std::string> qasmLines;
+
+    int originalCount = Utils::parseSourcePerLines(originalSourceCode, originalLines);
+    int qasmCount = Utils::parseSourcePerLines(preparedSource, qasmLines);
+
+    if (originalCount <= 0 || qasmCount <= 0) {
+        LOGI("BaseQVM::generateOpenQASMCodeMapping] no lines to map");
+        return;
+    }
+
+    sourceToQasmLines.assign(originalCount, {});
+
+    int n = std::min(originalCount, qasmCount);
+    int execIndex = 0; // 0-based "gate number" in the circuit
+
+    for (int i = 0; i < n; ++i) {
+        if (isExecutableQasmLine(qasmLines[i])) {
+            // Map original line i (0-based) to gate execIndex
+            sourceToQasmLines[i].push_back(execIndex);
+            ++execIndex;
+        }
+        // Non-executable lines remain mapped to []
+    }
+
+    LOGI("BaseQVM::generateOpenQASMCodeMapping] mapped %d executable QASM lines", execIndex);
+}
+
+void BaseQVM::generatePythonCodeMapping(const std::string& preparedSource) {
+    // Split original (Python) source into lines
+    std::vector<std::string> originalLines;
+    int originalCount = Utils::parseSourcePerLines(originalSourceCode, originalLines);
+
+    // Split prepared (generated OpenQASM) source into lines
+    std::vector<std::string> qasmLines;
+    int qasmCount = Utils::parseSourcePerLines(preparedSource, qasmLines);
+
+    if (originalCount <= 0) {
+        LOGI("BaseQVM::generatePythonCodeMapping] no original lines");
+        sourceToQasmLines.clear();
+        return;
+    }
+
+    sourceToQasmLines.assign(originalCount, {});
+
+    // Simple 1-to-1 mapping: line i in original -> line i in prepared
+    int n = std::min(originalCount, qasmCount);
+    for (int i = 0; i < n; ++i) {
+        sourceToQasmLines[i].push_back(i); // 0-based index
+    }
+
+    LOGI("BaseQVM::generatePythonCodeMapping] temporary 1:1 mapping, lines=%d", n);
 }
 

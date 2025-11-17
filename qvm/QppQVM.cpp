@@ -105,13 +105,94 @@ int QppQVM::debug(const std::string& fileName, const std::string& sessionId, Lau
 	if(this->circuit && this->sourceCodeParsed) {
 		engine = QEngine::instance(*circuit); // create an engine out of a quantum circuit
 		mIt = circuit->begin();
+		currentExecIndex = 0;
 		LOGI("Iterator initialized");
 	}
 
 	return ret;
 }
 
+double QppQVM::stepForward() {
+	LOGI("");
 
+	if (!circuit || !this->sourceCodeParsed) {
+		LOGI("Source code not parsed. Simulate. Line = %d", ++this->currentState.currentLine);
+		return 0;
+	}
+
+	if (mIt != circuit->end()) {
+		LOGI("Executing next line.. %d", this->currentState.currentLine);
+
+		LOGI("currentLine before getNextLine = %d", this->currentState.currentLine);
+		this->currentState.currentLine =
+			Utils::getNextLine(this->currentState.currentLine - 1,
+				this->originalParsedCode,
+				2) + 1; // in UI line numbers starts from 1..
+		LOGI("currentLine after getNextLine = %d", this->currentState.currentLine);
+
+		this->currentState.code = Utils::encode64(this->sourceCode);
+
+		// NEW: check mapping for this source line
+		int srcIdx = this->currentState.currentLine - 1; // 0-based
+		bool hasOp = false;
+		if (srcIdx >= 0 &&
+			srcIdx < static_cast<int>(sourceToQasmLines.size())) {
+			hasOp = !sourceToQasmLines[srcIdx].empty();
+		}
+		LOGI("QppQVM::stepForward] src line %d, hasOp=%d",
+			this->currentState.currentLine, hasOp ? 1 : 0);
+
+		try {
+			auto start = std::chrono::steady_clock::now();
+
+			qpp::ket psi0 = engine->get_psi();
+			logState(psi0, hasOp ? "state before" : "state (no-op line, before)");
+
+			double timeSec = 0.0;
+
+			if (hasOp) {
+				// Only here we actually advance the circuit and change the state
+				engine->execute(mIt++);
+
+				qpp::ket psi = engine->get_psi();
+				logState(psi, "state after");
+
+				setCurrentState(psi);
+				int ret1 = frontend->updateState(currentState);
+				LOGI("frontend.updateState ret %d", ret1);
+
+				auto stop = std::chrono::steady_clock::now();
+				auto duration = std::chrono::duration<double>(stop - start);
+				timeSec = duration.count();
+				LOGI("Execution time: (%f sec)", timeSec);
+			}
+			else {
+				// No operation on this line: do NOT call engine->execute
+				// State remains the same as psi0
+				qpp::ket psi = engine->get_psi();
+				logState(psi, "state (no-op line, after)");
+
+				setCurrentState(psi);
+				int ret1 = frontend->updateState(currentState);
+				LOGI("frontend.updateState (no-op) ret %d", ret1);
+
+				// timeSec stays 0.0 so your DAP won't print "Step execution time"
+			}
+
+			return timeSec;
+		}
+		catch (...) {
+			LOGE("Error executing next line");
+		}
+	}
+	else {
+		LOGI("Reached end of circuit..");
+		return -1;
+	}
+	return 0;
+}
+
+/*
 // Execute next line
 double QppQVM::stepForward() {
 	LOGI("");
@@ -124,34 +205,33 @@ double QppQVM::stepForward() {
 	if (mIt != circuit->end()) {
 		LOGI("Executing next line.. %d", this->currentState.currentLine);
 
-		//this->currentState.currentLine ++; // if comments, then skip them.. 
-
-	//	Utils::logSourceCode(originalParsedCode);
 		LOGI("currentLine before getNextLine = %d", this->currentState.currentLine);
-		this->currentState.currentLine = Utils::getNextLine(this->currentState.currentLine - 1, this->originalParsedCode, 2) + 1; // in UI line numbers starts from 1..
+		
+		this->currentState.currentLine = 
+			Utils::getNextLine(this->currentState.currentLine - 1,
+				this->originalParsedCode,
+				2) + 1; // in UI line numbers starts from 1..
+		
 		LOGI("currentLine after getNextLine = %d", this->currentState.currentLine);
 
 		this->currentState.code = Utils::encode64( this->sourceCode );
 
-	//	if(this->getSourceLines()>0)
-	//		this->currentState.currentLine %= this->getSourceLines();
-
-
 		try {
 			auto start = std::chrono::steady_clock::now();
-			engine->execute( mIt++ ); // crash
 
+			qpp::ket psi0 = engine->get_psi();
+			logState(psi0, "state before");
+
+			engine->execute( mIt++ ); 
 			qpp::ket psi = engine->get_psi();
-//			cmat rho = prj(psi);
+			logState(psi, "state after");
 
 			setCurrentState(psi);	
-			// const States& st = States::get_instance();  ?
 
 			int ret1 = frontend->updateState(currentState);
 			LOGI("frontend.updateState ret %d", ret1);
 
 			auto stop = std::chrono::steady_clock::now();
-			// auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
 			auto duration = std::chrono::duration<double>(stop - start);
 			double timeSec = duration.count();
 
@@ -164,9 +244,10 @@ double QppQVM::stepForward() {
 	}
 	else {
 		LOGI("Reached end of circuit..");
+		return -1;
 	}
 	return 0;
-}
+}*/
 
 // Convert qpp::ket to std::vector<complexNumber>
 std::vector<complexNumber> QppQVM::convertToStdVector(const qpp::ket& eigenVector) {
@@ -183,6 +264,33 @@ std::vector<complexNumber> QppQVM::convertToStdVector(const qpp::ket& eigenVecto
 	}
 
 	return result;
+}
+
+void QppQVM::logState(const qpp::ket& eigenVector, const std::string& msg) {
+	LOGI("[%s]", msg.c_str());
+
+	const auto dim = static_cast<int>(eigenVector.size());
+	if (dim == 0) {
+		LOGI("  (empty state)");
+		return;
+	}
+
+	// Number of qubits = log2(dim)
+	const int nq = static_cast<int>(std::round(std::log2(dim)));
+
+	for (int i = 0; i < dim; ++i) {
+		double re = eigenVector(i).real();
+		double im = eigenVector(i).imag();
+
+		// Build bitstring label for basis index i: |q[nq-1] ... q[0]>
+		std::string label;
+		label.reserve(nq);
+		for (int q = nq - 1; q >= 0; --q) {
+			label.push_back(((i >> q) & 1) ? '1' : '0');
+		}
+
+		LOGI(" |%s> : %.6f + i%.6f", label.c_str(), re, im);
+	}
 }
 
 // Convert qpp::cmat to std::vector<std::vector<complexNumber>>
@@ -204,6 +312,7 @@ matrix2d QppQVM::convertToMatrix2D(const qpp::cmat& eigenMatrix) {
 }
 
 void QppQVM::setCurrentState(const qpp::ket &psi) {
+	LOGI("QppQVM::setCurrentState");
 	this->currentState.states = QppQVM::convertToStdVector(psi);	
 }
 

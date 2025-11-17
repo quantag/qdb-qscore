@@ -57,6 +57,7 @@ void printUsage() {
     printf("  --help                 Print this help info\n");
     printf("  --server               Start QSCore in server mode (default)\n");
     printf("  --file <file.qasm>     Execute a single .qasm file and exit\n");
+    printf("  --filed <file.qasm>    Debug a single .qasm file and exit\n");
     printf("  --test [folder]        Run performance tests using folder (default: ../test/qasm)\n");
     printf("  --output <file.json>   Where to save test results (default: results.json)\n");
     printf("  --config <file.ini>    Path to configuration file (default: QSCore.ini)\n");
@@ -92,6 +93,47 @@ double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
     double timeSec = duration.count();
 
     LOGE("[%s] ret %d, codeType %d, framework %d, execution time: (%f sec)", fileName.c_str(), ret, status.codeType, status.pythonFramework, timeSec);
+    return timeSec;
+}
+
+double debugQasmFile(ConfigLoader* cfg, const std::string fileName) {
+    std::unique_ptr<BaseQVM> qvm;
+
+    std::string qvmType = cfg->getQvmType();
+    if (qvmType == "cudaq") {
+#ifdef ENABLE_CUDAQ
+        qvm = std::make_unique<CudaQVM>(cfg);
+#else
+        LOGE("CudaQVM requested but not compiled with ENABLE_CUDAQ.");
+        return 1;
+#endif
+    }
+    else {
+        qvm = std::make_unique<QppQVM>(cfg);
+    }
+
+    LaunchStatus status;
+
+    LOGE("Executing file [%s] on QVM [%s]", fileName.c_str(), qvm->getQVMName().c_str());
+    auto start = std::chrono::steady_clock::now();
+
+    int ret = qvm->debug(fileName, "", status);
+    if (ret == 0) {
+        double tm = 0;
+        while (tm >= 0.) {
+            tm = qvm->stepForward();
+            LOGI("Line execution time: %d", tm);
+        }
+    }
+    else {
+        LOGE("QVM debug failed : %d", ret);
+    }
+
+    auto stop = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration<double>(stop - start);
+    double timeSec = duration.count();
+
+    LOGE("[%s]  codeType %d, framework %d, execution time: (%f sec)", fileName.c_str(), status.codeType, status.pythonFramework, timeSec);
     return timeSec;
 }
 
@@ -155,6 +197,10 @@ int main(int argc, char *argv[]) {
         }
         else if (arg == "--file" && i + 1 < argc) {
             mode = "file";
+            fileName = argv[++i];
+        }
+        else if (arg == "--filed" && i + 1 < argc) {
+            mode = "filed";
             fileName = argv[++i];
         }
         else if (arg == "--test") {
@@ -662,6 +708,14 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         runQasmFile(&cfg, fileName);
+        return 0;
+    }
+    else if (mode == "filed") {
+        if (fileName.empty()) {
+            LOGE("Missing argument for --file");
+            return 1;
+        }
+        debugQasmFile(&cfg, fileName);
         return 0;
     }
     else if (mode == "test") {
