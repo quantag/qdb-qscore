@@ -264,6 +264,18 @@ void BaseQVM::generateOpenQASMCodeMapping(const std::string& preparedSource) {
     LOGI("BaseQVM::generateOpenQASMCodeMapping] mapped %d executable QASM lines", execIndex);
 }
 
+// Detect if a line of Python source is a pure comment (or comment after whitespace)
+bool BaseQVM::isPythonCommentLine(const std::string& rawLine) {
+    std::string line = rawLine;
+    Utils::trim(line);
+    if (line.empty()) {
+        return false; // treat empty as "no-op" but not specifically a comment
+    }
+    // Python comment: line starts with '#'
+    return !line.empty() && line[0] == '#';
+}
+
+
 void BaseQVM::generatePythonCodeMapping(const std::string& preparedSource) {
     // Split original (Python) source into lines
     std::vector<std::string> originalLines;
@@ -284,6 +296,11 @@ void BaseQVM::generatePythonCodeMapping(const std::string& preparedSource) {
     // Simple 1-to-1 mapping: line i in original -> line i in prepared
     int n = std::min(originalCount, qasmCount);
     for (int i = 0; i < n; ++i) {
+        if (isPythonCommentLine(originalLines[i])) {
+            LOGI("BaseQVM::generatePythonCodeMapping] Python comment at src line %d, mapping as []", i + 1);
+            // sourceToQasmLines[i] stays empty
+            continue;
+        }
         sourceToQasmLines[i].push_back(i); // 0-based index
     }
 

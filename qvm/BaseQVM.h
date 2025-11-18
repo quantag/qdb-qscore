@@ -24,6 +24,8 @@ public:
 
 	std::string getVenvIfPresent(const std::string& fileName);
 
+	static bool isPythonCommentLine(const std::string& rawLine);
+
 protected:
 	PythonProcessor* processor;
 	IFrontend* frontend;

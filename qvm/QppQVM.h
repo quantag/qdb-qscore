@@ -31,7 +31,7 @@ public:
 	int debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
 
 	virtual std::string getQVMName() {
-		return "QPP 1.0.15 [" + std::string( QSCORE_VERSION )+ "]";
+		return "QPP 1.0.15  QSCORE v" + std::string( QSCORE_VERSION );
 	}
 
 

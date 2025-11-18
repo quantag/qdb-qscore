@@ -13,7 +13,7 @@
 #include "../RestClient.h"
 #include "../ConfigLoader.h"
 
-
+#include "../Version.h"
 
 CudaQVM::CudaQVM(ConfigLoader* cfg){
 //    this->frontend = new WebFrontend();
@@ -127,8 +127,9 @@ int CudaQVM::debug(const std::string& in,
 }
 
 std::string CudaQVM::getQVMName() {
-    return "CudaQVM 0.2";
+    return "CudaQVM 0.2 QSCORE v" + std::string(QSCORE_VERSION);
 }
+
 
 int CudaQVM::getSourceLines() {
     return 0;// static_cast<int>(BaseQVM::getSourceLines().size());
