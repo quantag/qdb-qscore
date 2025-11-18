@@ -132,9 +132,9 @@ double QppQVM::stepForward() {
 	if (this->currentState.currentLine <= 0) {
 		this->currentState.currentLine = 1;
 	}
-	else {
-		this->currentState.currentLine++;
-	}
+	//else {
+	//	this->currentState.currentLine++;
+	//}
 
 	// End of file -> stop stepping
 	if (this->currentState.currentLine > totalLines) {
@@ -143,7 +143,6 @@ double QppQVM::stepForward() {
 	}
 
 	LOGI("QppQVM::stepForward] currentLine = %d", this->currentState.currentLine);
-
 	this->currentState.code = Utils::encode64(this->sourceCode);
 
 	// Check mapping for this line
@@ -191,7 +190,7 @@ double QppQVM::stepForward() {
 
 			// timeSec stays 0.0, so DAP won't show timing text
 		}
-
+		this->currentState.currentLine++;
 		return timeSec;
 	}
 	catch (...) {
