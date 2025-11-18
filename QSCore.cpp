@@ -512,6 +512,7 @@ int main(int argc, char *argv[]) {
             LOGI("*** [NextRequest] threadId=%d ***", req.threadId);
 
             auto execTime = session->debugger->stepForward();
+            LOGI("stepForward execTime = %f", execTime);
             if (execTime < 0) {
                 // QVM signaled "end of program"
                 LOGI("Program finished on Next; sending TerminatedEvent and shutting down");
