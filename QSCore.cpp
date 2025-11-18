@@ -512,6 +512,20 @@ int main(int argc, char *argv[]) {
             LOGI("*** [NextRequest] threadId=%d ***", req.threadId);
 
             auto execTime = session->debugger->stepForward();
+            if (execTime < 0) {
+                // QVM signaled "end of program"
+                LOGI("Program finished on Next; sending TerminatedEvent and shutting down");
+
+                // Tell VS Code that debugging is over
+                dap::TerminatedEvent tev;
+                session->send(tev);
+
+                // Unblock the main loop (terminate.wait())
+                terminate.fire();
+
+                return dap::NextResponse();
+            }
+
             if (execTime != 0) {
                 session->sendOutputMessage(std::string("Step execution time: ") + std::to_string(execTime) + std::string(" s"));
             }
