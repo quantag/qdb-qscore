@@ -293,17 +293,60 @@ void BaseQVM::generatePythonCodeMapping(const std::string& preparedSource) {
 
     sourceToQasmLines.assign(originalCount, {});
 
-    // Simple 1-to-1 mapping: line i in original -> line i in prepared
     int n = std::min(originalCount, qasmCount);
+
+    bool inDocstring = false;
+    std::string docToken; // """ or '''
+
     for (int i = 0; i < n; ++i) {
-        if (isPythonCommentLine(originalLines[i])) {
-            LOGI("BaseQVM::generatePythonCodeMapping] Python comment at src line %d, mapping as []", i + 1);
-            // sourceToQasmLines[i] stays empty
+        std::string line = originalLines[i];
+        std::string trimmed = line;
+        Utils::trim(trimmed);
+
+        // 1) Pure comment line -> no-op
+        if (isPythonCommentLine(line)) {
+            LOGI("BaseQVM::generatePythonCodeMapping] Python comment at src line %d, mapping []", i + 1);
             continue;
         }
-        sourceToQasmLines[i].push_back(i); // 0-based index
+
+        // 2) Docstring handling (very simple but good enough for Qiskit examples)
+        if (!inDocstring) {
+            // Look for opening """ or '''
+            if (trimmed.rfind("\"\"\"", 0) == 0 || trimmed.rfind("'''", 0) == 0) {
+                docToken = trimmed.substr(0, 3);
+                inDocstring = true;
+                LOGI("BaseQVM::generatePythonCodeMapping] Docstring start at src line %d", i + 1);
+
+                // Single-line docstring: """ text """
+                std::size_t secondPos = trimmed.find(docToken, 3);
+                if (secondPos != std::string::npos) {
+                    // Starts and ends on same line
+                    inDocstring = false;
+                    LOGI("BaseQVM::generatePythonCodeMapping] Docstring end (same line) at src line %d", i + 1);
+                }
+
+                // In any case, treat this line as non-op
+                continue;
+            }
+        }
+        else {
+            // We are inside a docstring block
+            LOGI("BaseQVM::generatePythonCodeMapping] Inside docstring at src line %d", i + 1);
+
+            // Check for closing token
+            if (trimmed.find(docToken) != std::string::npos) {
+                inDocstring = false;
+                LOGI("BaseQVM::generatePythonCodeMapping] Docstring end at src line %d", i + 1);
+            }
+
+            // Entire docstring block is treated as non-op
+            continue;
+        }
+
+        // 3) Normal (non-comment, non-docstring) line:
+        //    temporary 1:1 mapping: src line i -> prepared line i
+        sourceToQasmLines[i].push_back(i);
     }
 
-    LOGI("BaseQVM::generatePythonCodeMapping] temporary 1:1 mapping, lines=%d", n);
+    LOGI("BaseQVM::generatePythonCodeMapping] temporary 1:1 mapping (excluding comments/docstrings), lines=%d", n);
 }
-
