@@ -160,8 +160,63 @@ def _find_first_class(candidates):
                 continue
     return None
 
-
 def build_default_workflow():
+    """
+    Fast logical-only workflow for microservice.
+    Avoid QSearch unless explicitly enabled.
+    """
+    partitioners = [
+        ("bqskit.passes.partitioning", "QuickPartitioner"),
+        ("bqskit.passes.partitioning", "GreedyPartitioner"),
+        ("bqskit.passes.partitioning", "ScanPartitioner"),
+        ("bqskit.passes", "GreedyPartitioner"),
+        ("bqskit.passes", "ScanPartitioner"),
+    ]
+
+    consolidators = [
+        ("bqskit.passes.consolidation", "ConsolidateBlocks"),
+        ("bqskit.passes", "ConsolidateBlocks"),
+    ]
+
+    peepholes = [
+        ("bqskit.passes.optimization", "PeepholeOptimize"),
+        ("bqskit.passes.optimization", "PeepholeOptimizationPass"),
+        ("bqskit.passes", "PeepholeOptimize"),
+        ("bqskit.passes", "PeepholeOptimizationPass"),
+    ]
+
+    # Heavy synthesis passes (optional)
+    synthesizers = [
+        ("bqskit.passes.synthesis", "QSearchSynthesisPass"),
+        ("bqskit.passes.synthesis", "LEAPSynthesisPass"),
+        ("bqskit.passes.synthesis", "UnitarySynthesisPass"),
+        ("bqskit.passes", "QSearchSynthesisPass"),
+        ("bqskit.passes", "LEAPSynthesisPass"),
+    ]
+
+    p_part = _find_first_class(partitioners)
+    p_cons = _find_first_class(consolidators)
+    p_peephole = _find_first_class(peepholes)
+
+    passes = []
+    for p in (p_part, p_cons, p_peephole):
+        if p is not None:
+            passes.append(p)
+
+    # Enable heavy synthesis only if env var set
+    enable_heavy = os.environ.get("BQS_HEAVY", "0") == "1"
+    if enable_heavy:
+        p_syn = _find_first_class(synthesizers)
+        if p_syn is not None:
+            passes.append(p_syn)
+
+    if not passes:
+        raise RuntimeError("No usable BQSKit passes found in this installation.")
+
+    wf = Workflow(passes, name="logical_default")
+    return wf, passes
+
+def build_default_workflow2():
     """
     Builds a logical-only workflow using passes that exist in your BQSKit.
     Returns (workflow, passes_list). Raises if none found.
