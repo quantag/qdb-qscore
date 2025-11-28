@@ -7,17 +7,47 @@
 // Simple export wrapper for external rendering
 // ============================================================
 export function renderMBQC(scene, THREE, data) {
-  const container = document.getElementById('mbqcContainer') 
-                 || document.getElementById('threeContainer') 
-                 || document.body;
+  console.log("renderMBQC called", {scene, data});
+
+  if (scene && scene.children) {
+    while (scene.children.length > 0) {
+      scene.remove(scene.children[0]);
+    }
+  }
+
+  const container = document.getElementById('mbqcContainer')
+                || document.getElementById('threeContainer')
+                || document.body;
 
   const zxGraph = data.zx_graph || {};
   const mbqcPattern = data.mbqc_pattern || {};
 
   const viewer = initMBQCViewer(THREE, OrbitControls, container);
   viewer.compileAndRender = undefined;
+
+  console.log("Before buildGraph, viewer.scene has:", viewer.scene?.children?.length ?? "none");
+
   viewer.buildGraph?.(zxGraph, mbqcPattern);
+
+  console.log("After buildGraph, viewer.scene has:", viewer.scene?.children?.length ?? "none");
+  console.log("Viewer keys:", Object.keys(viewer));
+
+  if (viewer.scene && viewer.scene.children?.length) {
+    for (const obj of viewer.scene.children) {
+      scene.add(obj.clone ? obj.clone() : obj);
+    }
+    console.log(`Added ${viewer.scene.children.length} objects to main scene`);
+  } else {
+    console.warn("No objects found in viewer.scene to add!");
+  }
+
+  const light = new THREE.AmbientLight(0xffffff, 0.8);
+  scene.add(light);
+
+  console.log("Final scene children:", scene.children.length);
 }
+
+
 
 export function initMBQCViewer(THREE, OrbitControls, containerEl) {
 
