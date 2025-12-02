@@ -789,6 +789,76 @@
           }
         }
       }
+    },
+    "/optimize": {
+      "post": {
+        "summary": "Circuit Optimizer",
+        "description": "Optimize quantum circuits using BQSKit",
+        "operationId": "circuitOptimizer",
+        "x-google-backend": {
+          "address": "https://cloud.quantag-it.com/api4/optimize",
+          "protocol": "http/1.1"
+        },
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "number" },
+                "src": { "type": "string" }
+              },
+              "required": ["type", "src"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful optimized",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "src": { "type": "string" },
+                "status": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "summary": "CORS preflight for /optimize",
+        "operationId": "circuitOptimizerOptions",
+        "security": [],
+        "x-google-backend": {
+          "address": "https://cloud.quantag-it.com/api4/optimize",
+          "protocol": "http/1.1"
+        },
+        "responses": {
+          "200": {
+            "description": "Successful preflight",
+            "headers": {
+              "Access-Control-Allow-Origin": {
+                "type": "string",
+                "default": "*"
+              },
+              "Access-Control-Allow-Methods": {
+                "type": "string",
+                "default": "POST, OPTIONS"
+              },
+              "Access-Control-Allow-Headers": {
+                "type": "string",
+                "default": "Content-Type, Authorization"
+              },
+              "Access-Control-Max-Age": {
+                "type": "string",
+                "default": "3600"
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
