@@ -47,6 +47,8 @@
 #define CONFIG_FILE         "QSCore.ini"
 
 
+#define  quantumStateVariablesRef   1
+#define  entanglementVariablesRef   2
 
 // sourceContent holds the synthetic file source.
 constexpr char sourceContent[] = R"(// OpenQASM 3.0;)";
@@ -436,13 +438,31 @@ int main(int argc, char *argv[]) {
                     return dap::Error("Unknown frameId '%d'", int(request.frameId));
                 }
 
-                dap::Scope scope;
+                /*dap::Scope scope;
                 scope.name = "Locals";
                 scope.presentationHint = "locals";
                 scope.variablesReference = variablesReferenceId;
 
                 dap::ScopesResponse response;
                 response.scopes.push_back(scope);
+                return response;*/
+                dap::ScopesResponse response;
+
+                {
+                    dap::Scope s;
+                    s.name = "Quantum State";
+                    // no presentationHint needed
+                    s.variablesReference = quantumStateVariablesRef; // NEW id
+                    response.scopes.push_back(s);
+                }
+
+                {
+                    dap::Scope s;
+                    s.name = "Entanglement";
+                    // no presentationHint needed
+                    s.variablesReference = entanglementVariablesRef; // NEW id
+                    response.scopes.push_back(s);
+                }
                 return response;
             });
 
@@ -453,37 +473,54 @@ int main(int argc, char *argv[]) {
         session->registerHandler(
             [&](const dap::VariablesRequest& request)
             -> dap::ResponseOrError<dap::VariablesResponse> {
-                LOGI("[VariablesRequest]");
+                LOGI("[VariablesRequest] ref=%d", int(request.variablesReference));
 
-                if (request.variablesReference != variablesReferenceId) {
-                    return dap::Error("Unknown variablesReference '%d'",
-                        int(request.variablesReference));
-                }
-
-             //   dap::Variable currentLineVar;
-            //    currentLineVar.name = "currentLine";
-            //    currentLineVar.value = std::to_string(debugger.currentLine());
-             //   currentLineVar.type = "int";
-
+                //if (request.variablesReference != variablesReferenceId) {
+                //    return dap::Error("Unknown variablesReference '%d'",
+               //         int(request.variablesReference));
+               // }
                 dap::VariablesResponse response;
-            //    response.variables.push_back(currentLineVar);
-                /*
-                * add qubits here
-                */
-                std::vector<complexNumber> qubits = session->debugger->getQVMVariables();
-                unsigned char idx = 0;
-                for (complexNumber item : qubits) {
-                    dap::Variable qubitVar;
-                    qubitVar.name = "|" + Utils::toBinaryString(idx, session->debugger->getQubitsCount()) + ">";
-                    qubitVar.value = Utils::complex2str(item);
-                    qubitVar.type = "complex";
-                    idx++;
-                    response.variables.push_back(qubitVar);
 
-                    LOGD( "adding variable %s", qubitVar.name.c_str() );
-                }
+                switch(request.variablesReference) {
+                    case quantumStateVariablesRef: {
+                            std::vector<complexNumber> qubits = session->debugger->getQVMVariables();
+                            unsigned char idx = 0;
+                            for (complexNumber item : qubits) {
+                                dap::Variable qubitVar;
+                                qubitVar.name = "|" + Utils::toBinaryString(idx, session->debugger->getQubitsCount()) + ">";
+                                qubitVar.value = Utils::complex2str(item);
+                                qubitVar.type = "complex";
+                                idx++;
+                                response.variables.push_back(qubitVar);
 
-                return response;
+                                LOGD("adding variable %s", qubitVar.name.c_str());
+                            }
+
+                            return response;
+                            }
+                            break;
+
+                    case entanglementVariablesRef: {
+
+                        // TODO: replace with your real computation
+                        // Suggestion: compute at STOP event and cache, then just read cached here.
+                        // For now, return placeholders:
+                        int n = session->debugger->getQubitsCount();
+                        for (int i = 0; i < n; i++) {
+                            dap::Variable v;
+                            v.name = "S_q" + std::to_string(i);
+                            v.value = "0.0"; // computed entropy
+                            v.type = "double";
+                            response.variables.push_back(v);
+                        }
+
+                        return response;
+                    }
+                        break;
+                    default:
+                        return dap::Error("Unknown variablesReference '%d'",
+                            int(request.variablesReference));
+                    }
             });
         // The Pause request instructs the debugger to pause execution of one or
         // all threads.
