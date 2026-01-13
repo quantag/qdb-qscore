@@ -18,11 +18,33 @@ struct complexNumber {
 	double a;
 	double b;
 
-	complexNumber() { a = 0.; b = 0.; }
-	complexNumber(double real, double im) {
-		this->a = real;
-		this->b = im;
+	complexNumber() : a(0.0), b(0.0) {}
+	complexNumber(double real, double imag) : a(real), b(imag) {}
+
+	double norm2() const {
+		return a * a + b * b;
 	}
+
+	complexNumber conj() const {
+		return complexNumber(a, -b);
+	}
+
+	complexNumber operator*(const complexNumber& o) const {
+		return complexNumber(
+			a * o.a - b * o.b,
+			a * o.b + b * o.a
+		);
+	}
+
+	complexNumber& operator+=(const complexNumber& o) {
+		a += o.a;
+		b += o.b;
+		return *this;
+	}
+	complexNumber operator*(double s) const {
+		return complexNumber(a * s, b * s);
+	}
+
 };
 
 enum CodeFramework {
@@ -67,6 +89,12 @@ struct CodeLine {
 	std::string line;
 	int type; // 0 = comment, 1 = info, 2 = executable
 };
+
+struct EntVar {
+	std::string name;
+	double value;
+};
+
 
 #define ERR_OK		0
 #define ERR_NOFILE	1

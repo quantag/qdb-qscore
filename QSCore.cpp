@@ -68,6 +68,90 @@ void printUsage() {
 }
 
 
+static inline double log2_safe(double x) {
+    return std::log(x) / std::log(2.0);
+}
+
+static double entropy_from_rho(double rho00, double rho11, const complexNumber& rho01) {
+    double tr = rho00 + rho11;
+    if (tr <= 0.0) return 0.0;
+
+    rho00 /= tr;
+    rho11 /= tr;
+    complexNumber r01(rho01.a / tr, rho01.b / tr);
+
+    double det = rho00 * rho11 - r01.norm2();
+    det = std::max(0.0, std::min(0.25, det));
+
+    double disc = std::max(0.0, 1.0 - 4.0 * det);
+    double s = std::sqrt(disc);
+
+    double l1 = 0.5 * (1.0 + s);
+    double l2 = 0.5 * (1.0 - s);
+
+    double H = 0.0;
+    if (l1 > 1e-15) H -= l1 * log2_safe(l1);
+    if (l2 > 1e-15) H -= l2 * log2_safe(l2);
+    return H;
+}
+
+static std::vector<EntVar> compute_entanglement_single_qubit(
+    const std::vector<complexNumber>& amps,
+    int nqubits)
+{
+    std::vector<EntVar> out;
+    if (nqubits <= 0) return out;
+
+    const size_t dim = amps.size();
+    if (dim != (size_t(1) << nqubits)) return out;
+
+    // Defensive normalization
+    double n2 = 0.0;
+    for (const auto& a : amps) n2 += a.norm2();
+    double invNorm = (n2 > 0.0) ? (1.0 / std::sqrt(n2)) : 1.0;
+
+    out.reserve(nqubits + 2);
+
+    double Smax = 0.0;
+    double Ssum = 0.0;
+
+    for (int qi = 0; qi < nqubits; ++qi) {
+        double rho00 = 0.0;
+        double rho11 = 0.0;
+        complexNumber rho01(0.0, 0.0);
+
+        const size_t bit = size_t(1) << qi;
+        const size_t step = bit << 1;
+
+        for (size_t base = 0; base < dim; base += step) {
+            for (size_t off = 0; off < bit; ++off) {
+                complexNumber a0 = amps[base + off] * invNorm;       // qi = 0
+                complexNumber a1 = amps[base + off + bit] * invNorm; // qi = 1
+
+                rho00 += a0.norm2();
+                rho11 += a1.norm2();
+
+                // rho01 += a0 * conj(a1)
+                rho01 += a0 * a1.conj();
+            }
+        }
+
+        double S = entropy_from_rho(rho00, rho11, rho01);
+
+        Ssum += S;
+        Smax = std::max(Smax, S);
+
+        out.push_back({ "S_q" + std::to_string(qi), S });
+    }
+
+    out.push_back({ "S_max", Smax });
+    out.push_back({ "S_avg", Ssum / std::max(1, nqubits) });
+
+    return out;
+}
+
+
+
 double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
     std::unique_ptr<BaseQVM> qvm;
 
@@ -498,25 +582,25 @@ int main(int argc, char *argv[]) {
 
                             return response;
                             }
-                            break;
+                            
 
                     case entanglementVariablesRef: {
-
-                        // TODO: replace with your real computation
-                        // Suggestion: compute at STOP event and cache, then just read cached here.
-                        // For now, return placeholders:
+                        auto amps = session->debugger->getQVMVariables();
                         int n = session->debugger->getQubitsCount();
-                        for (int i = 0; i < n; i++) {
+
+                        auto ent = compute_entanglement_single_qubit(amps, n);
+
+                        for (const auto& e : ent) {
                             dap::Variable v;
-                            v.name = "S_q" + std::to_string(i);
-                            v.value = "0.0"; // computed entropy
+                            v.name = e.name;
+                            v.value = std::to_string(e.value);
                             v.type = "double";
                             response.variables.push_back(v);
                         }
-
                         return response;
                     }
-                        break;
+
+                        
                     default:
                         return dap::Error("Unknown variablesReference '%d'",
                             int(request.variablesReference));
