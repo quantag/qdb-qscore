@@ -418,6 +418,115 @@ def delete_all_apikeys():
         if conn: conn.close()
 
 
+# --- Node registry (containers self-register) ---
+
+def _require_node_register_token():
+    expected = os.getenv("NODE_REGISTER_TOKEN", "")
+    if not expected:
+        # Fail closed if you forgot to configure it
+        return False, (jsonify({"error": "NODE_REGISTER_TOKEN is not configured on server"}), 500)
+
+    got = request.headers.get("X-Node-Token") or request.args.get("token") or ""
+    if got != expected:
+        return False, (jsonify({"error": "Forbidden"}), 403)
+
+    return True, None
+
+
+@app.route("/nodes/register", methods=["POST"])
+def nodes_register():
+    ok, resp = _require_node_register_token()
+    if not ok:
+        return resp
+
+    data = request.get_json(silent=True) or {}
+
+    # provider_id can be hardcoded via env on the SERVER side, or supplied by client
+    provider_id = (
+        os.getenv("DEFAULT_PROVIDER_ID")
+        or data.get("provider_id")
+    )
+    endpoint = data.get("endpoint")
+    caps = data.get("caps")  # can be dict or string
+    status = int(data.get("status", 0))
+    gpu = int(data.get("gpu", 0))
+    qpu = int(data.get("qpu", 0))
+
+    if not provider_id:
+        return jsonify({"error": "Missing provider_id (or set DEFAULT_PROVIDER_ID env var on server)"}), 400
+    if not endpoint:
+        return jsonify({"error": "Missing endpoint"}), 400
+
+    # Store caps as string (json) in varchar column
+    if isinstance(caps, dict):
+        try:
+            caps = json.dumps(caps)
+        except Exception:
+            caps = str(caps)
+
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+
+        # Upsert by endpoint (most practical identifier for container nodes)
+        cursor.execute(
+            """
+            INSERT INTO nodes (provider_id, endpoint, status, caps, gpu, qpu)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (endpoint)
+            DO UPDATE SET
+                provider_id = EXCLUDED.provider_id,
+                status = EXCLUDED.status,
+                caps = EXCLUDED.caps,
+                gpu = EXCLUDED.gpu,
+                qpu = EXCLUDED.qpu
+            RETURNING uid, provider_id, endpoint, status, caps, gpu, qpu;
+            """,
+            (provider_id, endpoint, status, caps, gpu, qpu),
+        )
+        row = cursor.fetchone()
+        conn.commit()
+
+        cols = [d[0] for d in cursor.description]
+        out = dict(zip(cols, row))
+        return jsonify(out), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.route("/nodes", methods=["GET"])
+def nodes_list():
+    ok, resp = _require_node_register_token()
+    if not ok:
+        return resp
+
+    conn, cursor = None, None
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT uid, provider_id, endpoint, status, caps, gpu, qpu FROM nodes ORDER BY endpoint ASC;"
+        )
+        rows = cursor.fetchall()
+        cols = [d[0] for d in cursor.description]
+        return jsonify([dict(zip(cols, r)) for r in rows]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
 def validate_api_key(api_key):
     """Return user_id if API key is valid, else None"""
     if not api_key:
