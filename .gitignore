@@ -33,3 +33,5 @@
 
 QSCore/
 x64/
+
+venv*/
