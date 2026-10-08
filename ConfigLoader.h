@@ -13,6 +13,8 @@
 #include <string>
 #include <map>
 
+#include "Utils.h"
+
 #define RENDER_CIRCUIT_KEY      "render.circuit"
 #define DEMO_FILE_KEY           "demo.file"
 #define SOURCE_FOLDER_KEY       "source.folder"
@@ -58,7 +60,7 @@ public:
         std::string val = getValue(RENDER_CIRCUIT_KEY);
         if (!val.empty()) {
             Utils::trim(val);
-            LOGI("[%s]", val.c_str());
+            //LOGI("[%s]", val.c_str());
             if (!strcmp(val.c_str(), "0"))
                 return false;
         }

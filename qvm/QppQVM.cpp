@@ -40,10 +40,7 @@ QppQVM::~QppQVM() {
 	delete processor;
 }
 
-void QppQVM::setWSSession(WSSession* ws) {
-	LOGI("setWSSession");
-	this->frontend->setWSSession(ws);
-}
+
 
 int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
 	LOGI("[%s] [%s]", fileName.c_str(), sessionId.c_str());
@@ -196,25 +193,6 @@ int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessi
 }
 
 
-void QppQVM::updateProcessor(PythonFramework framework) {
-	if (this->processor != NULL) {
-		if (this->processor->getFramework() == framework)
-			return;
-
-		delete processor;
-	}
-
-	switch (framework) {
-		case eQiskit:
-		case eGeneric:
-			this->processor = new QiskitProcessor();
-			break;
-		case eTket:
-			this->processor = new TketProcessor();
-			break;
-	}
-}
-
 int QppQVM::run(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
 	LOGI("%s sessionId = [%s]", fileName.c_str(), sessionId.c_str());
 
@@ -255,9 +233,6 @@ int QppQVM::debug(const std::string& fileName, const std::string& sessionId, Lau
 	return ret;
 }
 
-int QppQVM::getSourceLines() {
-	return Utils::calcNumberOfLines(this->sourceCode);
-}
 
 // Execute next line
 double QppQVM::stepForward() {

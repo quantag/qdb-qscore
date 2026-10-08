@@ -26,6 +26,10 @@
 #include "SessionStorage.h"
 
 #include "qvm/QppQVM.h"
+#ifdef ENABLE_CUDAQ
+#include "qvm/CudaQVM.h"
+#endif
+
 #include "ConfigLoader.h"
 
 
@@ -54,7 +58,12 @@ void printUsage() {
 }
 
 double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
+#ifdef ENABLE_CUDAQ
+    CudaQVM qvm(cfg);
+#else
     QppQVM qvm(cfg);
+#endif
+
     LaunchStatus status;
 
     LOGE("Executing file [%s]", fileName.c_str());
