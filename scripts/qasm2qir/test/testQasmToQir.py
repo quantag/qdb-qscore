@@ -1,7 +1,8 @@
 import requests, base64
 
 url2 = "https://qasm2qir-845732993158.europe-west1.run.app/qasm2qir"
-url = "https://api.quantag-it.com/qasm2qir"
+url3 = "https://api.quantag-it.com/qasm2qir"
+url = "https://cryspprod3.quantag-it.com:444/api7/qasm2qir"
 
 qasm_code = "OPENQASM 3; qubit[1] q; h q[0];"
 payload = {"qasm": base64.b64encode(qasm_code.encode()).decode()}

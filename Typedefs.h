@@ -11,29 +11,55 @@
 #include <functional>
 
 
+
 // z = a + i*b
 // TODO: use std::complex instead
 struct complexNumber {
 	double a;
 	double b;
 
-	complexNumber() { a = 0.; b = 0.; }
-	complexNumber(double real, double im) {
-		this->a = real;
-		this->b = im;
+	complexNumber() : a(0.0), b(0.0) {}
+	complexNumber(double real, double imag) : a(real), b(imag) {}
+
+	double norm2() const {
+		return a * a + b * b;
 	}
+
+	complexNumber conj() const {
+		return complexNumber(a, -b);
+	}
+
+	complexNumber operator*(const complexNumber& o) const {
+		return complexNumber(
+			a * o.a - b * o.b,
+			a * o.b + b * o.a
+		);
+	}
+
+	complexNumber& operator+=(const complexNumber& o) {
+		a += o.a;
+		b += o.b;
+		return *this;
+	}
+	complexNumber operator*(double s) const {
+		return complexNumber(a * s, b * s);
+	}
+
 };
 
-enum PythonFramework {
+enum CodeFramework {
 	eGeneric = 0,
 	eQiskit = 1,
 	eTket = 2,
+	eCUDAQ = 3,
+	eGuppy = 4,
 	eUnknownFramework = 100
 };
 
 enum CodeType {
 	ePython,
 	eOpenQASM,
+	eCpp,
 	eUnknown
 };
 
@@ -64,15 +90,22 @@ struct CodeLine {
 	int type; // 0 = comment, 1 = info, 2 = executable
 };
 
-#define ERR_OK			0
-#define ERR_NOFILE		1
+struct EntVar {
+	std::string name;
+	double value;
+};
+
+
+#define ERR_OK		0
+#define ERR_NOFILE	1
 #define ERR_DEMOFILE	2
 #define ERR_PARSEERROR	3
+#define ERR_RUNERROR	4
 
 struct LaunchStatus {
 	int serverFileFound;
 	std::string errorMessage;
 
 	CodeType codeType;
-	PythonFramework pythonFramework;
+	CodeFramework pythonFramework;
 };

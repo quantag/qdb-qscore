@@ -26,12 +26,14 @@ import io
 import json
 import os
 import sys
+import time
 from typing import Dict, Any, List
 
 from flask import Flask, request, jsonify
 import inspect
 from typing import Tuple, List, Dict, Any
 import ast
+import subprocess, time, shutil
 
 # You need guppylang installed:
 # pip install guppylang
@@ -40,12 +42,29 @@ import importlib.util
 import sys
 import tempfile
 from pathlib import Path
+from flask_cors import CORS
+
+import logging
+logger = logging.getLogger("guppy")
+
+LOG_DIR = Path(__file__).parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler(LOG_DIR / "service.log"),
+        logging.StreamHandler(sys.stdout)
+    ],
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
 
 # Optional: if you plan to run in Selene locally later
 # pip install selene-sim
 # from selene_sim import build as selene_build
 
 app = Flask(__name__)
+CORS(app)
 
 DEFAULT_FORMATS = ["bytes_b64"]
 
@@ -101,11 +120,75 @@ def detect_guppy_functions(src_code: str) -> Tuple[Dict[str, Any], List[Dict[str
 
     return ns, infos
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": 0}), 200
+
 
 @app.route("/compile", methods=["POST"])
 def compile_endpoint():
     try:
         data = request.get_json(force=True)
+        formats = data.get("formats", ["json"])
+        funcs = data.get("functions", [])
+        logger.info(f"[Compile] Requested formats: {formats}, functions: {funcs}")
+    except Exception:
+        return jsonify({"ok": False, "error": "Invalid JSON"}), 400
+
+    if not data or "source_b64" not in data:
+        return jsonify({"ok": False, "error": "Missing 'source_b64'"}), 400
+
+    try:
+        src = base64.b64decode(data["source_b64"]).decode("utf-8")
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Base64 decode failed: {e}"}), 400
+
+    if not funcs:
+        return jsonify({"ok": False, "error": "Missing 'functions' array"}), 400
+    formats = data.get("formats") or ["bytes_b64"]
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        src_path = Path(tmpdir) / "user_module.py"
+        src_path.write_text(src, encoding="utf-8")
+
+        # Save code for audit
+        try:
+            fname = LOG_DIR / f"compile_{int(time.time())}.py"
+            fname.write_text(src, encoding="utf-8")
+            logger.info(f"Saved uploaded source to {fname}")
+        except Exception as e:
+            logger.error(f"Failed to save uploaded source: {e}")
+
+        # Run worker in subprocess
+        try:
+            result = subprocess.run(
+                [sys.executable, str(Path(__file__).parent / "compile_worker.py"),
+                 str(src_path), json.dumps(funcs), json.dumps(formats)],
+                capture_output=True, text=True, timeout=10
+            )
+        except subprocess.TimeoutExpired:
+            return jsonify({"ok": False, "error": "Compile worker timeout"}), 400
+
+        if result.returncode != 0:
+            return jsonify({"ok": False, "error": result.stderr or result.stdout}), 400
+
+        try:
+            output = json.loads(result.stdout)
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"Worker JSON parse failed: {e}"}), 400
+
+        return jsonify(output)
+
+
+@app.route("/compile2", methods=["POST"])
+def compile_endpoint2():
+    try:
+        data = request.get_json(force=True)
+        formats = data.get("formats", ["json"])
+        logger.info(f"[Compile] Requested formats: {formats}")
+        funcs = data.get("functions", ["json"])
+        logger.info(f"[Compile] Requested functions: {funcs}")
+
     except Exception:
         return jsonify({"ok": False, "error": "Invalid JSON"}), 400
 
@@ -122,6 +205,14 @@ def compile_endpoint():
         return jsonify({"ok": False, "error": "Missing 'functions' array"}), 400
 
     formats = data.get("formats") or ["bytes_b64"]
+
+    # --- Save uploaded code to /logs ---
+    try:
+        fname = LOG_DIR / f"compile_{int(time.time())}.py"
+        fname.write_text(src, encoding="utf-8")
+        logger.info(f"Saved uploaded source to {fname}")
+    except Exception as e:
+        logger.error(f"Failed to save uploaded source: {e}")
 
     # --- Save source into a temp file ---
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -151,8 +242,8 @@ def compile_endpoint():
                 return jsonify({"ok": False, "error": f"Compile failed for '{name}': {e}"}), 400
 
             entry = {}
-            if "bytes_b64" in formats:
-                entry["bytes_b64"] = base64.b64encode(compiled.to_bytes()).decode("ascii")
+            if "hugr" in formats:
+                entry["hugr"] = base64.b64encode(compiled.to_bytes()).decode("ascii")
             if "str" in formats:
                 try:
                     entry["str"] = compiled.to_str()
@@ -165,14 +256,10 @@ def compile_endpoint():
                     entry["json_error"] = str(e)
 
             results[name] = entry
+            logger.info(f"[Compile] Function {name} -> returned formats: {list(entry.keys())}")
 
     return jsonify({"ok": True, "results": results})
 
-
-
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({"ok": True})
 
 
 @app.route("/detect", methods=["POST"])
@@ -190,17 +277,36 @@ def detect_endpoint():
     except Exception as e:
         return jsonify({"ok": False, "error": f"Base64 decode failed: {e}"}), 400
 
+    fname = LOG_DIR / f"detect_{int(time.time())}.py"
+    fname.write_text(src, encoding="utf-8")
+    logger.info(f"Saved uploaded source to {fname}")
+    infos = []
     try:
-        _, infos = detect_guppy_functions(src)
+        tree = ast.parse(src)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                # Check if @guppy decorator is present
+                has_guppy = any(
+                    (isinstance(dec, ast.Name) and dec.id == "guppy") or
+                    (isinstance(dec, ast.Attribute) and dec.attr == "guppy")
+                    for dec in node.decorator_list
+                )
+                if has_guppy:
+                    infos.append({
+                        "name": node.name,
+                        "lineno": getattr(node, "lineno", None),
+                        "end_lineno": getattr(node, "end_lineno", None),
+                        "has_compile": True,
+                        "compile_sig": None  # not available without execution
+                    })
     except Exception as e:
-        return jsonify({"ok": False, "error": f"Execution/detection failed: {e}"}), 400
+        return jsonify({"ok": False, "error": f"AST parse failed: {e}"}), 400
 
     return jsonify({
         "ok": True,
         "count": len(infos),
         "functions": infos
     })
-
 
 
 if __name__ == "__main__":

@@ -34,14 +34,18 @@
 #include "../Log.h"
 #include "../Debugger.h"
 
-
+class ConfigLoader;
+ 
 namespace {
 
 class SessionImpl : public dap::Session {
  public:
-    SessionImpl() {
+    SessionImpl(ConfigLoader *cfg) {
         dap::Session::debugger = 0;
+        this->cfg = cfg;
     }
+
+    ConfigLoader* cfg;
 
     ~SessionImpl() {
         LOGI("Session closed");
@@ -59,7 +63,7 @@ class SessionImpl : public dap::Session {
 
     void createDebugger(const EventHandler& evnt) override {
         if (debugger) delete debugger;
-        debugger = new Debugger(evnt);
+        debugger = new Debugger(evnt, this->cfg);
     }
 
     void setOnInvalidData(dap::OnInvalidData onInvalidData_) override {
@@ -540,9 +544,9 @@ Error::Error(const char* msg, ...) {
 
 Session::~Session() = default;
 
-std::shared_ptr<Session> Session::create() {
+std::shared_ptr<Session> Session::create(ConfigLoader* cfg) {
     LOGI("");
-    return std::shared_ptr<Session>(new SessionImpl());
+    return std::shared_ptr<Session>(new SessionImpl(cfg));
 }
 
 void Session::setSessionId(const std::string& id) {

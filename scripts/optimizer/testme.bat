@@ -1,0 +1,1 @@
+python test_optimize.py input.qasm --type 0 --out optimized.qasm

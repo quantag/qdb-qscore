@@ -4,14 +4,19 @@ import tempfile
 import subprocess
 import time
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
+#app = Flask(__name__)
 
 # Config via env (with safe defaults)
 QBIN_COMPILE = os.getenv("QBIN_COMPILE", "qbin-compile")
 QBIN_DECOMPILE = os.getenv("QBIN_DECOMPILE", "qbin-decompile")
 MAX_UPLOAD_BYTES = int(os.getenv("QBIN_MAX_UPLOAD_BYTES", "10485760"))  # 10 MiB
 DEFAULT_TIMEOUT_SEC = int(os.getenv("QBIN_TIMEOUT_SEC", "20"))
+
+print(QBIN_COMPILE)
 
 def b64_decode_field(data_b64: str) -> bytes:
     try:
@@ -37,7 +42,7 @@ def run_tool(args, timeout_sec):
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "compile": QBIN_COMPILE, "decompile": QBIN_DECOMPILE})
+    return jsonify({"status": 0, "compile": QBIN_COMPILE, "decompile": QBIN_DECOMPILE})
 
 @app.route("/compile", methods=["POST"])
 def compile_qasm_to_qbin():

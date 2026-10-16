@@ -166,6 +166,7 @@ std::string Utils::decode64(const std::string& val) {
     // Return the decoded string
     return os.str().substr(0, outLen);
 }
+
 int Utils::fileExists(const std::string& filePath) {
     std::ifstream file(filePath.c_str());
     return file.good() ? 1 : 0;
@@ -237,7 +238,7 @@ int Utils::fileExists(const std::string& filePath) {
  }
 
 
-std::string Utils::executePythonCode(const std::string& sourceCode, PythonFramework fr) {
+std::string Utils::executePythonCode(const std::string& sourceCode, CodeFramework fr) {
     LOGI("framework = %u, '%s'", fr, sourceCode.c_str());
 
     // Create a temporary file to store the Python code
@@ -320,12 +321,15 @@ std::string Utils::vectorToString(const std::vector<int> data) {
     return str;
 }
 
-PythonFramework Utils::detectPythonFramework(const std::string & src) {
+CodeFramework Utils::detectPythonFramework(const std::string & src) {
     if (src.find("qiskit") != std::string::npos)
         return eQiskit;
 
     if (src.find("pytket") != std::string::npos)
         return eTket;
+
+    if (src.find("@guppy") != std::string::npos)
+        return eGuppy;
 
     return eGeneric;
 }
@@ -692,11 +696,12 @@ int Utils::getFilesInFolder(const std::string& folderPath, std::vector<std::stri
     return 0;  // Return 0 if operation was successful
 }
 
-std::string Utils::getPythonFrameworkName(PythonFramework type) {
+std::string Utils::getPythonFrameworkName(CodeFramework type) {
     switch (type) {
         case eGeneric:  return "Generic";
         case eQiskit:   return "Qiskit";
         case eTket:     return "pyTket";
+        case eCUDAQ:    return "CudaQ";
     }
     return "?";
 }
@@ -849,4 +854,21 @@ int Utils::saveResultsToJson(const std::map<std::string, double>& results, const
         return 1;
     }
     return 0;
+}
+
+int Utils::extractIndex(const std::string &line) {
+    auto l = line.find('[');
+    auto r = line.find(']');
+    return std::stoi(line.substr(l + 1, r - l - 1));
+}
+
+std::string Utils::getCpuInfoFull() {
+    std::string msg = getCpuInfo();
+    msg += "\nOpenMP ";
+#ifdef QPP_OPENMP
+    msg += "enabled\n";
+#else
+    msg += "disabled\n";
+#endif
+    return msg;
 }

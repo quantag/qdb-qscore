@@ -63,7 +63,7 @@ size_t RestClient::writeCallback(void* contents, size_t size, size_t nmemb, std:
 }
 
 ScriptExecResult RestClient::execCode(const std::string& code) {
-    LOGD("'%s'", code.c_str());
+    LOGD("'%s' endpoint = [%s]", code.c_str(), url.c_str());
 
     std::string encoded = Utils::encode64(code);
     std::string req = "{\"src\":\"" + encoded + "\"}";
@@ -94,3 +94,41 @@ ScriptExecResult RestClient::execCode(const std::string& code) {
     }
 }
 
+
+ScriptExecResult RestClient::execCode(const std::string& code, const std::string& env) {
+    LOGI("'%s' endpoint = [%s] venv=[%s]", code.c_str(), url.c_str(), env.c_str());
+
+    std::string encoded = Utils::encode64(code);
+
+    json j;
+    j["src"] = encoded;
+    if (!env.empty()) {
+        j["env"] = env;
+    }
+    std::string req = j.dump();
+    LOGD("req: '%s'", req.c_str());
+
+    std::string res = doPost(req);
+    LOGD("response '%s'", res.c_str());
+    ScriptExecResult result;
+
+    try {
+        json j = json::parse(res);
+        result.status = j["status"];
+        if (result.status != 0) {
+            result.err = j["err"];
+            LOGE("Remote script execution failed [%s]", result.err.c_str());
+        }
+        else {
+            std::string encodedRes = j["res"];
+            result.res = Utils::decode64(encodedRes);
+        }
+        return result;
+    }
+    catch (std::exception& e) {
+        LOGE("Error during parsing JSON response: '%s'", res.c_str());
+        result.err = 3;
+        result.err = e.what();
+        return result;
+    }
+}

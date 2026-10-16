@@ -11,10 +11,26 @@
 #include "Log.h"
 #include "qvm/QppQVM.h"
 
-Debugger::Debugger(const EventHandler& onEvent) : onEvent(onEvent), numSourceLines(0) {
+#ifdef ENABLE_CUDAQ
+#include "qvm/CudaQVM.h"
+#endif
+#include "ConfigLoader.h"
+
+Debugger::Debugger(const EventHandler& onEvent, ConfigLoader *cfg) : onEvent(onEvent), numSourceLines(0) {
     LOGI("Debugger created");
 
-    qvm = new QppQVM();
+    std::string qvmType = cfg->getQvmType();
+    if (qvmType == "cudaq") {
+#ifdef ENABLE_CUDAQ
+        qvm = new CudaQVM(cfg);
+#else
+        LOGE("CudaQVM requested but not compiled with ENABLE_CUDAQ.");
+       // return 1;
+#endif
+    }
+    
+    qvm = new QppQVM(cfg);
+    
 }
 
 Debugger::~Debugger() {

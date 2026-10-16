@@ -11,6 +11,9 @@
 #include "BaseQVM.h"
 #include <qpp.h>
 
+#include "../Version.h"
+
+
 using namespace qpp;
 
 class WSSession;
@@ -20,7 +23,6 @@ class ConfigLoader;
 
 class QppQVM : public BaseQVM {
 public:
-	QppQVM();
 	QppQVM(ConfigLoader *cfg);
 	~QppQVM();
 
@@ -29,7 +31,7 @@ public:
 	int debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
 
 	virtual std::string getQVMName() {
-		return "QPP 1.0.11";
+		return "QPP 1.0.15  QSCORE v" + std::string( QSCORE_VERSION );
 	}
 
 
@@ -37,6 +39,7 @@ public:
 
 	static std::vector<complexNumber> convertToStdVector(const qpp::ket& eigenVector);
 	static matrix2d convertToMatrix2D(const qpp::cmat& eigenMatrix);
+	static void logState(const qpp::ket& eigenVector, const std::string& msg);
 
 private:
 	// Smart pointer to store QCircuit object
@@ -46,5 +49,7 @@ private:
 
 	QCircuit::iterator mIt; // current state
 	void setCurrentState(const qpp::ket& psi);
+
+	int currentExecIndex = 0;
 
 };

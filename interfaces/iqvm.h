@@ -10,6 +10,8 @@
 #include <string>
 #include "../interfaces/ifrontend.h"
 
+class ConfigLoader;
+
 // interface to QVM
 class IQVM {
 public:
@@ -51,6 +53,10 @@ public:
 	}
 	std::string _errorMessage;
 
+	ConfigLoader* getConfig() {
+		return cfg;
+	}
+
 protected:
 	std::string sourceCode;
 
@@ -65,4 +71,6 @@ protected:
 	size_t nQubits;
 
 	int sourceCodeParsed;
+	ConfigLoader* cfg;
+
 };

@@ -13,24 +13,18 @@
 #include "../Utils.h"
 
 #include "../WebFrontend.h"
-#include "../QiskitProcessor.h"
-#include "../TketProcessor.h"
+#include "../processors/QiskitProcessor.h"
+#include "../processors/TketProcessor.h"
+#include "../processors/CudaQProcessor.h"
 
 #include "../ConfigLoader.h"
 
 
 
-QppQVM::QppQVM() : engine(nullptr) {
-	this->frontend = new WebFrontend();
-	this->sourceCodeParsed = 0;
-	processor = new QiskitProcessor();
-	this->cfg = nullptr;
-}
-
 QppQVM::QppQVM(ConfigLoader* cfg) : engine(nullptr) {
 	this->frontend = new WebFrontend();
 	this->sourceCodeParsed = 0;
-	processor = new QiskitProcessor();
+	processor = new QiskitProcessor(cfg);
 	this->cfg = cfg;
 }
 
@@ -41,156 +35,40 @@ QppQVM::~QppQVM() {
 }
 
 
+int QppQVM::loadSourceCode(const std::string& fileName,
+	const std::string& sessionId,
+	LaunchStatus& status) {
 
-int QppQVM::loadSourceCode(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
-	LOGI("[%s] [%s]", fileName.c_str(), sessionId.c_str());
+	venv = getVenvIfPresent(fileName);
 
-	int ret = ERR_OK;
-	status.pythonFramework = eUnknownFramework;
-	status.codeType = eUnknown;
+	std::string preparedSource;
+	int ret = prepareSource(fileName, sessionId, status, preparedSource);
+	if (ret != ERR_OK && ret != ERR_DEMOFILE) 
+		return ret;
 
-	this->sourceCodeParsed = 0;
-	this->sourceCodePerLines.clear();
 
-	sourceCode = "";
-	std::string file = fileName;
+	LOGI("prepared source = [%s]", preparedSource.c_str());
 
-	std::string sourceFolder = SOURCE_FOLDER;
-	if (cfg) {
-		sourceFolder = cfg->getSourceFolder();
-	}
-
-	if (!Utils::fileExists(file)) {
-		// try to find on server folder
-		std::string defaultFolder = sourceFolder + std::string("default");
-		std::string serverFile = Utils::findServerFile(defaultFolder, file);
-		if (Utils::fileExists(serverFile)) {
-			LOGI("Found Server File in default folder '%s'", serverFile.c_str());
-
-		}
-		else {
-			std::string sessionFolder = sourceFolder + sessionId;
-			serverFile = Utils::findServerFile(sessionFolder, file);
-		}
-
-		if (!Utils::fileExists(serverFile)) {
-			LOGI("Server File '%s' not exists", serverFile.c_str());
-			LOGI("File [%s] not exist, use demo file [%s]", fileName.c_str(), DEMO_FILE);
-			if (cfg) {
-				file = cfg->getDemoFile();
-			}
-			else {
-				file = DEMO_FILE;
-			}
-
-			ret = ERR_DEMOFILE;
-			status.serverFileFound = 0;
-		}
-		else {
-			status.serverFileFound = 1;
-
-			LOGI("Server File '%s' exists", serverFile.c_str());
-			file = serverFile;
-		}
-	}
-
-	if (!Utils::fileExists(file) ) {
-		LOGI("File '%s' not exists", file.c_str());
-		return ERR_NOFILE;
-	}
-	else {
-		LOGI("File '%s' exist !", file.c_str());
-		if(ret!= ERR_DEMOFILE) ret = ERR_OK;
-	}
-
-	sourceCode = Utils::loadFile(file);
-	LOGI("Loaded %u bytes from [%s]", sourceCode.size(), file.c_str());
-
-	// store original sources
-	this->originalSourceCode = sourceCode;
-
-	status.codeType = Utils::detectCodeType(sourceCode);
-	LOGI("Source code type: %d", status.codeType);
-
-	Utils::parseCode(sourceCode, originalParsedCode, status.codeType);
-
-	switch (status.codeType) {
-		case CodeType::ePython:
-		{
-			LOGI("Recognized Python source");
-			status.pythonFramework = Utils::detectPythonFramework(sourceCode);
-			LOGI("Recognized Python framework: %d", status.pythonFramework);
-			updateProcessor(status.pythonFramework);
-		
-			ScriptExecResult result = processor->parsePythonToOpenQASM(sourceCode, sessionId);
-			if (result.status!=0) {
-				LOGE(">>> Parser returned error in HTML format");
-				status.errorMessage = Utils::getPlainTextFromHTML(result.err);
-				return 1;
-			}
-			else {
-				this->sourceCode = result.res;
-			}
-			break;
-		}
-		case CodeType::eOpenQASM:
-		{
-			LOGI("Recognized OpenQASM source");
-
-			bool renderCircuit = true;
-			if (cfg) {
-				renderCircuit = cfg->isRenderCircuit();
-			}
-			if (!renderCircuit) {
-				LOGI("Circuit rendering disabled in config");
-			}
-			else {
-				ScriptExecResult result = processor->renderOpenQASMCircuit(sourceCode, sessionId);
-				if (result.status != 0) {
-					LOGE(">>> Render OpenQASM failed");
-					status.errorMessage = "Rendering OpenQASM circuit failed : " + result.err;
-					return 1;
-				}
-			}
-			break;
-		}
-			default:
-				LOGE("Not recognized source code type");
-	}
-
-	int nLines = Utils::parseSourcePerLines(this->sourceCode, this->sourceCodePerLines);
+	int nLines = Utils::parseSourcePerLines(preparedSource, this->sourceCodePerLines);
 	LOGI("Parsed lines: %d", nLines);
 
-	this->currentState.currentLine = Utils::getFirstLine(this->originalParsedCode, 2) + 1;
-	int ret1 = frontend->loadCode(this->sourceCode);
-	LOGI("frontend.loadCode ret %d", ret1);
-
 	try {
-		LOGI("Trying to parse OpenQASM: '%s'", this->sourceCode.c_str());
-
-		std::istringstream stringStream(this->sourceCode);
-		circuit = std::make_unique<QCircuit>(qasm::read(stringStream));
-
-		this->nQubits = circuit->get_nq();
-		LOGI("Created QCircuit from file '%s', nQubits = %u", file.c_str(), this->nQubits);
-		this->sourceCodeParsed = 1;
-	}
-	catch (qasmtools::parser::ParseError &e) {
-		LOGE("Error parsing OpenQASM from file [%s]. [%s]", file.c_str(), (e.what()!=NULL) ? e.what() : "");
-		status.errorMessage = (e.what() != NULL) ? e.what() : "Parsing error";
+		std::istringstream iss(preparedSource);
+		circuit = std::make_unique<qpp::QCircuit>(qasm::read(iss));
+		nQubits = circuit->get_nq();
+		sourceCodeParsed = 1;
 	}
 	catch (const std::exception& e) {
-		LOGE("Caught std::exception: %s", e.what());
-		status.errorMessage = std::string("Exception: ") + e.what();
+		status.errorMessage = e.what();
+		return ERR_PARSEERROR;
 	}
 	catch (...) {
-		// Catch any other type of exception
-		LOGE("Caught unknown OpenQASM parsing exception");
-		status.errorMessage = "Unknown exception occurred";
+		status.errorMessage = "QPP parser failed.";
+		return ERR_PARSEERROR;
 	}
-
 	return ret;
 }
+
 
 
 int QppQVM::run(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
@@ -227,13 +105,103 @@ int QppQVM::debug(const std::string& fileName, const std::string& sessionId, Lau
 	if(this->circuit && this->sourceCodeParsed) {
 		engine = QEngine::instance(*circuit); // create an engine out of a quantum circuit
 		mIt = circuit->begin();
+		currentExecIndex = 0;
 		LOGI("Iterator initialized");
 	}
 
 	return ret;
 }
 
+double QppQVM::stepForward() {
+	LOGI("");
 
+	if (!circuit || !this->sourceCodeParsed) {
+		LOGI("Source code not parsed. Simulate. Line = %d", ++this->currentState.currentLine);
+		return 0;
+	}
+
+	// Number of source lines from mapping (BaseQVM)
+	int totalLines = static_cast<int>(sourceToQasmLines.size());
+	if (totalLines == 0) {
+		LOGI("QppQVM::stepForward] sourceToQasmLines is empty, fallback to old behavior");
+		// fallback: old behavior with getNextLine if you really want
+		return 0;
+	}
+
+	// Move to next source line (UI is 1-based)
+	if (this->currentState.currentLine <= 0) {
+		this->currentState.currentLine = 1;
+	}
+	//else {
+	//	this->currentState.currentLine++;
+	//}
+
+	// End of file -> stop stepping
+	if (this->currentState.currentLine > totalLines) {
+		LOGI("Reached end of source lines..");
+		return -1;
+	}
+
+	LOGI("QppQVM::stepForward] currentLine = %d", this->currentState.currentLine);
+	this->currentState.code = Utils::encode64(this->sourceCode);
+
+	// Check mapping for this line
+	int srcIdx = this->currentState.currentLine - 1; // 0-based
+	bool hasOp = false;
+	if (srcIdx >= 0 && srcIdx < totalLines) {
+		hasOp = !sourceToQasmLines[srcIdx].empty();
+	}
+	LOGI("QppQVM::stepForward] src line %d, hasOp=%d",
+		this->currentState.currentLine, hasOp ? 1 : 0);
+
+	try {
+		auto start = std::chrono::steady_clock::now();
+
+		qpp::ket psi0 = engine->get_psi();
+		logState(psi0, hasOp ? "state before" : "state (no-op line, before)");
+
+		double timeSec = 0.0;
+
+		if (hasOp && mIt != circuit->end()) {
+			// Execute exactly one gate (next in circuit)
+			engine->execute(mIt++);
+
+			qpp::ket psi = engine->get_psi();
+			logState(psi, "state after");
+
+			setCurrentState(psi);
+			int ret1 = frontend->updateState(currentState);
+			LOGI("frontend.updateState ret %d", ret1);
+
+			auto stop = std::chrono::steady_clock::now();
+			auto duration = std::chrono::duration<double>(stop - start);
+			timeSec = duration.count();
+
+			LOGI("Execution time: (%f sec)", timeSec);
+		}
+		else {
+			// No QVM op on this line: state stays the same
+			qpp::ket psi = engine->get_psi();
+			logState(psi, "state (no-op line, after)");
+
+			setCurrentState(psi);
+			int ret1 = frontend->updateState(currentState);
+			LOGI("frontend.updateState (no-op) ret %d", ret1);
+
+			// timeSec stays 0.0, so DAP won't show timing text
+		}
+		this->currentState.currentLine++;
+		return timeSec;
+	}
+	catch (...) {
+		LOGE("Error executing next line");
+	}
+
+	return 0;
+}
+
+
+/*
 // Execute next line
 double QppQVM::stepForward() {
 	LOGI("");
@@ -246,34 +214,33 @@ double QppQVM::stepForward() {
 	if (mIt != circuit->end()) {
 		LOGI("Executing next line.. %d", this->currentState.currentLine);
 
-		//this->currentState.currentLine ++; // if comments, then skip them.. 
-
-	//	Utils::logSourceCode(originalParsedCode);
 		LOGI("currentLine before getNextLine = %d", this->currentState.currentLine);
-		this->currentState.currentLine = Utils::getNextLine(this->currentState.currentLine - 1, this->originalParsedCode, 2) + 1; // in UI line numbers starts from 1..
+		
+		this->currentState.currentLine = 
+			Utils::getNextLine(this->currentState.currentLine - 1,
+				this->originalParsedCode,
+				2) + 1; // in UI line numbers starts from 1..
+		
 		LOGI("currentLine after getNextLine = %d", this->currentState.currentLine);
 
 		this->currentState.code = Utils::encode64( this->sourceCode );
 
-	//	if(this->getSourceLines()>0)
-	//		this->currentState.currentLine %= this->getSourceLines();
-
-
 		try {
 			auto start = std::chrono::steady_clock::now();
-			engine->execute( mIt++ ); // crash
 
+			qpp::ket psi0 = engine->get_psi();
+			logState(psi0, "state before");
+
+			engine->execute( mIt++ ); 
 			qpp::ket psi = engine->get_psi();
-//			cmat rho = prj(psi);
+			logState(psi, "state after");
 
 			setCurrentState(psi);	
-			// const States& st = States::get_instance();  ?
 
 			int ret1 = frontend->updateState(currentState);
 			LOGI("frontend.updateState ret %d", ret1);
 
 			auto stop = std::chrono::steady_clock::now();
-			// auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); 
 			auto duration = std::chrono::duration<double>(stop - start);
 			double timeSec = duration.count();
 
@@ -286,9 +253,10 @@ double QppQVM::stepForward() {
 	}
 	else {
 		LOGI("Reached end of circuit..");
+		return -1;
 	}
 	return 0;
-}
+}*/
 
 // Convert qpp::ket to std::vector<complexNumber>
 std::vector<complexNumber> QppQVM::convertToStdVector(const qpp::ket& eigenVector) {
@@ -305,6 +273,33 @@ std::vector<complexNumber> QppQVM::convertToStdVector(const qpp::ket& eigenVecto
 	}
 
 	return result;
+}
+
+void QppQVM::logState(const qpp::ket& eigenVector, const std::string& msg) {
+	LOGI("[%s]", msg.c_str());
+
+	const auto dim = static_cast<int>(eigenVector.size());
+	if (dim == 0) {
+		LOGI("  (empty state)");
+		return;
+	}
+
+	// Number of qubits = log2(dim)
+	const int nq = static_cast<int>(std::round(std::log2(dim)));
+
+	for (int i = 0; i < dim; ++i) {
+		double re = eigenVector(i).real();
+		double im = eigenVector(i).imag();
+
+		// Build bitstring label for basis index i: |q[nq-1] ... q[0]>
+		std::string label;
+		label.reserve(nq);
+		for (int q = nq - 1; q >= 0; --q) {
+			label.push_back(((i >> q) & 1) ? '1' : '0');
+		}
+
+		LOGI(" |%s> : %.6f + i%.6f", label.c_str(), re, im);
+	}
 }
 
 // Convert qpp::cmat to std::vector<std::vector<complexNumber>>
@@ -326,6 +321,7 @@ matrix2d QppQVM::convertToMatrix2D(const qpp::cmat& eigenMatrix) {
 }
 
 void QppQVM::setCurrentState(const qpp::ket &psi) {
+	LOGI("QppQVM::setCurrentState");
 	this->currentState.states = QppQVM::convertToStdVector(psi);	
 }
 

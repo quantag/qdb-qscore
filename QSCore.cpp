@@ -26,11 +26,13 @@
 #include "SessionStorage.h"
 
 #include "qvm/QppQVM.h"
+#include "ConfigLoader.h"
+
+#include "Version.h"
+
 #ifdef ENABLE_CUDAQ
 #include "qvm/CudaQVM.h"
 #endif
-
-#include "ConfigLoader.h"
 
 
 #ifdef WIN32
@@ -45,36 +47,179 @@
 #define CONFIG_FILE         "QSCore.ini"
 
 
+#define  quantumStateVariablesRef   1
+#define  entanglementVariablesRef   2
+
 // sourceContent holds the synthetic file source.
 constexpr char sourceContent[] = R"(// OpenQASM 3.0;)";
 
 void printUsage() {
-    printf("Usage: ./QSCore [command]\n");
-    printf("Available commands:\n");
-    printf(" help - print this help info\n");
-    printf(" server - start QSCore in server mode. This is default mode which used if no command arguments was specified\n");
-    printf(" file <file.qasm> - execute single .qasm file and exit\n");
-    printf(" test [data-folder]- execute performace testing using data in 'data-folder', store results in 'results.json' and exit\n");
+    printf("Usage: ./QSCore [options]\n");
+    printf("Options:\n");
+    printf("  --help                 Print this help info\n");
+    printf("  --server               Start QSCore in server mode (default)\n");
+    printf("  --file <file.qasm>     Execute a single .qasm file and exit\n");
+    printf("  --filed <file.qasm>    Debug a single .qasm file and exit\n");
+    printf("  --test [folder]        Run performance tests using folder (default: ../test/qasm)\n");
+    printf("  --output <file.json>   Where to save test results (default: results.json)\n");
+    printf("  --config <file.ini>    Path to configuration file (default: QSCore.ini)\n");
+    printf("  --dap-host <addr>      Address for DAP server (default: 127.0.0.1)\n");
+    printf("  --ws-host <addr>       Address for WebSocket server (default: 127.0.0.1)\n");
 }
 
+
+static inline double log2_safe(double x) {
+    return std::log(x) / std::log(2.0);
+}
+
+static double entropy_from_rho(double rho00, double rho11, const complexNumber& rho01) {
+    double tr = rho00 + rho11;
+    if (tr <= 0.0) return 0.0;
+
+    rho00 /= tr;
+    rho11 /= tr;
+    complexNumber r01(rho01.a / tr, rho01.b / tr);
+
+    double det = rho00 * rho11 - r01.norm2();
+    det = std::max(0.0, std::min(0.25, det));
+
+    double disc = std::max(0.0, 1.0 - 4.0 * det);
+    double s = std::sqrt(disc);
+
+    double l1 = 0.5 * (1.0 + s);
+    double l2 = 0.5 * (1.0 - s);
+
+    double H = 0.0;
+    if (l1 > 1e-15) H -= l1 * log2_safe(l1);
+    if (l2 > 1e-15) H -= l2 * log2_safe(l2);
+    return H;
+}
+
+static std::vector<EntVar> compute_entanglement_single_qubit(
+    const std::vector<complexNumber>& amps,
+    int nqubits)
+{
+    std::vector<EntVar> out;
+    if (nqubits <= 0) return out;
+
+    const size_t dim = amps.size();
+    if (dim != (size_t(1) << nqubits)) return out;
+
+    // Defensive normalization
+    double n2 = 0.0;
+    for (const auto& a : amps) n2 += a.norm2();
+    double invNorm = (n2 > 0.0) ? (1.0 / std::sqrt(n2)) : 1.0;
+
+    out.reserve(nqubits + 2);
+
+    double Smax = 0.0;
+    double Ssum = 0.0;
+
+    for (int qi = 0; qi < nqubits; ++qi) {
+        double rho00 = 0.0;
+        double rho11 = 0.0;
+        complexNumber rho01(0.0, 0.0);
+
+        const size_t bit = size_t(1) << qi;
+        const size_t step = bit << 1;
+
+        for (size_t base = 0; base < dim; base += step) {
+            for (size_t off = 0; off < bit; ++off) {
+                complexNumber a0 = amps[base + off] * invNorm;       // qi = 0
+                complexNumber a1 = amps[base + off + bit] * invNorm; // qi = 1
+
+                rho00 += a0.norm2();
+                rho11 += a1.norm2();
+
+                // rho01 += a0 * conj(a1)
+                rho01 += a0 * a1.conj();
+            }
+        }
+
+        double S = entropy_from_rho(rho00, rho11, rho01);
+
+        Ssum += S;
+        Smax = std::max(Smax, S);
+
+        out.push_back({ "S_q" + std::to_string(qi), S });
+    }
+
+    out.push_back({ "S_max", Smax });
+    out.push_back({ "S_avg", Ssum / std::max(1, nqubits) });
+
+    return out;
+}
+
+
+
 double runQasmFile(ConfigLoader* cfg, const std::string fileName) {
+    std::unique_ptr<BaseQVM> qvm;
+
+    std::string qvmType = cfg->getQvmType();
+    if (qvmType == "cudaq") {
 #ifdef ENABLE_CUDAQ
-    CudaQVM qvm(cfg);
+        qvm = std::make_unique<CudaQVM>(cfg);
 #else
-    QppQVM qvm(cfg);
+        LOGE("CudaQVM requested but not compiled with ENABLE_CUDAQ.");
+        return 1;
 #endif
+    }
+    else {
+        qvm = std::make_unique<QppQVM>(cfg);
+    }
 
     LaunchStatus status;
 
-    LOGE("Executing file [%s]", fileName.c_str());
+    LOGE("Executing file [%s] on QVM [%s]", fileName.c_str(), qvm->getQVMName().c_str());
     auto start = std::chrono::steady_clock::now();
 
-    int ret = qvm.run(fileName.c_str(), "", status);
+    int ret = qvm->run(fileName.c_str(), "", status);
     auto stop = std::chrono::steady_clock::now();
     auto duration = std::chrono::duration<double>(stop - start);
     double timeSec = duration.count();
 
     LOGE("[%s] ret %d, codeType %d, framework %d, execution time: (%f sec)", fileName.c_str(), ret, status.codeType, status.pythonFramework, timeSec);
+    return timeSec;
+}
+
+double debugQasmFile(ConfigLoader* cfg, const std::string fileName) {
+    std::unique_ptr<BaseQVM> qvm;
+
+    std::string qvmType = cfg->getQvmType();
+    if (qvmType == "cudaq") {
+#ifdef ENABLE_CUDAQ
+        qvm = std::make_unique<CudaQVM>(cfg);
+#else
+        LOGE("CudaQVM requested but not compiled with ENABLE_CUDAQ.");
+        return 1;
+#endif
+    }
+    else {
+        qvm = std::make_unique<QppQVM>(cfg);
+    }
+
+    LaunchStatus status;
+
+    LOGE("Executing file [%s] on QVM [%s]", fileName.c_str(), qvm->getQVMName().c_str());
+    auto start = std::chrono::steady_clock::now();
+
+    int ret = qvm->debug(fileName, "", status);
+    if (ret == 0) {
+        double tm = 0;
+        while (tm >= 0.) {
+            tm = qvm->stepForward();
+            LOGI("Line execution time: %d", tm);
+        }
+    }
+    else {
+        LOGE("QVM debug failed : %d", ret);
+    }
+
+    auto stop = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration<double>(stop - start);
+    double timeSec = duration.count();
+
+    LOGE("[%s]  codeType %d, framework %d, execution time: (%f sec)", fileName.c_str(), status.codeType, status.pythonFramework, timeSec);
     return timeSec;
 }
 
@@ -109,13 +254,69 @@ void testOpenMP() {
 #else
     LOG(1, "Not using NVPL");
 #endif
+
+#ifdef ENABLE_CUDAQ
+    LOG(1, "CUDA-Q is enabled");
+#else
+    LOG(1, "CUDA-Q is disabled");
+#endif
+
 }
 
 int main(int argc, char *argv[]) {
-    ConfigLoader cfg;
+    std::string configFile = CONFIG_FILE;
+    std::string mode = "server";
+    std::string fileName;
+    std::string testFolder = "../test/qasm";
+    std::string outputFile = "results.json";
+    std::string dapHost = LOCALHOST;
+    std::string wsHost = LOCALHOST;
 
-    // first load config to read log level
-    bool configLoaded = cfg.load(CONFIG_FILE);
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+
+        if (arg == "--config" && i + 1 < argc) {
+            configFile = argv[++i];
+        }
+        else if (arg == "--server") {
+            mode = "server";
+        }
+        else if (arg == "--file" && i + 1 < argc) {
+            mode = "file";
+            fileName = argv[++i];
+        }
+        else if (arg == "--filed" && i + 1 < argc) {
+            mode = "filed";
+            fileName = argv[++i];
+        }
+        else if (arg == "--test") {
+            mode = "test";
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                testFolder = argv[++i];
+            }
+        }
+        else if (arg == "--dap-host" && i + 1 < argc) {
+            dapHost = argv[++i];
+        }
+        else if (arg == "--ws-host" && i + 1 < argc) {
+            wsHost = argv[++i];
+        }
+        else if (arg == "--output" && i + 1 < argc) {
+            outputFile = argv[++i];
+        }
+        else if (arg == "--help") {
+            printUsage();
+            return 0;
+        }
+        else {
+            printf("Unknown option: %s\n", arg.c_str());
+            printUsage();
+            return 1;
+        }
+    }
+
+    ConfigLoader cfg;
+    bool configLoaded = cfg.load(configFile);
     int logLevel = 2;
     if (configLoaded) {
         logLevel = cfg.getLogLevel();
@@ -123,17 +324,18 @@ int main(int argc, char *argv[]) {
 
     // initialize logger with required log level
     LOG_INIT(logLevel, "qs-core.log");
-    LOG(logLevel, "logLevel = %d", logLevel);
+    LOG(logLevel, "QSCore  v%s. logLevel = %d", QSCORE_VERSION, logLevel);
+    LOG(logLevel, "PythonExecEndpoint = [%s]", cfg.getPythonExecutorEndpoint().c_str());
 
     if (configLoaded) {
-        LOGI("Loaded config file from '%s'", CONFIG_FILE);
+        LOGI("Loaded config file from '%s'", configFile.c_str());
         LOGI("Render circuit: %d", cfg.isRenderCircuit());
         LOGI("Demo file path: %s", cfg.getDemoFile().c_str());
         LOGI("Source folder path: %s", cfg.getSourceFolder().c_str());
 
     }
     else {
-        LOGI("Could not load configuration file %s", CONFIG_FILE);
+        LOGI("Could not load configuration file %s", configFile.c_str());
     }
     testOpenMP();
 
@@ -154,7 +356,7 @@ int main(int argc, char *argv[]) {
 
         LOGI("== DAP client CONNECTED ==");
 
-        auto session = dap::Session::create();
+        auto session = dap::Session::create(&cfg);
         // Event handlers from the Debugger.
         auto onDebuggerEvent = [&](EventEnum onEvent) {
             switch (onEvent) {
@@ -284,7 +486,9 @@ int main(int argc, char *argv[]) {
             [&](const dap::DisassemblyRequest& request)
             -> dap::ResponseOrError<dap::DisassemblyResponse> {
 
-                LOGI("[DisassemblyRequest] %d", session->debugger->numSourceLines);
+                LOGI("[DisassemblyRequest] numSourceLines=%d %d %d", session->debugger->numSourceLines, 
+			session->debugger->getQVM()->getSourcePerLines().size(), 
+			session->debugger->getQVM()->isSourceCodeParsed());
                 dap::DisassemblyResponse response;
 
                 if (session->debugger->getQVM()->isSourceCodeParsed()) {
@@ -298,6 +502,8 @@ int main(int argc, char *argv[]) {
 
                         response.instructions.push_back(code);
                     }
+                } else {
+                      LOGI("[DisassemblyRequest] isSourceCodeParsed is FALSE, no Disassemply available");                
                 }
 
                 return response;
@@ -316,13 +522,31 @@ int main(int argc, char *argv[]) {
                     return dap::Error("Unknown frameId '%d'", int(request.frameId));
                 }
 
-                dap::Scope scope;
+                /*dap::Scope scope;
                 scope.name = "Locals";
                 scope.presentationHint = "locals";
                 scope.variablesReference = variablesReferenceId;
 
                 dap::ScopesResponse response;
                 response.scopes.push_back(scope);
+                return response;*/
+                dap::ScopesResponse response;
+
+                {
+                    dap::Scope s;
+                    s.name = "Quantum State";
+                    // no presentationHint needed
+                    s.variablesReference = quantumStateVariablesRef; // NEW id
+                    response.scopes.push_back(s);
+                }
+
+                {
+                    dap::Scope s;
+                    s.name = "Entanglement";
+                    // no presentationHint needed
+                    s.variablesReference = entanglementVariablesRef; // NEW id
+                    response.scopes.push_back(s);
+                }
                 return response;
             });
 
@@ -333,37 +557,54 @@ int main(int argc, char *argv[]) {
         session->registerHandler(
             [&](const dap::VariablesRequest& request)
             -> dap::ResponseOrError<dap::VariablesResponse> {
-                LOGI("[VariablesRequest]");
+                LOGI("[VariablesRequest] ref=%d", int(request.variablesReference));
 
-                if (request.variablesReference != variablesReferenceId) {
-                    return dap::Error("Unknown variablesReference '%d'",
-                        int(request.variablesReference));
-                }
-
-             //   dap::Variable currentLineVar;
-            //    currentLineVar.name = "currentLine";
-            //    currentLineVar.value = std::to_string(debugger.currentLine());
-             //   currentLineVar.type = "int";
-
+                //if (request.variablesReference != variablesReferenceId) {
+                //    return dap::Error("Unknown variablesReference '%d'",
+               //         int(request.variablesReference));
+               // }
                 dap::VariablesResponse response;
-            //    response.variables.push_back(currentLineVar);
-                /*
-                * add qubits here
-                */
-                std::vector<complexNumber> qubits = session->debugger->getQVMVariables();
-                unsigned char idx = 0;
-                for (complexNumber item : qubits) {
-                    dap::Variable qubitVar;
-                    qubitVar.name = "|" + Utils::toBinaryString(idx, session->debugger->getQubitsCount()) + ">";
-                    qubitVar.value = Utils::complex2str(item);
-                    qubitVar.type = "complex";
-                    idx++;
-                    response.variables.push_back(qubitVar);
 
-                    LOGD( "adding variable %s", qubitVar.name.c_str() );
-                }
+                switch(request.variablesReference) {
+                    case quantumStateVariablesRef: {
+                            std::vector<complexNumber> qubits = session->debugger->getQVMVariables();
+                            unsigned char idx = 0;
+                            for (complexNumber item : qubits) {
+                                dap::Variable qubitVar;
+                                qubitVar.name = "|" + Utils::toBinaryString(idx, session->debugger->getQubitsCount()) + ">";
+                                qubitVar.value = Utils::complex2str(item);
+                                qubitVar.type = "complex";
+                                idx++;
+                                response.variables.push_back(qubitVar);
 
-                return response;
+                                LOGD("adding variable %s", qubitVar.name.c_str());
+                            }
+
+                            return response;
+                            }
+                            
+
+                    case entanglementVariablesRef: {
+                        auto amps = session->debugger->getQVMVariables();
+                        int n = session->debugger->getQubitsCount();
+
+                        auto ent = compute_entanglement_single_qubit(amps, n);
+
+                        for (const auto& e : ent) {
+                            dap::Variable v;
+                            v.name = e.name;
+                            v.value = std::to_string(e.value);
+                            v.type = "double";
+                            response.variables.push_back(v);
+                        }
+                        return response;
+                    }
+
+                        
+                    default:
+                        return dap::Error("Unknown variablesReference '%d'",
+                            int(request.variablesReference));
+                    }
             });
         // The Pause request instructs the debugger to pause execution of one or
         // all threads.
@@ -392,6 +633,21 @@ int main(int argc, char *argv[]) {
             LOGI("*** [NextRequest] threadId=%d ***", req.threadId);
 
             auto execTime = session->debugger->stepForward();
+            LOGI("stepForward execTime = %f", execTime);
+            if (execTime < 0) {
+                // QVM signaled "end of program"
+                LOGI("Program finished on Next; sending TerminatedEvent and shutting down");
+
+                // Tell VS Code that debugging is over
+                dap::TerminatedEvent tev;
+                session->send(tev);
+
+                // Unblock the main loop (terminate.wait())
+                terminate.fire();
+
+                return dap::NextResponse();
+            }
+
             if (execTime != 0) {
                 session->sendOutputMessage(std::string("Step execution time: ") + std::to_string(execTime) + std::string(" s"));
             }
@@ -503,26 +759,21 @@ int main(int argc, char *argv[]) {
 
             std::string msg;
             switch (ret) {
-                case ERR_DEMOFILE:
+                case ERR_DEMOFILE: {
                     msg = "Using demo file to launch QVM [" + session->debugger->getQVM()->getQVMName() + "]";
+                    msg += "\n" + Utils::getCpuInfoFull();
                     break;
+                }
                 case ERR_OK:
                 {
-                    msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "]\nCode type: "
+                    msg = "Initialized QVM: [" + session->debugger->getQVM()->getQVMName() + "] at ["+ session->debugger->getQVM()->getConfig()->getNodeName() + "]\nCode type: "
                         + Utils::getCodeTypeName(status.codeType);
 
                     if (status.codeType == ePython) {
                         msg += std::string("\n") + "Python Framework: " + Utils::getPythonFrameworkName(status.pythonFramework);
                     }
 
-                    msg += "\n" + Utils::getCpuInfo();
-                    msg += "\nOpenMP ";
-#ifdef QPP_OPENMP
-                    msg += "enabled\n";
-#else
-                    msg += "disabled\n";
-#endif
-
+                    msg += "\n" + Utils::getCpuInfoFull();
                     break;
                 }
                 default:
@@ -583,52 +834,53 @@ int main(int argc, char *argv[]) {
     };
 
 
-    if (argc > 1) {
-        if (!strcmp(argv[1], "server")) {
-            LOGI("Server mode");
-        } else
-        if (!strcmp(argv[1], "file")) {
-            if (argc > 2) {
-                runQasmFile(&cfg, argv[2]);
-                return 0;
-            }
+    // handle modes
+    if (mode == "server") {
+        LOGI("Server mode");
+    }
+    else if (mode == "file") {
+        if (fileName.empty()) {
+            LOGE("Missing argument for --file");
+            return 1;
         }
-        else if (!strcmp(argv[1], "test")) {
-            LOGI("Test performance mode");
-            std::vector<std::string> testFiles;
-            std::string dataFolder = argc > 2 ? argv[2] : "../test/qasm";
-            int res = Utils::getFilesInFolder(  dataFolder, testFiles);
-            if (res != 0) {
-                LOGI("Can not open folder [%s] with test data", dataFolder.c_str());
-                return 0;
-            }
-            LOGI("Found %u files in test data folder", testFiles.size());
+        runQasmFile(&cfg, fileName);
+        return 0;
+    }
+    else if (mode == "filed") {
+        if (fileName.empty()) {
+            LOGE("Missing argument for --file");
+            return 1;
+        }
+        debugQasmFile(&cfg, fileName);
+        return 0;
+    }
+    else if (mode == "test") {
+        LOGI("Test performance mode");
+        std::vector<std::string> testFiles;
+        int res = Utils::getFilesInFolder(testFolder, testFiles);
+        if (res != 0) {
+            LOGI("Can not open folder [%s] with test data", testFolder.c_str());
+            return 0;
+        }
+        LOGI("Found %u files in test data folder", testFiles.size());
 
-            std::map<std::string, double> results;
-            for (std::string& file : testFiles) {
-                double timeSec = runQasmFile(&cfg, file);
-                results[file] = timeSec;
-            }
-            Utils::saveResultsToJson(results, (argc>3)  ? argv[3] : "results.json");
-            return 0;
+        std::map<std::string, double> results;
+        for (std::string& file : testFiles) {
+            double timeSec = runQasmFile(&cfg, file);
+            results[file] = timeSec;
         }
-        else if (!strcmp(argv[1], "help")) {
-            printUsage();
-            return 0;
-        }
+        Utils::saveResultsToJson(results, outputFile);
+        return 0;
     }
 
     // Create the network server
     auto dapServer = dap::net::Server::create();
 
-    const char* dapHost =  (argc > 2) ? argv[2] : LOCALHOST;
-    dapServer->start( dapHost, DAP_SERVER_PORT, onClientConnected);
-    LOGI("DAP Server started on [%s:%d]", dapHost, DAP_SERVER_PORT);
+    dapServer->start(dapHost.c_str(), DAP_SERVER_PORT, onClientConnected);
+    LOGI("DAP Server started on [%s:%d]", dapHost.c_str(), DAP_SERVER_PORT);
     LOGI("CPU: [%s]", Utils::getCpuInfo().c_str());
 
-    const char* wsHost =  (argc > 3) ? argv[3] : LOCALHOST;
-    LOGI("Starting WS Server on [%s:%d]", wsHost, WS_SERVER_PORT);
-   
-    wsock.start(wsHost, WS_SERVER_PORT);
+    LOGI("Starting WS Server on [%s:%d]", wsHost.c_str(), WS_SERVER_PORT);
+    wsock.start(wsHost.c_str(), WS_SERVER_PORT);
     return 0;
 }

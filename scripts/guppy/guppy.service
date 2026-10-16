@@ -1,0 +1,15 @@
+[Unit]
+Description=Guppy compiler microservice
+After=network.target
+
+[Service]
+User=qbit
+WorkingDirectory=/home/qbit/guppy
+ExecStart=/home/qbit/guppy/.venv/bin/python /home/qbit/guppy/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

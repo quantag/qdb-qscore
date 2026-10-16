@@ -1,0 +1,1 @@
+script to update VS Code Web extension on server

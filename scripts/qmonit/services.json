@@ -1,0 +1,14 @@
+[
+  { "name": "qasm2qir node3", "url": "https://cryspprod3.quantag-it.com:444/api7" },
+  { "name": "gauth node3", "url": "https://cryspprod3.quantag-it.com:444/api10" },
+  { "name": "guppy node3", "url": "https://cryspprod3.quantag-it.com:444/api17" },
+  { "name": "pyzx node3", "url": "https://cryspprod3.quantag-it.com:444/api16" },
+  { "name": "cmp_sql node3", "url": "https://cryspprod3.quantag-it.com:444/api14" },
+  { "name": "qbin node3", "url": "https://cryspprod3.quantag-it.com:444/api18" },
+  { "name": "CUDAQ node3", "url": "https://cryspprod3.quantag-it.com:444/api19" },
+  { "name": "transpile node3", "url": "https://cryspprod3.quantag-it.com:444/api15" },
+  { "name": "DAPP node3", "url": "https://cryspprod3.quantag-it.com:444/api2" },
+  { "name": "qdb-decom node3", "url": "https://cryspprod3.quantag-it.com:444/api3" },
+  { "name": "qimage node3", "url": "https://cryspprod3.quantag-it.com:444/api13" },
+  { "name": "qdb node1", "url": "https://quantum.quantag-it.com/api5" }
+]

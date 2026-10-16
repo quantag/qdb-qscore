@@ -1,192 +1,203 @@
 #include "CudaQVM.h"
 
-#ifdef ENABLE_CUDAQ
 
+#ifdef ENABLE_CUDAQ
+#include <fstream>
+#include <sstream>
+#include <nlohmann/json.hpp>
+#if !defined(_WIN32)
+#include <cudaq.h>
+#endif
 #include "../Log.h"
 #include "../Utils.h"
+#include "../RestClient.h"
 #include "../ConfigLoader.h"
-#include "../WebFrontend.h"
-#include "../QiskitProcessor.h"
-#include "../TketProcessor.h"
 
-CudaQVM::CudaQVM() {
-    this->frontend = new WebFrontend();
-    this->sourceCodeParsed = 0;
-    processor = new QiskitProcessor();
-    this->cfg = nullptr;
-    resetExecution();
-}
+#include "../Version.h"
 
-CudaQVM::CudaQVM(ConfigLoader* cfg) {
-    this->frontend = new WebFrontend();
+CudaQVM::CudaQVM(ConfigLoader* cfg){
+//    this->frontend = new WebFrontend();
+    cudaqSource_.reset();
     this->sourceCodeParsed = 0;
-    processor = new QiskitProcessor();
+//    processor = new QiskitProcessor();
     this->cfg = cfg;
-    resetExecution();
 }
 
 CudaQVM::~CudaQVM() {
-    SAFE_DELETE(frontend);
-    delete processor;
-    // unique_ptr and CUDA-Q objects will handle their own cleanup
+
 }
 
-void CudaQVM::resetExecution() {
-    kernel.reset();
-    sampleResult = cudaq::sample_result();
-    stateResult = cudaq::state();
-    executionMode = 0;
-    currentInstruction = std::vector<cudaq::instruction>::iterator();
-    simState.reset();
-    isDebugMode = false;
+
+int CudaQVM::loadSourceCode(const std::string& code,
+                            const std::string& path,
+                            LaunchStatus& status) {
+    venv = getVenvIfPresent(path);
+    this->sourceCode = code;
+    this->originalSourceCode = code;
+    this->cudaqSource_ = code;
+    this->sourceCodeParsed = 1;
+    status.codeType = eOpenQASM;
+
+    LOGI("CudaQVM: loaded QASM source from [%s], %d lines.",
+         path.c_str(),
+         Utils::calcNumberOfLines(code));
+    return ERR_OK;
 }
 
-int CudaQVM::loadSourceCode(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
-    LOGI("[CudaQVM] Loading source from: %s", fileName.c_str());
 
-    // === Copy logic from QppQVM::loadSourceCode up to the point you have OpenQASM ===
-    // (file lookup, detect code type, processor->parsePythonToOpenQASM, etc.)
+int CudaQVM::run(const std::string& code,
+    const std::string& path,
+    LaunchStatus& status) {
+    // Step 1: Load QASM source
+    std::string qasmSource;
+    if (Utils::fileExists(code)) {
+        qasmSource = Utils::loadFile(code);
+        if (qasmSource.empty()) {
+            status.errorMessage = "Failed to read QASM file: " + code;
+            return ERR_NOFILE;
+        }
+    }
+    else {
+        qasmSource = code;
+    }
+
+    int ret = loadSourceCode(qasmSource, path, status);
+    if (ret != ERR_OK && ret != ERR_DEMOFILE)
+        return ret;
+
+    if (!cudaqSource_) {
+        status.errorMessage = "No CUDA-Q source loaded.";
+        return ERR_NOFILE;
+    }
 
     try {
-        kernel = std::make_unique<cudaq::kernel_builder>(
-            cudaq::from_openqasm(this->sourceCode)
-        );
-        this->nQubits = kernel->get_num_qubits();
-        this->sourceCodeParsed = 1;
+        std::string endpoint = this->cfg->getCudaQSrvEndpoint();
+        if (endpoint.empty()) {
+            status.errorMessage = "CUDAQ service endpoint not set in config.properties";
+            LOGE("CudaQVM error: [%s]", status.errorMessage.c_str());
+            return ERR_RUNERROR;
+        }
 
-        Utils::parseSourcePerLines(this->sourceCode, this->sourceCodePerLines);
-        frontend->loadCode(this->sourceCode);
+        // Step 3: Encode input
+        std::string qasmB64 = Utils::encode64(qasmSource);
+        int shots = 1000;
 
-        return ERR_OK;
+        nlohmann::json payload;
+        payload["qasm_b64"] = qasmB64;
+        payload["shots"] = shots;
+
+        // Step 4: Send QASM to Flask microservice
+        RestClient client(endpoint.c_str());
+        std::string response = client.doPost(payload.dump());
+
+       LOGI("CudaQVM: send request to [%s]", endpoint.c_str());
+
+        // Step 5: Parse response
+        auto jsonResp = nlohmann::json::parse(response);
+        if (jsonResp.contains("error")) {
+            status.errorMessage = jsonResp["error"];
+            LOGE("CudaQVM error: %s", status.errorMessage.c_str());
+            return ERR_RUNERROR;
+        }
+
+        if (jsonResp.contains("result_b64")) {
+            std::string resultJsonStr = Utils::decode64(jsonResp["result_b64"]);
+            auto resultJson = nlohmann::json::parse(resultJsonStr);
+
+            if (resultJson.contains("histogram")) {
+                auto hist = resultJson["histogram"];
+                LOGI("CudaQVM histogram: %s", hist.dump().c_str());
+            }
+        }
     }
-    catch (const std::exception& e) {
-        status.errorMessage = std::string("CUDA-Q Kernel Build Error: ") + e.what();
-        this->sourceCodeParsed = 0;
-        return ERR_PARSEERROR;
+    catch (std::exception& e) {
+        status.errorMessage = e.what();
+        LOGE("CudaQVM exception: %s", e.what());
+        return ERR_RUNERROR;
     }
+
+    return ERR_OK;
+}
+
+int CudaQVM::debug(const std::string& in,
+    const std::string& out,
+    LaunchStatus& status) {
+    status.errorMessage = "CudaQVM::debug not implemented.";
+    return ERR_OK;
+}
+
+std::string CudaQVM::getQVMName() {
+    return "CudaQVM 0.2 QSCORE v" + std::string(QSCORE_VERSION);
 }
 
 
+int CudaQVM::getSourceLines() {
+    return 0;// static_cast<int>(BaseQVM::getSourceLines().size());
+}
+
 double CudaQVM::stepForward() {
+    // Stub: no stepping support yet
     return 0.0;
 }
 
-std::string CudaQVM::getQVMName() {
-    return "CUDA-Q (CPU backend)";
+std::string CudaQVM::translateQasmToCudaq(const std::string &qasm) {
+    std::stringstream ss;
+    ss << "#include <cudaq.h>\n";
+    ss << "#include <iostream>\n\n";
+
+    // Kernel
+    ss << "__qpu__ void circuit() {\n";
+
+    std::istringstream lines(qasm);
+    std::string line;
+    while (std::getline(lines, line)) {
+        Utils::trim(line);
+        if (line.empty() || line[0] == '/' ||
+            line.rfind("OPENQASM", 0) == 0 ||
+            line.rfind("include", 0) == 0)
+            continue;
+
+        if (line.rfind("qreg", 0) == 0) {
+            // Example: qreg q[2];
+            auto l = line.find('[');
+            auto r = line.find(']');
+            int n = std::stoi(line.substr(l + 1, r - l - 1));
+            ss << "  auto q = cudaq::qvector(" << n << ");\n";
+        } else if (line.rfind("h ", 0) == 0) {
+            int idx = Utils::extractIndex(line);
+            ss << "  h(q[" << idx << "]);\n";
+        } else if (line.rfind("x ", 0) == 0) {
+            int idx = Utils::extractIndex(line);
+            ss << "  x(q[" << idx << "]);\n";
+        } else if (line.rfind("rz", 0) == 0) {
+            // Example: rz(3.14) q[0];
+            auto l = line.find('(');
+            auto r = line.find(')');
+            std::string angle = line.substr(l + 1, r - l - 1);
+            int idx = Utils::extractIndex(line);
+            ss << "  rz(" << angle << ", q[" << idx << "]);\n";
+        } else if (line.rfind("cx", 0) == 0) {
+            // Example: cx q[0], q[1];
+            auto l = line.find('[');
+            auto c1 = std::stoi(line.substr(l + 1, line.find(']', l) - l - 1));
+            l = line.find('[', l + 1);
+            auto c2 = std::stoi(line.substr(l + 1, line.find(']', l) - l - 1));
+            ss << "  cx(q[" << c1 << "], q[" << c2 << "]);\n";
+        } else if (line.rfind("measure", 0) == 0) {
+            // ignore in kernel, handled in main() via cudaq::sample
+        }
+    }
+
+    ss << "}\n\n";
+
+    // Main function
+    ss << "int main() {\n";
+    ss << "  auto counts = cudaq::sample(circuit);\n";
+    ss << "  std::cout << counts << \"\\n\";\n";
+    ss << "}\n";
+
+    return ss.str();
 }
 
 
-int CudaQVM::run(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
-    LOGI("[CudaQVM] Run called for: %s", fileName.c_str());
-
-    int loadRet = loadSourceCode(fileName, sessionId, status);
-    if (loadRet != ERR_OK || !this->sourceCodeParsed) {
-        LOGE("Failed to load or parse source code for execution.");
-        return (loadRet == ERR_OK) ? ERR_PARSEERROR : loadRet; // Ensure an error is returned
-    }
-
-    return executeFullCircuit(status);
-}
-
-int CudaQVM::executeFullCircuit(LaunchStatus& status) {
-    try {
-        auto start = std::chrono::steady_clock::now();
-
-        // Sample the kernel execution (default behavior)
-        sampleResult = cudaq::sample(*kernel);
-        // Alternatively, one could use cudaq::state(*kernel) to get the state vector
-
-        auto stop = std::chrono::steady_clock::now();
-        auto duration = std::chrono::duration<double>(stop - start);
-        double timeSec = duration.count();
-
-        LOGI("CUDA-Q execution finished. Time: %.6f sec", timeSec);
-
-        // Prepare result for the frontend - Convert sample_result to a state representation if needed
-        // This part is complex because sample_result is statistical. You might want to show counts.
-        // For simplicity here, we'll just signal success. A real implementation would format the results.
-        currentState.executionTime = timeSec;
-        currentState.message = "Execution complete. Sample results available.";
-        // You would need to add a member like `sampleResults` to QState and populate it here
-        frontend->updateState(currentState);
-
-        return ERR_OK;
-
-    }
-    catch (const std::exception& e) {
-        LOGE("Error during CUDA-Q execution: %s", e.what());
-        status.errorMessage = std::string("CUDA-Q Execution Error: ") + e.what();
-        return ERR_RUNTIMEERROR;
-    }
-}
-
-
-int CudaQVM::debug(const std::string& fileName, const std::string& sessionId, LaunchStatus& status) {
-    LOGI("[CudaQVM] Debug called for: %s", fileName.c_str());
-
-    int loadRet = loadSourceCode(fileName, sessionId, status);
-    if (loadRet != ERR_OK || !this->sourceCodeParsed) {
-        LOGE("Failed to load or parse source code for debugging.");
-        return (loadRet == ERR_OK) ? ERR_PARSEERROR : loadRet;
-    }
-
-    isDebugMode = true;
-
-    try {
-        // Initialize the simulation state for stepping
-        // Note: CUDA-Q's simulation state API might be less direct than QPP's iterator.
-        // This is a conceptual approach. The exact API might differ.
-        simState = std::make_unique<cudaq::simulation_state>(*kernel);
-        auto& instructions = simState->get_instructions(); // Hypothetical method
-        currentInstruction = instructions.begin();
-
-        LOGI("CUDA-Q debug session initialized. Instructions: %lu", instructions.size());
-        return ERR_OK;
-
-    }
-    catch (const std::exception& e) {
-        LOGE("Error initializing CUDA-Q debug session: %s", e.what());
-        status.errorMessage = std::string("CUDA-Q Debug Init Error: ") + e.what();
-        isDebugMode = false;
-        return ERR_RUNTIMEERROR;
-    }
-}
-
-double CudaQVM::stepForward() {
-    if (!isDebugMode || !simState || currentInstruction == simState->get_instructions().end()) {
-        LOGI("StepForward called but not in debug mode or execution finished.");
-        return 0.0;
-    }
-
-    try {
-        auto start = std::chrono::steady_clock::now();
-
-        // Execute the single instruction (Conceptual)
-        simState->execute_instruction(*currentInstruction); // Hypothetical method
-        ++currentInstruction;
-
-        auto stop = std::chrono::steady_clock::now();
-        auto duration = std::chrono::duration<double>(stop - start);
-
-        // Get the current state vector after the step
-        // stateResult = simState->get_state(); // Hypothetical method
-        // currentState.states = convertCudaQStateToStdVector(stateResult); // Needs implementation
-
-        this->currentState.currentLine = Utils::getNextLine(this->currentState.currentLine - 1, this->originalParsedCode, 2) + 1;
-        frontend->updateState(currentState);
-
-        LOGI("Step executed. Time: %.6f sec", duration.count());
-        return duration.count();
-
-    }
-    catch (const std::exception& e) {
-        LOGE("Error executing step: %s", e.what());
-        return 0.0;
-    }
-}
-
-std::string CudaQVM::getQVMName() {
-    // Get CUDA-Q version at runtime if possible, or hardcode based on linked version
-    return "NVIDIA CUDA-Q"; // Consider enhancing this
-}
-#endif
+#endif // ENABLE_CUDAQ
