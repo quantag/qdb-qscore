@@ -138,6 +138,12 @@
     <ClCompile Include="processors\TketProcessor.cpp">
       <Filter>Source Files\processors</Filter>
     </ClCompile>
+    <ClCompile Include="qvm\CudaQVM.cpp">
+      <Filter>Source Files\qvm</Filter>
+    </ClCompile>
+    <ClCompile Include="qvm\BaseQVM.cpp">
+      <Filter>Source Files\qvm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Debugger.h">
