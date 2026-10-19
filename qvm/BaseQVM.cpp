@@ -115,6 +115,34 @@ int BaseQVM::prepareSource( const std::string& fileName,
     return ret;
 }
 
+std::string BaseQVM::getProjectVenv(const std::string& fileName) {
+    if (!cfg) return std::string();
+
+    std::string venvRoot = cfg->getVenvRoot();
+    std::string projectsRoot = cfg->getProjectsRoot();
+    if (venvRoot.empty() || projectsRoot.empty()) return std::string();
+
+    try {
+        fs::path file = fs::weakly_canonical(fs::absolute(fileName));
+        fs::path root = fs::weakly_canonical(fs::absolute(projectsRoot));
+
+        fs::path rel = file.lexically_relative(root);
+        if (rel.empty() || rel.begin() == rel.end()) return std::string();
+
+        std::string project = rel.begin()->string();
+        if (project.empty() || project == "." || project == "..") return std::string();
+
+        fs::path venv = fs::path(venvRoot) / project;
+        if (fs::exists(venv / "bin" / "python")) {
+            return venv.string();
+        }
+    }
+    catch (...) {
+        LOGI("getProjectVenv: exception for file: %s", fileName.c_str());
+    }
+    return std::string();
+}
+
 std::string BaseQVM::getVenvIfPresent(const std::string& fileName) {
     try {
         fs::path current = fs::absolute(fileName).parent_path();
@@ -138,6 +166,14 @@ std::string BaseQVM::getVenvIfPresent(const std::string& fileName) {
             if (parent.empty() || parent == current) {
                 break;
             }
+        }
+
+        // Studio workspaces keep venvs outside the project:
+        // <projects.root>/<uid>/... -> <venv.root>/<uid>
+        std::string projectVenv = getProjectVenv(fileName);
+        if (!projectVenv.empty()) {
+            LOGI("getVenvIfPresent: detected project venv: %s", projectVenv.c_str());
+            return projectVenv;
         }
 
         LOGI("getVenvIfPresent: no venv folder found for file: %s", fileName.c_str());
