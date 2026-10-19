@@ -19,6 +19,8 @@
 #define LOG_LEVEL_KEY               "log.level"
 #define QVM_TYPE_KEY                "qvm.type"
 #define CUDAQ_SRV_KEY               "cudaq.srv"
+#define VENV_ROOT_KEY               "venv.root"
+#define PROJECTS_ROOT_KEY           "projects.root"
 
 
 #define PYTHON_EXEC_ENDPOINT_KEY    "python.exec.endpoint"
@@ -104,6 +106,14 @@ public:
 
     std::string getSourceFolder() {
         return getOrDefault(SOURCE_FOLDER_KEY, SOURCE_FOLDER_DEFAULT);
+    }
+
+    std::string getVenvRoot() {
+        return getOrDefault(VENV_ROOT_KEY, "");
+    }
+
+    std::string getProjectsRoot() {
+        return getOrDefault(PROJECTS_ROOT_KEY, "");
     }
 
     std::string getPythonExecutorEndpoint() {

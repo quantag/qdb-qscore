@@ -23,6 +23,7 @@ public:
 		LaunchStatus& status) = 0;
 
 	std::string getVenvIfPresent(const std::string& fileName);
+	std::string getProjectVenv(const std::string& fileName);
 
 	static bool isPythonCommentLine(const std::string& rawLine);
 
