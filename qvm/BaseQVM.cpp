@@ -31,6 +31,9 @@ void BaseQVM::updateProcessor(CodeFramework framework) {
 	    case eTket:
 		    this->processor = new TketProcessor(cfg);
 		    break;
+	    case eCUDAQ:
+		    this->processor = new CudaQProcessor(cfg);
+		    break;
 	    }
 }
 
