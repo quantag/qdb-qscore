@@ -322,6 +322,10 @@ std::string Utils::vectorToString(const std::vector<int> data) {
 }
 
 CodeFramework Utils::detectPythonFramework(const std::string & src) {
+    // CUDA-Q first: such files may also mention other frameworks in comments
+    if (src.find("import cudaq") != std::string::npos || src.find("from cudaq") != std::string::npos)
+        return eCUDAQ;
+
     if (src.find("qiskit") != std::string::npos)
         return eQiskit;
 

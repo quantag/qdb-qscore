@@ -100,6 +100,8 @@ set(Header_Files
     "processors/TketProcessor.h"
     "processors/PythonProcessor.h"
     "processors/QiskitProcessor.h"
+    "processors/CudaQProcessor.h"
+    "processors/CudaQBridge.h"
     "RestClient.h"
     "SessionStorage.h"
     "Typedefs.h"

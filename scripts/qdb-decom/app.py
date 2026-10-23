@@ -9,6 +9,9 @@ import subprocess
 from flask_cors import CORS
 
 app = Flask(__name__)
+
+# Seconds a script may run (CUDA-Q compiles kernels at run time, the first import is slow)
+EXEC_TIMEOUT = int(os.environ.get("QDB_DECOM_TIMEOUT", "120"))
 CORS(app)
 logging.basicConfig(filename='logs/app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -78,13 +81,6 @@ def dec():
             logging.error(err)
             return jsonify({"status": 2, "err": err}), 200
 
-        # Save original script to file (for logging / debugging)
-        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
-        script_filename = f"scripts/script{timestamp}.py"
-        os.makedirs(os.path.dirname(script_filename), exist_ok=True)
-        with open(script_filename, "w", encoding="utf-8") as f:
-            f.write(decoded_text)
-
         # Build wrapper code:
         # - execute original script
         # - then read globals()["code777"] and write it to stdout
@@ -96,12 +92,21 @@ def dec():
             "sys.stdout.write('' if result is None else str(result))\n"
         )
 
+        # Save the script to a file and run that file (also kept for logging / debugging).
+        # Running from a file (not stdin) is required by CUDA-Q: @cudaq.kernel reads the
+        # kernel source with inspect, which fails for code read from stdin. Tracebacks
+        # also get real line numbers.
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
+        script_filename = os.path.abspath(f"scripts/script{timestamp}.py")
+        os.makedirs(os.path.dirname(script_filename), exist_ok=True)
+        with open(script_filename, "w", encoding="utf-8") as f:
+            f.write(wrapper_code)
+
         proc = subprocess.run(
-            [python_bin, "-"],
-            input=wrapper_code,
+            [python_bin, script_filename],
             text=True,
             capture_output=True,
-            timeout=30,
+            timeout=EXEC_TIMEOUT,
         )
 
         if proc.returncode != 0:
