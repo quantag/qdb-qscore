@@ -38,9 +38,27 @@ Debugger::~Debugger() {
     delete qvm;
 }
 
-void Debugger::continueDebugger() {
+bool Debugger::continueDebugger() {
       LOGI("***");
       std::unique_lock<std::mutex> lock(mutex);
+
+      if (qvm->stepsByInstruction()) {
+            // Execute instructions until the next one is on a breakpoint line or the
+            // circuit ends. At least one instruction runs, so continuing from a
+            // breakpoint moves on.
+            for (int guard = 0; guard < 1000000; guard++) {
+                  if (qvm->stepForward() < 0) {
+                        LOGI("program finished");
+                        return true;
+                  }
+                  if (breakpoints.count(qvm->getCurrentLine())) {
+                        lock.unlock();
+                        onEvent(EventEnum::BreakpointHit);
+                        return false;
+                  }
+            }
+            return false;
+      }
 
       for (int64_t i = 0; i < numSourceLines; i++) {
             int64_t l = ((qvm->getCurrentLine() + i) % numSourceLines) + 1;
@@ -48,9 +66,10 @@ void Debugger::continueDebugger() {
                   qvm->setCurrentLine( (int)l);
                   lock.unlock();
                   onEvent(EventEnum::BreakpointHit);
-                  return;
+                  return false;
             }
       }
+      return false;
 }
 
 int Debugger::launch(int isRun, const std::string& fileName, const std::string &sessionId, LaunchStatus& status) {

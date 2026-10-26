@@ -38,6 +38,7 @@ public:
 //	static bool isOpenQASMCode(const std::string& code);
 
 	static CodeType detectCodeType(const std::string& sourceCode);
+	static bool containsCudaQCppKeywords(const std::string& sourceCode);
 	static bool containsPythonKeywords(const std::string& sourceCode);
 	static bool containsOpenQASMKeywords(const std::string& sourceCode);
 	static std::string vectorToString(const std::vector<int> data);

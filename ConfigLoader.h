@@ -21,6 +21,8 @@
 #define CUDAQ_SRV_KEY               "cudaq.srv"
 #define VENV_ROOT_KEY               "venv.root"
 #define PROJECTS_ROOT_KEY           "projects.root"
+#define CPP_QASM_TOOL_KEY           "cpp.qasm.tool"   // CUDA-Q C++ -> OpenQASM translator
+#define CPP_QASM_TOOL_DEFAULT       "cudaq-cpp-qasm"
 
 
 #define PYTHON_EXEC_ENDPOINT_KEY    "python.exec.endpoint"
@@ -114,6 +116,11 @@ public:
 
     std::string getProjectsRoot() {
         return getOrDefault(PROJECTS_ROOT_KEY, "");
+    }
+
+    // Program that translates a CUDA-Q C++ file to OpenQASM 2.0 (JSON on stdout)
+    std::string getCppQasmTool() {
+        return getOrDefault(CPP_QASM_TOOL_KEY, CPP_QASM_TOOL_DEFAULT);
     }
 
     std::string getPythonExecutorEndpoint() {

@@ -622,7 +622,13 @@ int main(int argc, char *argv[]) {
         session->registerHandler([&](const dap::ContinueRequest&) {
             LOGI("[ContinueRequest]");
 
-            session->debugger->continueDebugger();
+            if (session->debugger->continueDebugger()) {
+                // Instruction stepping mode reached the end of the circuit
+                LOGI("Program finished on Continue; sending TerminatedEvent");
+                dap::TerminatedEvent tev;
+                session->send(tev);
+                terminate.fire();
+            }
             return dap::ContinueResponse();
             });
 

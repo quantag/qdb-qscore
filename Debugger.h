@@ -20,7 +20,8 @@ class Debugger {
 	~Debugger();
 
 	// run() instructs the debugger to continue execution.
-	void continueDebugger();
+	// Returns true when the program finished (instruction stepping mode only).
+	bool continueDebugger();
 
 	int launch(int isRun, const std::string& fileName, const std::string& sessionId, LaunchStatus& status);
 

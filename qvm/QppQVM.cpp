@@ -107,6 +107,19 @@ int QppQVM::debug(const std::string& fileName, const std::string& sessionId, Lau
 		mIt = circuit->begin();
 		currentExecIndex = 0;
 		LOGI("Iterator initialized");
+
+		if (!gateSourceLines.empty()) {
+			// C++: start on the line of the first instruction
+			size_t steps = 0;
+			for (auto it = circuit->begin(); it != circuit->end(); ++it) {
+				steps++;
+			}
+			if (steps != gateSourceLines.size()) {
+				LOGE("Circuit has %zu steps but %zu mapped instructions; source lines may be off",
+					steps, gateSourceLines.size());
+			}
+			this->currentState.currentLine = gateSourceLines[0] > 0 ? gateSourceLines[0] : 1;
+		}
 	}
 
 	return ret;
@@ -118,6 +131,10 @@ double QppQVM::stepForward() {
 	if (!circuit || !this->sourceCodeParsed) {
 		LOGI("Source code not parsed. Simulate. Line = %d", ++this->currentState.currentLine);
 		return 0;
+	}
+
+	if (!gateSourceLines.empty()) {
+		return stepInstruction();
 	}
 
 	// Number of source lines from mapping (BaseQVM)
@@ -318,6 +335,43 @@ matrix2d QppQVM::convertToMatrix2D(const qpp::cmat& eigenMatrix) {
 	}
 
 	return result;
+}
+
+// C++ (CUDA-Q): execute the next circuit instruction and move to the source line
+// of the instruction after it. Loops and called kernels produce several instructions
+// on the same or on earlier lines. Returns -1 at the end of the circuit.
+double QppQVM::stepInstruction() {
+	if (mIt == circuit->end() || currentExecIndex >= static_cast<int>(gateSourceLines.size())) {
+		LOGI("QppQVM::stepInstruction] end of circuit");
+		return -1;
+	}
+	this->currentState.code = Utils::encode64(this->sourceCode);
+
+	try {
+		auto start = std::chrono::steady_clock::now();
+
+		engine->execute(mIt++);
+		currentExecIndex++;
+
+		if (currentExecIndex < static_cast<int>(gateSourceLines.size()) && gateSourceLines[currentExecIndex] > 0) {
+			this->currentState.currentLine = gateSourceLines[currentExecIndex];
+		}
+
+		qpp::ket psi = engine->get_psi();
+		logState(psi, "state after");
+		setCurrentState(psi);
+		int ret1 = frontend->updateState(currentState);
+		LOGI("frontend.updateState ret %d", ret1);
+
+		auto stop = std::chrono::steady_clock::now();
+		double timeSec = std::chrono::duration<double>(stop - start).count();
+		LOGI("Instruction %d executed, next line %d (%f sec)", currentExecIndex, this->currentState.currentLine, timeSec);
+		return timeSec;
+	}
+	catch (...) {
+		LOGE("Error executing instruction %d", currentExecIndex);
+	}
+	return 0;
 }
 
 void QppQVM::setCurrentState(const qpp::ket &psi) {

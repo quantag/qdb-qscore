@@ -49,6 +49,7 @@ private:
 
 	QCircuit::iterator mIt; // current state
 	void setCurrentState(const qpp::ket& psi);
+	double stepInstruction();
 
 	int currentExecIndex = 0;
 
