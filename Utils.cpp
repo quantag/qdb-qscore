@@ -289,6 +289,10 @@ std::string Utils::execute(const std::string& cmd) {
 
 
 CodeType Utils::detectCodeType(const std::string& sourceCode) {
+    // CUDA-Q C++ first: "printf" would otherwise match the Python check below
+    if (containsCudaQCppKeywords(sourceCode)) {
+        return CodeType::eCpp;
+    }
     if (containsPythonKeywords(sourceCode)) {
         return CodeType::ePython;
     }
@@ -300,6 +304,11 @@ CodeType Utils::detectCodeType(const std::string& sourceCode) {
     }
 }
 
+
+bool Utils::containsCudaQCppKeywords(const std::string& sourceCode) {
+    static const std::regex cppRegex(R"((#\s*include\s*[<"]cudaq\.h[>"])|(__qpu__))");
+    return std::regex_search(sourceCode, cppRegex);
+}
 
 bool Utils::containsPythonKeywords(const std::string& sourceCode) {
     static const std::regex pythonKeywordsRegex("(def|import|print)");

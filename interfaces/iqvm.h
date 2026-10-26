@@ -25,6 +25,12 @@ public:
 	virtual double stepForward() = 0;
 	virtual void setWSSession(WSSession* wsSession) = 0;
 
+	// true when the QVM steps circuit instructions and reports their source lines
+	// (CUDA-Q C++); false for the line-by-line mode of OpenQASM and Python
+	virtual bool stepsByInstruction() const {
+		return false;
+	}
+
 	virtual int getCurrentLine() const {
 		return currentState.currentLine;
 	}

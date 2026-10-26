@@ -12,6 +12,7 @@
 #include "../ws/WSServer.h"
 
 #include <filesystem>
+#include <nlohmann/json.hpp>
 namespace fs = std::filesystem;
 
 void BaseQVM::updateProcessor(CodeFramework framework) {
@@ -37,7 +38,20 @@ void BaseQVM::updateProcessor(CodeFramework framework) {
 	    }
 }
 
+static int countPhysicalLines(const std::string& text) {
+	if (text.empty()) return 0;
+	int n = 1;
+	for (char c : text) {
+		if (c == '\n') n++;
+	}
+	return n;
+}
+
 int BaseQVM::getSourceLines() {
+	if (!gateSourceLines.empty()) {
+		// C++: real line numbers are reported, so count every line of the file
+		return countPhysicalLines(this->sourceCode);
+	}
 	return Utils::calcNumberOfLines(this->sourceCode);
 }
 
@@ -58,6 +72,7 @@ int BaseQVM::prepareSource( const std::string& fileName,
 
     this->sourceCodeParsed = 0;
     this->sourceCodePerLines.clear();
+    this->gateSourceLines.clear();
 
     std::string file = fileName;
     std::string sourceFolder = cfg ? cfg->getSourceFolder() : SOURCE_FOLDER_DEFAULT;
@@ -109,6 +124,12 @@ int BaseQVM::prepareSource( const std::string& fileName,
             return ERR_PARSEERROR;
         }
         preparedSource = result.res;
+    }
+    else if (status.codeType == CodeType::eCpp) {
+        int cppRet = translateCppSource(file, status, preparedSource);
+        if (cppRet != ERR_OK) {
+            return cppRet;
+        }
     }
     else {
         preparedSource = sourceCode;
@@ -239,6 +260,10 @@ void BaseQVM::generateCodeMapping(const std::string& preparedSource,
                 generateOpenQASMCodeMapping(preparedSource);
                 break;
             }
+        case CodeType::eCpp: {
+                generateCppCodeMapping();
+                break;
+            }
         default:
             LOGE("Not supported source type: %d", codeType);
     }
@@ -301,6 +326,75 @@ void BaseQVM::generateOpenQASMCodeMapping(const std::string& preparedSource) {
     }
 
     LOGI("BaseQVM::generateOpenQASMCodeMapping] mapped %d executable QASM lines", execIndex);
+}
+
+static std::string shellQuote(const std::string& s) {
+#ifdef _WIN32
+    return "\"" + s + "\"";
+#else
+    std::string r = "'";
+    for (char c : s) {
+        if (c == '\'') r += "'\\''";
+        else r += c;
+    }
+    return r + "'";
+#endif
+}
+
+int BaseQVM::translateCppSource(const std::string& file, LaunchStatus& status, std::string& preparedSource) {
+    std::string tool = cfg ? cfg->getCppQasmTool() : CPP_QASM_TOOL_DEFAULT;
+    std::string cmd = shellQuote(tool) + " " + shellQuote(file);
+    LOGI("CUDA-Q C++ source, running [%s]", cmd.c_str());
+
+    CommandResult res;
+    try {
+        res = Utils::exec2(cmd);
+    }
+    catch (const std::exception& e) {
+        status.errorMessage = std::string("Cannot run C++ translator: ") + e.what();
+        return ERR_PARSEERROR;
+    }
+
+    nlohmann::json j;
+    try {
+        j = nlohmann::json::parse(res.output);
+    }
+    catch (...) {
+        status.errorMessage = "C++ translator (" + tool + ") failed: " + res.output.substr(0, 500);
+        return ERR_PARSEERROR;
+    }
+    if (j.value("status", 1) != 0) {
+        status.errorMessage = j.value("error", std::string("C++ translation failed"));
+        LOGE("C++ translation failed: %s", status.errorMessage.c_str());
+        return ERR_PARSEERROR;
+    }
+
+    preparedSource = j.value("qasm", std::string());
+    std::vector<int> lines = j.value("lines", std::vector<int>());
+
+    std::istringstream in(preparedSource);
+    std::string line;
+    size_t i = 0;
+    while (std::getline(in, line)) {
+        if (isExecutableQasmLine(line)) {
+            gateSourceLines.push_back(i < lines.size() ? lines[i] : 0);
+        }
+        i++;
+    }
+    LOGI("CUDA-Q C++ kernel [%s]: %zu instructions",
+        j.value("kernel", std::string("?")).c_str(), gateSourceLines.size());
+    return ERR_OK;
+}
+
+void BaseQVM::generateCppCodeMapping() {
+    int n = countPhysicalLines(originalSourceCode);
+    sourceToQasmLines.assign(n, {});
+    for (size_t i = 0; i < gateSourceLines.size(); i++) {
+        int l = gateSourceLines[i];
+        if (l >= 1 && l <= n) {
+            sourceToQasmLines[l - 1].push_back(static_cast<int>(i));
+        }
+    }
 }
 
 // Detect if a line of Python source is a pure comment (or comment after whitespace)

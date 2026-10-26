@@ -11,6 +11,9 @@ class BaseQVM : public IQVM {
 public:
 	void updateProcessor(CodeFramework framework);
 	int getSourceLines();
+	virtual bool stepsByInstruction() const {
+		return !gateSourceLines.empty();
+	}
 	void setWSSession(WSSession* wsSession);
 
 	int prepareSource(const std::string& fileName,
@@ -40,6 +43,13 @@ protected:
 		CodeType codeType);
 	void generateOpenQASMCodeMapping(const std::string& preparedSource);
 	void generatePythonCodeMapping(const std::string& preparedSource);
+
+	// CUDA-Q C++: the file is translated to OpenQASM by an external tool (cpp.qasm.tool).
+	// gateSourceLines holds the source line of every executable QASM instruction in
+	// circuit order; when it is not empty the QVM steps instruction by instruction.
+	std::vector<int> gateSourceLines;
+	int translateCppSource(const std::string& file, LaunchStatus& status, std::string& preparedSource);
+	void generateCppCodeMapping();
 
 	void logCodeMapping() const;
 };
