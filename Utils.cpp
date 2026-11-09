@@ -678,6 +678,7 @@ std::string Utils::getCodeTypeName(CodeType type) {
     switch (type) {
         case ePython: return "Python";
         case eOpenQASM: return "OpenQASM";
+        case eCpp: return "C++ (CUDA-Q)";
         case eUnknown: return "Unknown";
     }
     return "?";
