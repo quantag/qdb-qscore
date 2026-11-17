@@ -14,6 +14,10 @@
 #include "../RestClient.h"
 
 #define SERVER_IMAGE_FOLDER		"/var/dap/images/"
+
+// Comment line a Python processor appends to its QASM with the program line of
+// every QASM line: "// qscore-lines: l1,l2,..." (0 for declarations); read by BaseQVM
+#define QASM_LINES_MARKER		"// qscore-lines:"
 #define BRIDGE_VAR				"code777"
 
 class ConfigLoader;

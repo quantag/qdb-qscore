@@ -44,12 +44,16 @@ protected:
 	void generateOpenQASMCodeMapping(const std::string& preparedSource);
 	void generatePythonCodeMapping(const std::string& preparedSource);
 
-	// CUDA-Q C++: the file is translated to OpenQASM by an external tool (cpp.qasm.tool).
 	// gateSourceLines holds the source line of every executable QASM instruction in
 	// circuit order; when it is not empty the QVM steps instruction by instruction.
+	// CUDA-Q C++: the file is translated to OpenQASM by an external tool (cpp.qasm.tool)
+	// that reports the source line of every QASM line. Qiskit: the Python processor
+	// appends those lines to the QASM as a comment (QASM_LINES_MARKER).
 	std::vector<int> gateSourceLines;
 	int translateCppSource(const std::string& file, LaunchStatus& status, std::string& preparedSource);
-	void generateCppCodeMapping();
+	void setGateSourceLines(const std::string& qasm, const std::vector<int>& qasmLineSources);
+	bool takePythonSourceLines(std::string& preparedSource);
+	void generateInstructionLineMapping();
 
 	void logCodeMapping() const;
 };

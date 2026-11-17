@@ -14,6 +14,10 @@ public:
 	QiskitProcessor(ConfigLoader* cfg);
 	virtual ~QiskitProcessor();
 
+	// Full Python source sent to the executor (QiskitBridge.h and the call with the
+	// base64-encoded program and the path of the circuit image)
+	static std::string buildBridgeSource(const std::string& sourceCode, const std::string& imagePath);
+
 protected:
 	virtual void findAllQuantumCircuitDeclarations(std::vector<int>& result);
 	virtual ScriptExecResult parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId, const std::string& venv);

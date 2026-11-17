@@ -11,7 +11,10 @@
 #include "../WebFrontend.h"
 #include "../ws/WSServer.h"
 
+#include <cctype>
+#include <cstring>
 #include <filesystem>
+#include <sstream>
 #include <nlohmann/json.hpp>
 namespace fs = std::filesystem;
 
@@ -124,6 +127,9 @@ int BaseQVM::prepareSource( const std::string& fileName,
             return ERR_PARSEERROR;
         }
         preparedSource = result.res;
+        if (!takePythonSourceLines(preparedSource)) {
+            LOGI("Python processor reported no source lines; stepping line by line (lines may not match the gates)");
+        }
     }
     else if (status.codeType == CodeType::eCpp) {
         int cppRet = translateCppSource(file, status, preparedSource);
@@ -212,6 +218,18 @@ std::string BaseQVM::getVenvIfPresent(const std::string& fileName) {
     }
 }
 
+// true if line starts with word followed by a non-identifier character or the end
+// ("gate" matches "gate foo ..." but not the custom gate call "gate_W q[0];")
+static bool startsWithWord(const std::string& line, const char* word) {
+    size_t n = std::strlen(word);
+    if (line.compare(0, n, word) != 0)
+        return false;
+    if (line.size() == n)
+        return true;
+    char c = line[n];
+    return !(std::isalnum(static_cast<unsigned char>(c)) || c == '_');
+}
+
 // Return true if this QASM line corresponds to an operation that
 // actually changes or uses the QVM state (gate, measure, reset, etc.).
 bool BaseQVM::isExecutableQasmLine(const std::string& rawLine) {
@@ -225,21 +243,21 @@ bool BaseQVM::isExecutableQasmLine(const std::string& rawLine) {
         return false;
 
     // Declarations and includes
-    if (line.rfind("OPENQASM", 0) == 0)
+    if (startsWithWord(line, "OPENQASM"))
         return false;
-    if (line.rfind("include", 0) == 0)
+    if (startsWithWord(line, "include"))
         return false;
-    if (line.rfind("qreg", 0) == 0)
+    if (startsWithWord(line, "qreg"))
         return false;
-    if (line.rfind("creg", 0) == 0)
+    if (startsWithWord(line, "creg"))
         return false;
-    if (line.rfind("gate", 0) == 0)
+    if (startsWithWord(line, "gate"))
         return false;
-    if (line.rfind("opaque", 0) == 0)
+    if (startsWithWord(line, "opaque"))
         return false;
     if (line == "{" || line == "}")
         return false;
-    if (line.rfind("barrier", 0) == 0)
+    if (startsWithWord(line, "barrier"))
         return false;
 
     // Everything else we treat as executable for now:
@@ -253,7 +271,10 @@ void BaseQVM::generateCodeMapping(const std::string& preparedSource,
  
     switch (codeType) {
         case CodeType::ePython: {
-                generatePythonCodeMapping(preparedSource);
+                if (!gateSourceLines.empty())
+                    generateInstructionLineMapping();
+                else
+                    generatePythonCodeMapping(preparedSource);
                 break;
         }
         case CodeType::eOpenQASM: {
@@ -261,7 +282,7 @@ void BaseQVM::generateCodeMapping(const std::string& preparedSource,
                 break;
             }
         case CodeType::eCpp: {
-                generateCppCodeMapping();
+                generateInstructionLineMapping();
                 break;
             }
         default:
@@ -372,21 +393,71 @@ int BaseQVM::translateCppSource(const std::string& file, LaunchStatus& status, s
     preparedSource = j.value("qasm", std::string());
     std::vector<int> lines = j.value("lines", std::vector<int>());
 
-    std::istringstream in(preparedSource);
-    std::string line;
-    size_t i = 0;
-    while (std::getline(in, line)) {
-        if (isExecutableQasmLine(line)) {
-            gateSourceLines.push_back(i < lines.size() ? lines[i] : 0);
-        }
-        i++;
-    }
+    setGateSourceLines(preparedSource, lines);
     LOGI("CUDA-Q C++ kernel [%s]: %zu instructions",
         j.value("kernel", std::string("?")).c_str(), gateSourceLines.size());
     return ERR_OK;
 }
 
-void BaseQVM::generateCppCodeMapping() {
+// qasmLineSources has the source line of every line of qasm (0 for declarations);
+// keeps the ones of executable instructions, in circuit order.
+void BaseQVM::setGateSourceLines(const std::string& qasm, const std::vector<int>& qasmLineSources) {
+    gateSourceLines.clear();
+    std::istringstream in(qasm);
+    std::string line;
+    size_t i = 0;
+    while (std::getline(in, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        if (isExecutableQasmLine(line)) {
+            gateSourceLines.push_back(i < qasmLineSources.size() ? qasmLineSources[i] : 0);
+        }
+        i++;
+    }
+}
+
+// Python (Qiskit): the processor appends "// qscore-lines: l1,l2,..." to the QASM with
+// the program line of every QASM line. Removes that line from preparedSource and fills
+// gateSourceLines. Returns false when the line is missing or unusable.
+bool BaseQVM::takePythonSourceLines(std::string& preparedSource) {
+    size_t pos = preparedSource.rfind(QASM_LINES_MARKER);
+    if (pos == std::string::npos || (pos > 0 && preparedSource[pos - 1] != '\n')) {
+        return false;
+    }
+    size_t end = preparedSource.find('\n', pos);
+    std::string list = preparedSource.substr(pos + std::strlen(QASM_LINES_MARKER),
+        end == std::string::npos ? std::string::npos : end - pos - std::strlen(QASM_LINES_MARKER));
+    preparedSource.erase(pos, end == std::string::npos ? std::string::npos : end - pos + 1);
+
+    std::vector<int> lines;
+    std::istringstream items(list);
+    std::string item;
+    while (std::getline(items, item, ',')) {
+        try {
+            lines.push_back(std::stoi(item));
+        }
+        catch (...) {
+            LOGE("Bad source line list from the Python processor: [%s]", list.c_str());
+            return false;
+        }
+    }
+
+    setGateSourceLines(preparedSource, lines);
+    bool any = false;
+    for (int l : gateSourceLines) {
+        if (l > 0) { any = true; break; }
+    }
+    if (!any) {
+        gateSourceLines.clear();
+        return false;
+    }
+    LOGI("Python: %zu instructions with source lines", gateSourceLines.size());
+    return true;
+}
+
+// gateSourceLines -> sourceToQasmLines (source line -> instruction indices)
+void BaseQVM::generateInstructionLineMapping() {
     int n = countPhysicalLines(originalSourceCode);
     sourceToQasmLines.assign(n, {});
     for (size_t i = 0; i < gateSourceLines.size(); i++) {
