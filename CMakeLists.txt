@@ -102,6 +102,7 @@ set(Header_Files
     "processors/QiskitProcessor.h"
     "processors/CudaQProcessor.h"
     "processors/CudaQBridge.h"
+    "processors/QiskitBridge.h"
     "RestClient.h"
     "SessionStorage.h"
     "Typedefs.h"

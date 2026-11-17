@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2024 Quantag IT Solutions GmbH
  *
@@ -8,12 +7,12 @@
 
 
 #include "QiskitProcessor.h"
+#include "QiskitBridge.h"
 #include "../Log.h"
 #include "../Utils.h"
 #include "../RestClient.h"
 #include "../ConfigLoader.h"
 
-// where store generated circuit images on server
 QiskitProcessor::QiskitProcessor(ConfigLoader* cfg) : PythonProcessor(eQiskit, cfg) {
 }
 
@@ -30,47 +29,22 @@ void QiskitProcessor::findAllQuantumCircuitDeclarations(std::vector<int>& result
 	}
 }
 
+std::string QiskitProcessor::buildBridgeSource(const std::string& sourceCode, const std::string& imagePath) {
+	std::string out = QISKIT_BRIDGE;
+	out += "\n" + std::string(BRIDGE_VAR) + " = _qs_qiskit_debug('" + Utils::encode64(sourceCode) + "', '" + imagePath + "')\n";
+	return out;
+}
+
 ScriptExecResult QiskitProcessor::parsePythonToOpenQASM(const std::string& sourceCode, const std::string& sessionId, const std::string& venv) {
-	LOGI("%s sessionId=[%s] venv=[%s]", sourceCode.c_str(), sessionId.c_str(), venv.c_str());
+	LOGI("sessionId=[%s] venv=[%s]", sessionId.c_str(), venv.c_str());
 
 	Utils::parseSourcePerLines(sourceCode, sourceLines);
 	Utils::logSource(sourceLines);
 
-	this->removeAllPrints();
+	// The program runs unchanged inside the bridge (no removed or inserted lines), so
+	// the lines the bridge reports are the lines of the file.
+	std::string updatedSource = buildBridgeSource(sourceCode, std::string(SERVER_IMAGE_FOLDER) + sessionId + ".png");
 
-	std::vector<int> linesWithQuantumCircuit;
-	findAllQuantumCircuitDeclarations(linesWithQuantumCircuit);
-
-	if (!linesWithQuantumCircuit.empty()) {
-		LOGI("Found QuantumCircuits at lines: %s", Utils::vectorToString(linesWithQuantumCircuit).c_str());
-
-		for (int line : linesWithQuantumCircuit) {
-			std::string qcName = getQuantumCircuitName(line);
-			LOGI("QuantumCircuit name at line %d is '%s'", line, qcName.c_str());
-
-			int lastLine = findLastUsage(qcName);
-			if (lastLine > 0) {
-				LOGI("Last usage of QC '%s' on line %d", qcName.c_str(), lastLine);
-				std::string spaces = getPreSpaces(lastLine);
-
-				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, spaces + std::string(BRIDGE_VAR) + "=qasm2.dumps(" + qcName + ")"); // if in function it will not work
-				this->sourceLines.insert(sourceLines.begin() + lastLine + 1, spaces + qcName + std::string(".draw(output='mpl', filename='")+SERVER_IMAGE_FOLDER+sessionId+".png')");
-			}
-		}
-	}
-	else {
-		LOGI("No QuantumCircuit declarations found");
-	}
-
-	if (!importPresent("qiskit", "qasm2")) {
-		addImport("qiskit", "qasm2");
-	}
-
-	LOGI("Updated sources:\n");
-	Utils::logSource(sourceLines);
-	std::string updatedSource = Utils::combineVector(this->sourceLines);
-
-	std::string out;
 	restClient.setEndpoint( cfg->getPythonExecutorEndpoint().c_str() );
 	ScriptExecResult  result = restClient.execCode(updatedSource, venv);
 	LOGI("result status: %d", result.status);

@@ -73,6 +73,14 @@ std::string CudaQProcessor::buildBridgeSource(const std::string& sourceCode) {
 	}
 	out += "\n_QS_KERNEL_HINT = " + (hint.empty() ? std::string("None") : "'" + hint + "'") + "\n";
 	out += CUDAQ_EPILOGUE;
+
+	// Program lines after the prologue are shifted by its length; CUDAQ_LINES undoes that
+	size_t prologueLines = 0;
+	for (const char* c = CUDAQ_PROLOGUE; *c; c++) {
+		if (*c == '\n') prologueLines++;
+	}
+	out += "_QS_LINE_SHIFT = (" + std::to_string(insertAt) + ", " + std::to_string(prologueLines) + ")\n";
+	out += CUDAQ_LINES;
 	out += CUDAQ_RESTORE_STDOUT;
 	return out;
 }
