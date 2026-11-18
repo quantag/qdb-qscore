@@ -37,6 +37,10 @@ public:
 
 	double stepForward();
 
+	virtual int getCurrentInstructionIndex() const {
+		return (circuit && sourceCodeParsed) ? currentExecIndex : -1;
+	}
+
 	static std::vector<complexNumber> convertToStdVector(const qpp::ket& eigenVector);
 	static matrix2d convertToMatrix2D(const qpp::cmat& eigenMatrix);
 	static void logState(const qpp::ket& eigenVector, const std::string& msg);

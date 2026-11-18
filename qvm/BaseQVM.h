@@ -14,6 +14,10 @@ public:
 	virtual bool stepsByInstruction() const {
 		return !gateSourceLines.empty();
 	}
+	virtual int getInstructionSourceLine(int idx) const {
+		return idx >= 0 && idx < static_cast<int>(gateSourceLines.size()) ? gateSourceLines[idx] : 0;
+	}
+	virtual std::vector<int> getInstructionQasmLines() const;
 	void setWSSession(WSSession* wsSession);
 
 	int prepareSource(const std::string& fileName,
