@@ -263,6 +263,44 @@ void testOpenMP() {
 
 }
 
+// Disassembly view: every line of the QASM that runs (IQVM::getSourcePerLines) gets an
+// address QASM_BASE_ADDRESS + line index; the instruction pointer is the address of the
+// next instruction. Instructions carry the source line they come from, so VS Code shows
+// the source next to the QASM and keeps both in step.
+static const int64_t QASM_BASE_ADDRESS = 0x1000;
+
+static std::string qasmAddress(int64_t lineIndex) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "0x%llx", static_cast<long long>(QASM_BASE_ADDRESS + lineIndex));
+    return buf;
+}
+
+static bool parseQasmAddress(const std::string& text, int64_t& lineIndex) {
+    try {
+        size_t pos = 0;
+        long long value = std::stoll(text, &pos, 0);
+        if (pos != text.size()) return false;
+        lineIndex = value - QASM_BASE_ADDRESS;
+        return true;
+    }
+    catch (...) {
+        return false;
+    }
+}
+
+// Address of the next instruction (the last instruction when the circuit has ended)
+static std::string instructionPointer(IQVM* qvm) {
+    std::vector<int> qasmLines = qvm->getInstructionQasmLines();
+    int idx = qvm->getCurrentInstructionIndex();
+    if (qasmLines.empty() || idx < 0) {
+        return qasmAddress(0);
+    }
+    if (idx >= static_cast<int>(qasmLines.size())) {
+        idx = static_cast<int>(qasmLines.size()) - 1;
+    }
+    return qasmAddress(qasmLines[idx]);
+}
+
 int main(int argc, char *argv[]) {
     std::string configFile = CONFIG_FILE;
     std::string mode = "server";
@@ -474,8 +512,8 @@ int main(int argc, char *argv[]) {
                 frame.id = frameId;
                 frame.source = source;
 
-                // this line makes 'Open Disassembly View" item active
-                frame.instructionPointerReference = "0"; //TODO: put correct value. 
+                // Enables 'Open Disassembly View'; the view highlights this instruction
+                frame.instructionPointerReference = instructionPointer(session->debugger->getQVM());
 
                 dap::StackTraceResponse response;
                 response.stackFrames.push_back(frame);
@@ -490,21 +528,58 @@ int main(int argc, char *argv[]) {
 			session->debugger->getQVM()->getSourcePerLines().size(), 
 			session->debugger->getQVM()->isSourceCodeParsed());
                 dap::DisassemblyResponse response;
+                IQVM* qvm = session->debugger->getQVM();
+                const std::vector<std::string>& qasm = qvm->getSourcePerLines();
 
-                if (session->debugger->getQVM()->isSourceCodeParsed()) {
-                    int baseAddress = 100;
-                    for(size_t i=0; i< session->debugger->getQVM()->getSourcePerLines().size(); i++) {
-                        dap::DisassembledInstruction code;
-
-                        code.address = Utils::intToString(baseAddress + i);
-                        code.column = 1;
-                        code.instruction = session->debugger->getQVM()->getSourcePerLines().at(i);
-
-                        response.instructions.push_back(code);
-                    }
-                } else {
-                      LOGI("[DisassemblyRequest] isSourceCodeParsed is FALSE, no Disassemply available");                
+                // Instruction index of every QASM line (-1 for declarations)
+                std::vector<int> instructionOfLine(qasm.size(), -1);
+                std::vector<int> qasmLines = qvm->getInstructionQasmLines();
+                for (size_t k = 0; k < qasmLines.size(); k++) {
+                    if (qasmLines[k] >= 0 && qasmLines[k] < static_cast<int>(qasm.size()))
+                        instructionOfLine[qasmLines[k]] = static_cast<int>(k);
                 }
+
+                int64_t start = 0;
+                if (!parseQasmAddress(request.memoryReference, start)) {
+                    LOGI("[DisassemblyRequest] unknown memoryReference [%s]", request.memoryReference.c_str());
+                }
+                // one "byte" per instruction
+                start += static_cast<int64_t>(request.offset.value(0));
+                start += static_cast<int64_t>(request.instructionOffset.value(0));
+                int64_t count = static_cast<int64_t>(request.instructionCount);
+                if (count < 0) count = 0;
+                if (count > 10000) count = 10000;
+
+                dap::Source source;
+                source.path = session->currentSourceFilePath;
+                source.name = Utils::getShortName(session->currentSourceFilePath);
+
+                // The adapter must return exactly instructionCount instructions; lines
+                // outside the QASM are returned with address -1 (ignored by VS Code).
+                for (int64_t k = 0; k < count; k++) {
+                    int64_t i = start + k;
+                    dap::DisassembledInstruction code;
+                    if (!qvm->isSourceCodeParsed() || i < 0 || i >= static_cast<int64_t>(qasm.size())) {
+                        code.address = "-1";
+                        code.instruction = "";
+                        response.instructions.push_back(code);
+                        continue;
+                    }
+                    std::string text = qasm[static_cast<size_t>(i)];
+                    Utils::trim(text);
+                    code.address = qasmAddress(i);
+                    code.instruction = text;
+                    int idx = instructionOfLine[static_cast<size_t>(i)];
+                    int line = idx >= 0 ? qvm->getInstructionSourceLine(idx) : 0;
+                    if (line > 0) {
+                        code.line = line;
+                        code.location = source;
+                    }
+                    response.instructions.push_back(code);
+                }
+                LOGI("[DisassemblyRequest] memoryReference=%s start=%lld count=%lld qasmLines=%zu",
+                    request.memoryReference.c_str(), static_cast<long long>(start),
+                    static_cast<long long>(count), qasm.size());
 
                 return response;
             });
