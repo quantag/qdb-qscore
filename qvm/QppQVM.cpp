@@ -182,6 +182,7 @@ double QppQVM::stepForward() {
 		if (hasOp && mIt != circuit->end()) {
 			// Execute exactly one gate (next in circuit)
 			engine->execute(mIt++);
+			currentExecIndex++;
 
 			qpp::ket psi = engine->get_psi();
 			logState(psi, "state after");

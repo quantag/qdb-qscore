@@ -230,6 +230,17 @@ static bool startsWithWord(const std::string& line, const char* word) {
     return !(std::isalnum(static_cast<unsigned char>(c)) || c == '_');
 }
 
+// Index in sourceCodePerLines (the QASM that runs) of every executable instruction
+std::vector<int> BaseQVM::getInstructionQasmLines() const {
+    std::vector<int> result;
+    for (size_t i = 0; i < sourceCodePerLines.size(); i++) {
+        if (isExecutableQasmLine(sourceCodePerLines[i])) {
+            result.push_back(static_cast<int>(i));
+        }
+    }
+    return result;
+}
+
 // Return true if this QASM line corresponds to an operation that
 // actually changes or uses the QVM state (gate, measure, reset, etc.).
 bool BaseQVM::isExecutableQasmLine(const std::string& rawLine) {

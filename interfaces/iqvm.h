@@ -31,6 +31,21 @@ public:
 		return false;
 	}
 
+	// Disassembly view: index (0-based, circuit order) of the next instruction to
+	// execute, or -1 when unknown
+	virtual int getCurrentInstructionIndex() const {
+		return -1;
+	}
+	// Source line (1-based) of instruction idx, 0 when unknown
+	virtual int getInstructionSourceLine(int idx) const {
+		(void)idx;
+		return 0;
+	}
+	// Index in getSourcePerLines() (the QASM that runs) of every instruction, in order
+	virtual std::vector<int> getInstructionQasmLines() const {
+		return std::vector<int>();
+	}
+
 	virtual int getCurrentLine() const {
 		return currentState.currentLine;
 	}
