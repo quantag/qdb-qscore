@@ -1,3 +1,3 @@
 #pragma once
 
-#define QSCORE_VERSION      "1.0.26"
+#define QSCORE_VERSION      "1.0.27"
