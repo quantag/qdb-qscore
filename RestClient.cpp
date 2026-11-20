@@ -28,7 +28,7 @@ RestClient::~RestClient() {
         curl_global_cleanup();
 }
 
-std::string RestClient::doPost(const std::string& jsonData) {
+std::string RestClient::doPost(const std::string& jsonData, std::string* error) {
         CURL* curl;
         CURLcode res;
         std::string response;
@@ -45,9 +45,21 @@ std::string RestClient::doPost(const std::string& jsonData) {
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
+            // Without limits a hanging executor blocks the debug launch forever
+            curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, connectTimeoutSec);
+            curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeoutSec);
+            curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);  // timeouts in multi-threaded programs
+
             res = curl_easy_perform(curl);
             if (res != CURLE_OK) {
-                LOGE("curl_easy_perform() failed: %s", curl_easy_strerror(res) );
+                LOGE("curl_easy_perform() failed: %s [%s]", curl_easy_strerror(res), url.c_str());
+                if (error) {
+                    *error = std::string("Python executor ") + url + " did not respond: " + curl_easy_strerror(res);
+                    if (res == CURLE_OPERATION_TIMEDOUT) {
+                        *error += " (limit " + std::to_string(timeoutSec) + " s)";
+                    }
+                }
+                response.clear();
             }
 
             curl_easy_cleanup(curl);
@@ -69,15 +81,29 @@ ScriptExecResult RestClient::execCode(const std::string& code) {
     std::string req = "{\"src\":\"" + encoded + "\"}";
     LOGD("req: '%s'", req.c_str());
 
-    std::string res = doPost(req);
+    std::string error;
+    std::string res = doPost(req, &error);
     LOGD("response '%s'", res.c_str());
+    return parseExecResponse(res, error);
+}
+
+// Response of the Python executor: {"status": 0, "res": <base64>} or {"status": N, "err": ...}
+ScriptExecResult RestClient::parseExecResponse(const std::string& res, const std::string& error) {
     ScriptExecResult result;
+    result.status = 0;
+
+    if (!error.empty()) {
+        result.status = 2;
+        result.err = error;
+        LOGE("%s", error.c_str());
+        return result;
+    }
 
     try {
         json j = json::parse(res);
         result.status = j["status"];
         if (result.status != 0) {
-            result.err = j["err"];
+            result.err = j.value("err", std::string("Python executor returned status ") + std::to_string(result.status));
             LOGE("Remote script execution failed [%s]", result.err.c_str());
         }
         else {
@@ -88,8 +114,8 @@ ScriptExecResult RestClient::execCode(const std::string& code) {
     }
     catch (std::exception& e) {
         LOGE("Error during parsing JSON response: '%s'", res.c_str());
-        result.err = 3;
-        result.err = e.what();
+        result.status = 3;
+        result.err = std::string("Invalid response from the Python executor ") + url + ": " + e.what();
         return result;
     }
 }
@@ -108,27 +134,8 @@ ScriptExecResult RestClient::execCode(const std::string& code, const std::string
     std::string req = j.dump();
     LOGD("req: '%s'", req.c_str());
 
-    std::string res = doPost(req);
+    std::string error;
+    std::string res = doPost(req, &error);
     LOGD("response '%s'", res.c_str());
-    ScriptExecResult result;
-
-    try {
-        json j = json::parse(res);
-        result.status = j["status"];
-        if (result.status != 0) {
-            result.err = j["err"];
-            LOGE("Remote script execution failed [%s]", result.err.c_str());
-        }
-        else {
-            std::string encodedRes = j["res"];
-            result.res = Utils::decode64(encodedRes);
-        }
-        return result;
-    }
-    catch (std::exception& e) {
-        LOGE("Error during parsing JSON response: '%s'", res.c_str());
-        result.err = 3;
-        result.err = e.what();
-        return result;
-    }
+    return parseExecResponse(res, error);
 }
