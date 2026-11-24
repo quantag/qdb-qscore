@@ -14,7 +14,9 @@
 // that QASM followed by the comment line
 //   // qscore-lines: l1,l2,...
 // with the program line of every QASM line (0 for declarations). BaseQVM reads and
-// removes that line (QASM_LINES_MARKER in PythonProcessor.h). Verified with qiskit 2.5.2.
+// removes that line (QASM_LINES_MARKER in PythonProcessor.h). The program runs as if
+// started with "python <program>" in the project root (sys.path, working directory).
+// Verified with qiskit 2.5.2 and 1.3.2.
 
 #pragma once
 
@@ -27,16 +29,18 @@ static const char* const QISKIT_BRIDGE = R"QSPY(# --- Quantag QSCore: Qiskit deb
 # result is the QASM followed by one comment line
 #   // qscore-lines: l1,l2,...
 # with the program line of every QASM line (0 for declarations).
-def _qs_qiskit_debug(_qs_src_b64, _qs_image):
+def _qs_qiskit_debug(_qs_src_b64, _qs_image, _qs_root=None, _qs_program=None):
     import base64
     import io
     import re
+    import os
     import sys
     import weakref
     from qiskit import QuantumCircuit, qasm2
 
     source = base64.b64decode(_qs_src_b64).decode("utf-8")
-    filename = "<qscore-program>"
+    # The program file (its path on this machine) gives tracebacks and __file__
+    filename = _qs_program or "<qscore-program>"
     code = compile(source, filename, "exec")
 
     tracked = []  # [circuit weakref or object, lines, created directly by the program]
@@ -90,6 +94,23 @@ def _qs_qiskit_debug(_qs_src_b64, _qs_image):
         return None
 
     namespace = {"__name__": "__main__", "__builtins__": __builtins__}
+    if _qs_program:
+        namespace["__file__"] = _qs_program
+
+    # Run like "python <program>" started in the project root: the program's folder and
+    # the project root are on sys.path (local imports), the working directory is the
+    # project root (relative data paths). Restored afterwards; local modules are dropped
+    # from sys.modules so a later program never gets them from the cache.
+    root = _qs_root if _qs_root and os.path.isdir(_qs_root) else None
+    program_dir = os.path.dirname(_qs_program) if _qs_program and os.path.isdir(os.path.dirname(_qs_program)) else None
+    saved_path, saved_cwd = list(sys.path), os.getcwd()
+    saved_modules = set(sys.modules)
+    for folder in (root, program_dir):
+        if folder and folder not in sys.path:
+            sys.path.insert(0, folder)
+    if root:
+        os.chdir(root)
+
     saved_stdout = sys.stdout
     QuantumCircuit.__init__ = init
     sys.stdout = io.StringIO()
@@ -101,6 +122,18 @@ def _qs_qiskit_debug(_qs_src_b64, _qs_image):
         sys.settrace(None)
         sys.stdout = saved_stdout
         QuantumCircuit.__init__ = original_init
+        sys.path[:] = saved_path
+        try:
+            os.chdir(saved_cwd)
+        except OSError:
+            pass
+        local = [os.path.realpath(f) + os.sep for f in (root, program_dir) if f]
+        for name in list(sys.modules):
+            if name in saved_modules:
+                continue
+            path = getattr(sys.modules.get(name), "__file__", None) or ""
+            if local and any(os.path.realpath(path).startswith(prefix) for prefix in local):
+                del sys.modules[name]
 
     # The circuit to debug:
     # 1. the last module variable declared as "name = QuantumCircuit(...)";

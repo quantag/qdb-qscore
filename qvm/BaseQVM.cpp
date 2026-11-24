@@ -86,12 +86,31 @@ int BaseQVM::prepareSource( const std::string& fileName,
         LOGE("cfg is null in BaseQVM");
     }
 
+    // Folder the program's project lives in: local imports and relative data paths
+    // of Python programs are resolved from it (see PythonProcessor::setProgramLocation)
+    std::string projectRoot;
+
     if (!Utils::fileExists(file)) {
-        std::string defaultFolder = sourceFolder + "default";
-        std::string serverFile = Utils::findServerFile(defaultFolder, file);
-        if (!Utils::fileExists(serverFile)) {
-            std::string sessionFolder = sourceFolder + sessionId;
-            serverFile = Utils::findServerFile(sessionFolder, file);
+        // Uploaded project (desktop VS Code): <source folder>/<session>/<programRelative>
+        std::string sessionFolder = sourceFolder + sessionId;
+        std::string serverFile;
+        std::string rel = sanitizeRelativePath(programRelative);
+        if (!rel.empty() && Utils::fileExists(sessionFolder + "/" + rel)) {
+            serverFile = sessionFolder + "/" + rel;
+            projectRoot = sessionFolder;
+            LOGI("Program [%s] found by programRelative [%s]", serverFile.c_str(), rel.c_str());
+        }
+        else {
+            if (!programRelative.empty()) {
+                LOGI("programRelative [%s] not found in [%s]; searching by file name", programRelative.c_str(), sessionFolder.c_str());
+            }
+            std::string defaultFolder = sourceFolder + "default";
+            serverFile = Utils::findServerFile(defaultFolder, file);
+            projectRoot = defaultFolder;
+            if (!Utils::fileExists(serverFile)) {
+                serverFile = Utils::findServerFile(sessionFolder, file);
+                projectRoot = sessionFolder;
+            }
         }
 
         if (!Utils::fileExists(serverFile)) {
@@ -100,12 +119,17 @@ int BaseQVM::prepareSource( const std::string& fileName,
             LOGI("File [%s] not found, using demo file [%s].", serverFile.c_str(), file.c_str());
             ret = ERR_DEMOFILE;
             status.serverFileFound = 0;
+            projectRoot.clear();
         }
         else {
             file = serverFile;
             status.serverFileFound = 1;
         }
     }
+    else {
+        projectRoot = getLocalProjectRoot(file);
+    }
+    LOGI("Program [%s], project root [%s]", file.c_str(), projectRoot.c_str());
 
     if (!Utils::fileExists(file)) {
         LOGE("File '%s' still not found.", file.c_str());
@@ -121,6 +145,7 @@ int BaseQVM::prepareSource( const std::string& fileName,
     if (status.codeType == CodeType::ePython) {
         status.pythonFramework = Utils::detectPythonFramework(sourceCode);
         updateProcessor(status.pythonFramework);
+        processor->setProgramLocation(projectRoot, file);
         ScriptExecResult result = processor->parsePythonToOpenQASM(sourceCode, sessionId, this->venv);
         if (result.status != 0) {
             status.errorMessage = Utils::getPlainTextFromHTML(result.err);
@@ -143,6 +168,55 @@ int BaseQVM::prepareSource( const std::string& fileName,
     generateCodeMapping(preparedSource, status.codeType);
     logCodeMapping();
     return ret;
+}
+
+// programRelative from the client, made safe: forward slashes, no absolute path,
+// no drive letter, no ".." component; "" when not usable
+std::string BaseQVM::sanitizeRelativePath(const std::string& path) {
+    std::string p = Utils::replaceChar(path, '\\', '/');
+    if (p.empty() || p[0] == '/' || (p.size() > 1 && p[1] == ':')) {
+        return std::string();
+    }
+    std::string out;
+    std::istringstream parts(p);
+    std::string part;
+    while (std::getline(parts, part, '/')) {
+        if (part.empty() || part == ".") {
+            continue;
+        }
+        if (part == "..") {
+            return std::string();
+        }
+        if (!out.empty()) {
+            out += "/";
+        }
+        out += part;
+    }
+    return out;
+}
+
+// Project root of a file opened in place: <projects.root>/<project> in Studio
+// workspaces, otherwise the file's folder
+std::string BaseQVM::getLocalProjectRoot(const std::string& fileName) {
+    try {
+        fs::path file = fs::weakly_canonical(fs::absolute(fileName));
+        std::string projectsRoot = cfg ? cfg->getProjectsRoot() : std::string();
+        if (!projectsRoot.empty()) {
+            fs::path root = fs::weakly_canonical(fs::absolute(projectsRoot));
+            fs::path rel = file.lexically_relative(root);
+            if (!rel.empty() && rel.begin() != rel.end()) {
+                std::string project = rel.begin()->string();
+                if (!project.empty() && project != "." && project != ".." && project != rel.string()) {
+                    return (root / project).string();
+                }
+            }
+        }
+        return file.parent_path().string();
+    }
+    catch (...) {
+        LOGI("getLocalProjectRoot: exception for file: %s", fileName.c_str());
+    }
+    return std::string();
 }
 
 std::string BaseQVM::getProjectVenv(const std::string& fileName) {

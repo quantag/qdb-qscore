@@ -833,6 +833,7 @@ int main(int argc, char *argv[]) {
             LOGI("Cleaned sessions: %u", cleaned);
             LOGI("Sessions in storage after cleanup: %u", sessions.getSessionsCount());
 
+            session->debugger->getQVM()->setProgramRelative(req.programRelative.value(""));
             bool isRun = req.noDebug.has_value();
             LaunchStatus status;
             int ret = session->debugger->launch(isRun, req.program.value(), session->getSessionId(), status);

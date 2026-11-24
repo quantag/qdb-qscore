@@ -16,7 +16,8 @@ public:
 
 	// Full Python source sent to the executor (QiskitBridge.h and the call with the
 	// base64-encoded program and the path of the circuit image)
-	static std::string buildBridgeSource(const std::string& sourceCode, const std::string& imagePath);
+	static std::string buildBridgeSource(const std::string& sourceCode, const std::string& imagePath,
+		const std::string& projectRoot = "", const std::string& programPath = "");
 
 protected:
 	virtual void findAllQuantumCircuitDeclarations(std::vector<int>& result);

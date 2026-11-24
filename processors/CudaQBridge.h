@@ -25,7 +25,9 @@
 
 // Inserted before the program (after "from __future__" imports)
 // CudaQProcessor reports its number of lines to CUDAQ_LINES (_QS_LINE_SHIFT) so that
-// the lines of the program are not shifted.
+// the lines of the program are not shifted. CudaQProcessor replaces __QS_PROJECT_ROOT__
+// and __QS_PROGRAM_DIR__ with Python literals (same number of lines): the program runs
+// as if started in the project root (sys.path, working directory).
 static const char* const CUDAQ_PROLOGUE = R"QSPY(# --- Quantag QSCore: keep prints of the user code out of the result, source lines for kernels (prepended by CudaQProcessor) ---
 import sys as _qs_sys, io as _qs_io
 _qs_saved_stdout = _qs_sys.stdout
@@ -50,6 +52,15 @@ def _qs_locate_kernels():
             return visit(self, node)
     ast_bridge.PyASTBridge.visit = located
 _qs_locate_kernels()
+_QS_PROJECT_ROOT = __QS_PROJECT_ROOT__
+_QS_PROGRAM_DIR = __QS_PROGRAM_DIR__
+import os as _qs_os
+_qs_saved_cwd, _qs_saved_path, _qs_saved_modules = _qs_os.getcwd(), list(_qs_sys.path), set(_qs_sys.modules)
+for _qs_dir in (_QS_PROJECT_ROOT, _QS_PROGRAM_DIR):
+    if _qs_dir and _qs_os.path.isdir(_qs_dir) and _qs_dir not in _qs_sys.path:
+        _qs_sys.path.insert(0, _qs_dir)
+if _QS_PROJECT_ROOT and _qs_os.path.isdir(_QS_PROJECT_ROOT):
+    _qs_os.chdir(_QS_PROJECT_ROOT)
 )QSPY";
 
 // Appended after the program and the line "_QS_KERNEL_HINT = <name or None>"
@@ -613,5 +624,17 @@ code777 = _qs_cudaq_with_lines(globals(), _QS_KERNEL_HINT, _QS_LINE_SHIFT, _qs_c
 )QSPY";
 
 // Appended last: restores stdout so the executor can print the result
+// (also restores the working directory and sys.path, and drops the program's local
+// modules from sys.modules for executors that run scripts in their own process)
 static const char* const CUDAQ_RESTORE_STDOUT = R"QSPY(_qs_sys.stdout = _qs_saved_stdout
+_qs_sys.path[:] = _qs_saved_path
+try:
+    _qs_os.chdir(_qs_saved_cwd)
+except OSError:
+    pass
+_qs_local = [_qs_os.path.realpath(_qs_d) + _qs_os.sep for _qs_d in (_QS_PROJECT_ROOT, _QS_PROGRAM_DIR) if _qs_d]
+for _qs_name in [n for n in list(_qs_sys.modules) if n not in _qs_saved_modules]:
+    _qs_file = getattr(_qs_sys.modules.get(_qs_name), "__file__", None) or ""
+    if _qs_local and any(_qs_os.path.realpath(_qs_file).startswith(_qs_p) for _qs_p in _qs_local):
+        del _qs_sys.modules[_qs_name]
 )QSPY";

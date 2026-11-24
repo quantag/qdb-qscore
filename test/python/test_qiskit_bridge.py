@@ -24,13 +24,13 @@ def bridge_source():
     return match.group(1)
 
 
-def run(program, image=""):
+def run(program, image="", root=None, program_path=None, cwd=None):
     """Runs the bridge like qdb-decom in env mode; returns (exit code, result, stderr)."""
     b64 = base64.b64encode(program.encode("utf-8")).decode()
-    script = bridge_source() + "\ncode777 = _qs_qiskit_debug(%r, %r)\n" % (b64, image)
+    script = bridge_source() + "\ncode777 = _qs_qiskit_debug(%r, %r, %r, %r)\n" % (b64, image, root, program_path)
     script += ("\n\nimport sys\nresult = globals().get('code777', None)\n"
                "sys.stdout.write('' if result is None else str(result))\n")
-    proc = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=300)
+    proc = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=300, cwd=cwd)
     return proc.returncode, proc.stdout, proc.stderr
 
 
@@ -173,6 +173,74 @@ def _():
 def _():
     code, out, err = run("from qiskit import QuantumCircuit\n\nqc = QuantumCircuit(1)\nraise ValueError('boom')\n")
     assert code != 0 and 'File "<qscore-program>", line 4' in err, err
+    code, out, err = run("from qiskit import QuantumCircuit\n\nqc = QuantumCircuit(1)\nraise ValueError('boom')\n",
+                         program_path="/project/main.py")
+    assert code != 0 and 'File "/project/main.py", line 4' in err, err
+
+
+@case("project root: local package import, relative data path, __file__")
+def _():
+    import tempfile
+    root = Path(tempfile.mkdtemp())
+    (root / "lib").mkdir()
+    (root / "lib" / "__init__.py").write_text("")
+    (root / "lib" / "gates.py").write_text("def entangle(qc):\n    qc.cx(0, 1)\n")
+    (root / "quantum").mkdir()
+    (root / "quantum" / "helper.py").write_text("ANGLE = 0.5\n")
+    (root / "data").mkdir()
+    (root / "data" / "n.txt").write_text("2\n")
+    program = textwrap.dedent('''\
+        import os
+        from qiskit import QuantumCircuit
+        from lib.gates import entangle
+        from helper import ANGLE
+        n = int(open("data/n.txt").read())
+        here = os.path.dirname(__file__)
+        qc = QuantumCircuit(n)
+        qc.ry(ANGLE, 0)
+        entangle(qc)
+        assert os.path.basename(here) == "quantum"
+        ''')
+    (root / "quantum" / "main.py").write_text(program)
+    elsewhere = tempfile.mkdtemp()
+    code, out, err = run(program, root=str(root), program_path=str(root / "quantum" / "main.py"), cwd=elsewhere)
+    assert code == 0, err
+    got = instruction_lines(out)
+    assert [g.split()[0].split("(")[0] for g, _ in got] == ["ry", "cx"], got
+    # the cx comes from lib/gates.py: its line is not a line of main.py, so it gets the call line
+    assert [n for _, n in got] == [program_line(program, "qc.ry("), program_line(program, "entangle(qc)")], got
+
+
+@case("in one process (executor without a venv): local modules, cwd and sys.path do not leak to the next program")
+def _():
+    import tempfile
+    script = bridge_source() + textwrap.dedent('''
+        import base64, os, sys, tempfile
+        from pathlib import Path
+        def project(value):
+            root = Path(tempfile.mkdtemp())
+            (root / "helper.py").write_text("N = %d\\n" % value)
+            prog = "from qiskit import QuantumCircuit\\nfrom helper import N\\nqc = QuantumCircuit(N)\\nqc.h(0)\\n"
+            (root / "main.py").write_text(prog)
+            return str(root), str(root / "main.py"), base64.b64encode(prog.encode()).decode()
+        cwd, path = os.getcwd(), list(sys.path)
+        out = []
+        for value in (1, 3):
+            root, main, b64 = project(value)
+            qasm = _qs_qiskit_debug(b64, "", root, main)
+            out.append([l for l in qasm.splitlines() if l.startswith("qreg")][0])
+        assert os.getcwd() == cwd and sys.path == path and "helper" not in sys.modules
+        print(out)
+        ''')
+    proc = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=300)
+    assert proc.returncode == 0, proc.stderr[-800:]
+    assert "['qreg q[1];', 'qreg q[3];']" in proc.stdout, proc.stdout
+
+
+@case("without a project root the program still runs (old QSCore call)")
+def _():
+    code, out, err = run("from qiskit import QuantumCircuit\nqc = QuantumCircuit(1)\nqc.h(0)\n")
+    assert code == 0, err
 
 
 print("%d passed, %d failed" % (len(PASSED), len(FAILED)))

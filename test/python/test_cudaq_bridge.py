@@ -34,7 +34,11 @@ def hint(source):
     return m.group(1) if m else None
 
 
-def bridge(source, with_lines=True):
+def py_literal(value):
+    return "None" if not value else repr(value)
+
+
+def bridge(source, with_lines=True, root=None, program_path=None):
     """Same assembly as CudaQProcessor::buildBridgeSource."""
     lines = source.splitlines()
     insert_at = 0
@@ -42,6 +46,10 @@ def bridge(source, with_lines=True):
         if line.startswith("from __future__ import"):
             insert_at = i + 1
     prologue = literal("CUDAQ_PROLOGUE")
+    lines_before = prologue.count("\n")
+    prologue = prologue.replace("__QS_PROJECT_ROOT__", py_literal(root), 1)
+    prologue = prologue.replace("__QS_PROGRAM_DIR__", py_literal(str(Path(program_path).parent) if program_path else None), 1)
+    assert prologue.count("\n") == lines_before
     out = "".join(l + "\n" for l in lines[:insert_at]) + prologue
     out += "".join(l + "\n" for l in lines[insert_at:])
     out += "\n_QS_KERNEL_HINT = %r\n" % hint(source)
@@ -55,9 +63,9 @@ def bridge(source, with_lines=True):
     return out
 
 
-def run(source, with_lines=True):
+def run(source, with_lines=True, root=None, program_path=None):
     """Runs the bridge from a file like qdb-decom (env mode); returns (code, result, stderr)."""
-    script = bridge(source, with_lines) + (
+    script = bridge(source, with_lines, root, program_path) + (
         "\n\nimport sys\nresult = globals().get('code777', None)\n"
         "sys.stdout.write('' if result is None else str(result))\n")
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as f:
@@ -212,6 +220,36 @@ def _():
     # same outcome as without lines (QASM or the same error), never a different error
     assert MARKER not in out
     assert code == lines_code and (code != 0 or out == plain), (err, plain_err)
+
+
+@case("project root: local module import and relative data path in the program")
+def _():
+    root = Path(tempfile.mkdtemp())
+    (root / "consts.py").write_text("ANGLE = 0.25\n")
+    (root / "data").mkdir()
+    (root / "data" / "n.txt").write_text("3\n")
+    program = textwrap.dedent('''\
+        import cudaq
+        from consts import ANGLE
+        N = int(open("data/n.txt").read())
+
+
+        @cudaq.kernel
+        def k():
+            q = cudaq.qvector(3)
+            ry(0.25, q[0])
+            x.ctrl(q[0], q[1])
+            mz(q)
+
+
+        assert N == 3 and ANGLE == 0.25
+        print(cudaq.sample(k))
+        ''')
+    (root / "main.py").write_text(program)
+    code, out, err = run(program, root=str(root), program_path=str(root / "main.py"))
+    assert code == 0, err[-800:]
+    got = [n for _, n in instruction_lines(out)]
+    assert got == [program_line(program, "ry(0.25"), program_line(program, "x.ctrl(")] + [program_line(program, "mz(q)")] * 3, got
 
 
 print("%d passed, %d failed" % (len(PASSED), len(FAILED)))

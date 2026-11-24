@@ -35,6 +35,16 @@ public:
 	CodeFramework getFramework() const {
 		return framework;
 	}
+
+	// Where the program runs: the bridges put these folders on sys.path and run the
+	// program in projectRoot, so local imports and relative data paths work.
+	void setProgramLocation(const std::string& root, const std::string& program) {
+		projectRoot = root;
+		programPath = program;
+	}
+
+	// Python string literal for value (None when empty)
+	static std::string pyLiteral(const std::string& value);
 	ScriptExecResult renderOpenQASMCircuit(const std::string& sourceCode, const std::string& sessionId);
 
 protected:
@@ -57,6 +67,9 @@ protected:
 
 	CodeFramework framework;
 	RestClient restClient;
+
+	std::string projectRoot;
+	std::string programPath;
 
 	ConfigLoader* cfg;
 };

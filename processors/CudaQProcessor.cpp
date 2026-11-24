@@ -41,7 +41,15 @@ std::string CudaQProcessor::findKernelHint(const std::string& sourceCode) {
 	return "";
 }
 
-std::string CudaQProcessor::buildBridgeSource(const std::string& sourceCode) {
+static void replaceToken(std::string& text, const std::string& token, const std::string& value) {
+	size_t pos = text.find(token);
+	if (pos != std::string::npos) {
+		text.replace(pos, token.size(), value);
+	}
+}
+
+std::string CudaQProcessor::buildBridgeSource(const std::string& sourceCode,
+		const std::string& projectRoot, const std::string& programPath) {
 	// Split into lines, keeping every line (empty lines and comments matter for Python)
 	std::vector<std::string> lines;
 	std::istringstream in(sourceCode);
@@ -67,7 +75,15 @@ std::string CudaQProcessor::buildBridgeSource(const std::string& sourceCode) {
 	for (size_t i = 0; i < insertAt; i++) {
 		out += lines[i] + "\n";
 	}
-	out += CUDAQ_PROLOGUE;
+	std::string prologue = CUDAQ_PROLOGUE;
+	std::string programDir;
+	size_t slash = programPath.find_last_of("/\\");
+	if (slash != std::string::npos) {
+		programDir = programPath.substr(0, slash);
+	}
+	replaceToken(prologue, "__QS_PROJECT_ROOT__", pyLiteral(projectRoot));
+	replaceToken(prologue, "__QS_PROGRAM_DIR__", pyLiteral(programDir));
+	out += prologue;
 	for (size_t i = insertAt; i < lines.size(); i++) {
 		out += lines[i] + "\n";
 	}
@@ -90,7 +106,8 @@ ScriptExecResult CudaQProcessor::parsePythonToOpenQASM(const std::string& source
 
 	Utils::parseSourcePerLines(sourceCode, sourceLines);
 
-	std::string updatedSource = buildBridgeSource(sourceCode);
+	LOGI("project root=[%s] program=[%s]", projectRoot.c_str(), programPath.c_str());
+	std::string updatedSource = buildBridgeSource(sourceCode, projectRoot, programPath);
 	LOGD("Updated sources:\n%s", updatedSource.c_str());
 
 	restClient.setEndpoint(cfg->getPythonExecutorEndpoint().c_str());

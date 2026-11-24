@@ -78,7 +78,14 @@ public:
 		return cfg;
 	}
 
+	// Launch argument programRelative: path of the program from the project root.
+	// Uploaded projects keep it in the session folder.
+	void setProgramRelative(const std::string& path) {
+		programRelative = path;
+	}
+
 protected:
+	std::string programRelative;
 	std::string sourceCode;
 
 	// original not changed source code received by VM.

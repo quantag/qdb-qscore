@@ -29,9 +29,11 @@ void QiskitProcessor::findAllQuantumCircuitDeclarations(std::vector<int>& result
 	}
 }
 
-std::string QiskitProcessor::buildBridgeSource(const std::string& sourceCode, const std::string& imagePath) {
+std::string QiskitProcessor::buildBridgeSource(const std::string& sourceCode, const std::string& imagePath,
+		const std::string& projectRoot, const std::string& programPath) {
 	std::string out = QISKIT_BRIDGE;
-	out += "\n" + std::string(BRIDGE_VAR) + " = _qs_qiskit_debug('" + Utils::encode64(sourceCode) + "', '" + imagePath + "')\n";
+	out += "\n" + std::string(BRIDGE_VAR) + " = _qs_qiskit_debug('" + Utils::encode64(sourceCode) + "', "
+		+ pyLiteral(imagePath) + ", " + pyLiteral(projectRoot) + ", " + pyLiteral(programPath) + ")\n";
 	return out;
 }
 
@@ -43,7 +45,9 @@ ScriptExecResult QiskitProcessor::parsePythonToOpenQASM(const std::string& sourc
 
 	// The program runs unchanged inside the bridge (no removed or inserted lines), so
 	// the lines the bridge reports are the lines of the file.
-	std::string updatedSource = buildBridgeSource(sourceCode, std::string(SERVER_IMAGE_FOLDER) + sessionId + ".png");
+	LOGI("project root=[%s] program=[%s]", projectRoot.c_str(), programPath.c_str());
+	std::string updatedSource = buildBridgeSource(sourceCode, std::string(SERVER_IMAGE_FOLDER) + sessionId + ".png",
+		projectRoot, programPath);
 
 	restClient.setEndpoint( cfg->getPythonExecutorEndpoint().c_str() );
 	ScriptExecResult  result = restClient.execCode(updatedSource, venv);

@@ -31,6 +31,8 @@ public:
 
 	std::string getVenvIfPresent(const std::string& fileName);
 	std::string getProjectVenv(const std::string& fileName);
+	std::string getLocalProjectRoot(const std::string& fileName);
+	static std::string sanitizeRelativePath(const std::string& path);
 
 	static bool isPythonCommentLine(const std::string& rawLine);
 

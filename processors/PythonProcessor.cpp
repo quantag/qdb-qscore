@@ -25,6 +25,23 @@ PythonProcessor::PythonProcessor(CodeFramework fw, ConfigLoader* cfg) : framewor
 PythonProcessor::~PythonProcessor() {
 }
 
+std::string PythonProcessor::pyLiteral(const std::string& value) {
+	if (value.empty()) {
+		return "None";
+	}
+	std::string out = "'";
+	for (char c : value) {
+		switch (c) {
+			case '\\': out += "\\\\"; break;
+			case '\'': out += "\\'"; break;
+			case '\n': out += "\\n"; break;
+			case '\r': out += "\\r"; break;
+			default: out += c;
+		}
+	}
+	return out + "'";
+}
+
 
 int PythonProcessor::findLastUsage(const std::string& item) {
 	std::string str = item + ".";

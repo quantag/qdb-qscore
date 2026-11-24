@@ -1201,6 +1201,8 @@ struct LaunchRequest : public Request {
   optional<boolean> noDebug;
   optional<string> program;
   optional<string> sessionId;
+  // Quantag: path of the program from the project root (the uploaded files keep it)
+  optional<string> programRelative;
 };
 
 DAP_DECLARE_STRUCT_TYPEINFO(LaunchRequest);

@@ -20,7 +20,8 @@ public:
 	static std::string findKernelHint(const std::string& sourceCode);
 
 	// Full Python source sent to the executor (prologue + program + conversion)
-	static std::string buildBridgeSource(const std::string& sourceCode);
+	static std::string buildBridgeSource(const std::string& sourceCode,
+		const std::string& projectRoot = "", const std::string& programPath = "");
 
 protected:
 	virtual void findAllQuantumCircuitDeclarations(std::vector<int>& result);
