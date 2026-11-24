@@ -7,9 +7,14 @@
 #   POST /public/getFile
 
 import base64
+import binascii
 import json
 import logging
 import os
+import re
+import shutil
+import threading
+import time
 from pathlib import Path
 from flask import Flask, request, jsonify
 from werkzeug.exceptions import BadRequest
@@ -153,59 +158,168 @@ def bytes_to_b64(b: bytes) -> str:
 app = Flask(__name__)
 CORS(app)
 
+# -----------------------------------------------------------------------------
+# Upload limits and cleanup of old upload sessions (dap-files.properties)
+# -----------------------------------------------------------------------------
+MAX_FILES = int(properties.get("maxFiles", "200"))
+MAX_TOTAL_BYTES = int(properties.get("maxTotalBytes", str(10 * 1024 * 1024)))
+SESSION_TTL_SECONDS = float(properties.get("sessionTtlHours", "24")) * 3600
+CLEANUP_INTERVAL_SECONDS = 600
+# Only folders created by submitFiles carry this marker; user folders (prepareData)
+# and the image folder are never removed by the cleanup.
+SESSION_MARKER = ".qs-upload-session"
+SESSION_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
+
+# Base64 makes the body about 4/3 of the decoded size, plus JSON and paths
+app.config["MAX_CONTENT_LENGTH"] = MAX_TOTAL_BYTES * 4 // 3 + 1024 * 1024
+
+_last_cleanup = 0.0
+_cleanup_lock = threading.Lock()
+
+
+def upload_error(status, message, path=None):
+    body = {"code": 1, "message": message}
+    if path is not None:
+        body["path"] = path
+    log.warning("submitFiles rejected (%d): %s%s", status, message, f" [{path}]" if path else "")
+    return jsonify(body), status
+
+
+def format_mb(n):
+    return f"{n / (1024 * 1024):.1f} MB"
+
+
+def cleanup_old_sessions(keep=None):
+    """Remove upload session folders not used for SESSION_TTL_SECONDS (at most every 10 min)."""
+    global _last_cleanup
+    now = time.time()
+    with _cleanup_lock:
+        if now - _last_cleanup < CLEANUP_INTERVAL_SECONDS:
+            return 0
+        _last_cleanup = now
+    removed = 0
+    main = Path(MAIN_FOLDER)
+    if not main.is_dir():
+        return 0
+    for folder in main.iterdir():
+        try:
+            marker = folder / SESSION_MARKER
+            if not folder.is_dir() or folder.is_symlink() or not marker.is_file():
+                continue
+            if keep is not None and folder.resolve() == keep.resolve():
+                continue
+            if now - marker.stat().st_mtime > SESSION_TTL_SECONDS:
+                shutil.rmtree(folder)
+                removed += 1
+        except Exception as e:
+            log.warning("Cleanup of %s failed: %s", folder, e)
+    if removed:
+        log.info("Removed %d upload session folder(s) older than %.0f h", removed, SESSION_TTL_SECONDS / 3600)
+    return removed
+
+
+@app.errorhandler(413)
+def request_too_large(_e):
+    return upload_error(413, f"Request too large: the files exceed the limit of {format_mb(MAX_TOTAL_BYTES)}")
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": 0}), 200
 
 @app.post("/public/submitFiles")
 def submit_files():
+    """
+    Request JSON: {"sessionId": "...", "files": [{"path": "rel/path.py", "source": "<base64>"}], "root": ..., "opts": {...}}
+    All files are checked before anything is written. An empty file ("source": "") is valid.
+    Limits: MAX_FILES files and MAX_TOTAL_BYTES decoded bytes per request.
+    Errors: {"code": 1, "message": "...", "path": "<file, if one file is the cause>"} with 400 or 413.
+    """
     try:
         req = request.get_json(force=True, silent=False)
-        session_id = req.get("sessionId")
-        files = req.get("files", [])
-        opts = req.get("opts", {})
+    except BadRequest:
+        return upload_error(400, "Request body is not valid JSON")
+    if not isinstance(req, dict):
+        return upload_error(400, "Request body must be a JSON object")
 
-        if not session_id or not isinstance(files, list):
-            raise BadRequest("Missing sessionId or files")
+    session_id = req.get("sessionId")
+    files = req.get("files", [])
+    opts = req.get("opts") or {}
+    if not isinstance(session_id, str) or not session_id.strip():
+        return upload_error(400, "Missing sessionId")
+    if not isinstance(files, list):
+        return upload_error(400, "'files' must be a list")
+    if len(files) > MAX_FILES:
+        return upload_error(413, f"Too many files: {len(files)} (limit {MAX_FILES})")
 
-        log.info("VSCode Mode: %s", opts.get("mode"))
-        log.info("QUANTAG_BASE_URL: %s", opts.get("baseUrl"))
+    log.info("VSCode Mode: %s", opts.get("mode") if isinstance(opts, dict) else None)
+    log.info("QUANTAG_BASE_URL: %s", opts.get("baseUrl") if isinstance(opts, dict) else None)
 
+    # The session folder is cleared below, so it must be a plain child folder of
+    # MAIN_FOLDER: never MAIN_FOLDER itself ("", ".") or the image folder.
+    if not SESSION_ID_RE.fullmatch(session_id) or session_id in (".", ".."):
+        return upload_error(400, "Invalid sessionId")
+    try:
         session_base = safe_join(Path(MAIN_FOLDER), session_id)
+    except ValueError:
+        return upload_error(400, "Invalid sessionId")
+    if session_base.parent != Path(MAIN_FOLDER).resolve() or session_base == Path(IMAGE_FOLDER).resolve():
+        return upload_error(400, "Invalid sessionId")
+
+    # 1. Check every file before writing anything
+    prepared = []
+    total = 0
+    for index, f in enumerate(files):
+        if not isinstance(f, dict):
+            return upload_error(400, f"File entry {index} must be an object")
+        raw_path = f.get("path")
+        b64src = f.get("source")
+        if not isinstance(raw_path, str) or not raw_path.strip():
+            return upload_error(400, f"File entry {index} has no path")
+        if b64src is None:
+            return upload_error(400, "File has no 'source' field", raw_path)
+        if not isinstance(b64src, str):
+            return upload_error(400, "'source' must be a base64 string", raw_path)
+        try:
+            data = base64.b64decode(b64src, validate=True)
+        except (binascii.Error, ValueError):
+            return upload_error(400, "'source' is not valid base64", raw_path)
+        rel = get_relative_path(raw_path).replace("\\", "/")
+        if not rel:
+            return upload_error(400, "Invalid file path", raw_path)
+        try:
+            target = safe_join(session_base, rel)
+        except ValueError:
+            return upload_error(400, "File path points outside the session folder", raw_path)
+        total += len(data)
+        if total > MAX_TOTAL_BYTES:
+            return upload_error(413, f"Files too large: more than {format_mb(MAX_TOTAL_BYTES)} in total "
+                                     f"(limit {format_mb(MAX_TOTAL_BYTES)})", raw_path)
+        prepared.append((rel, target, data))
+
+    # 2. Write the session folder
+    try:
+        cleanup_old_sessions(keep=session_base)
+    except Exception:
+        log.exception("Cleanup of old sessions failed")
+
+    try:
         session_base.mkdir(parents=True, exist_ok=True)
         # Clear session folder before writing, as in original
         clear_folder(session_base)
+        (session_base / SESSION_MARKER).write_text(datetime.now().isoformat())
 
         stored_paths = []
-        for f in files:
-            raw_path = f.get("path")
-            b64src = f.get("source")
-            if not raw_path or not b64src:
-                raise BadRequest("Missing file.path or file.source")
-
-            rel = get_relative_path(raw_path).replace("\\", "/")
-            target = safe_join(session_base, rel)
-            save_file(target, b64_to_bytes(b64src))
-            # log folder and file
-            log.info("Uploaded file: %s", target)
-            log.info("Parent folder: %s", target.parent)
-
-            # Return relative paths as in the Java code
+        for rel, target, data in prepared:
+            save_file(target, data)
+            log.info("Uploaded file: %s (%d bytes)", target, len(data))
             stored_paths.append(str(Path(session_id) / rel).replace("\\", "/"))
-
-        session_folder_abs = str(session_base.resolve())
-        return jsonify({"code": 0, "count": len(stored_paths), "sessionFolder": session_folder_abs}), 200
-
-    except BadRequest as e:
-        log.warning("submitFiles BAD_REQUEST: %s", e)
-        return jsonify({"code": 1, "message": "BAD_REQUEST"}), 400
-    except ValueError as e:
-        log.warning("submitFiles path traversal blocked: %s", e)
-        return jsonify({"code": 1, "message": "BAD_REQUEST"}), 400
     except Exception as e:
-        log.exception("submitFiles error")
-        # The Java version fell back to 400 on bad input; keeping it simple
-        return jsonify({"code": 1, "message": "ERROR"}), 400
+        log.exception("submitFiles write error")
+        return upload_error(500, f"Cannot store the files: {e}")
+
+    session_folder_abs = str(session_base.resolve())
+    log.info("Session %s: %d file(s), %d bytes", session_id, len(stored_paths), total)
+    return jsonify({"code": 0, "count": len(stored_paths), "sessionFolder": session_folder_abs}), 200
 
 @app.post("/public/submitFile")
 def submit_file():
