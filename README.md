@@ -69,6 +69,10 @@ Run it from x64\Release or x64\Debug depending on your configuration:
 .\QSCore.exe test ..\test\qasm results.json
 ```
 
+## Deploy
+
+Updating the debugger backend on the server (QSCore, file upload service, Python executor): [DEPLOY.md](DEPLOY.md).
+
 ## Configuration (Optional)
 
 QSCore can be configured by creating a "QSCore.ini" file in the same folder as the binary.  
