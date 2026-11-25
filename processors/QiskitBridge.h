@@ -61,19 +61,22 @@ def _qs_qiskit_debug(_qs_src_b64, _qs_image, _qs_root=None, _qs_program=None):
 
     def sync():
         line = current["line"]
-        alive = False
+        dead = 0
         for entry in tracked:
             circuit = entry[0]()
             if circuit is None:
+                dead += 1
                 continue
-            alive = True
             lines = entry[1]
             n = len(circuit.data)
             if n > len(lines):
                 lines.extend([line] * (n - len(lines)))
             elif n < len(lines):
                 del lines[n:]
-        if not alive and len(tracked) > 1000:
+        # Drop freed circuits once they are the majority: sync runs on every program
+        # line, so the list must stay as short as the circuits alive (programs that
+        # build thousands of temporary circuits, e.g. in an optimizer loop).
+        if dead > 64 and 2 * dead > len(tracked):
             tracked[:] = [e for e in tracked if e[0]() is not None]
 
     def local_trace(frame, event, arg):
