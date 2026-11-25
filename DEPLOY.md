@@ -48,10 +48,13 @@ Check:
 
 ```bash
 systemctl status qscore | head -5                                 # active (running), new start time
-tail -5 /home/qbit/qdb-qscore/build/qs-core.log                   # DAP Server started on [78.47.44.63:5555]
+L=$(ls -t /home/qbit/qdb-qscore/build/qs-core.log.*.txt | head -1)
+sudo tail -5 $L                                                   # QSCore  v<version>. logLevel = ...
 ```
 
-- QSCore writes its log to `build/qs-core.log` (overwritten at every start); `journalctl -u qscore` has only its console output.
+- QSCore writes a new log at every start: `build/qs-core.log.<YYMMDD-HHMM>.txt` (server time, CET). `journalctl -u qscore` has only its console output and needs `sudo` (or the `adm` group).
+- `log.level` in `build/QSCore.ini`: 1 = errors only, 2 = sessions, launch and executor calls (use it to see where a session stops), 3 = debug (writes every executor request, megabytes). Restart after changing it.
+- A Python program is run on the executor before the session starts; programs with optimization loops take a minute or more. Since 1.0.30 the Debug Console shows "Preparing the program" and progress every 15 s.
 - From VS Code desktop: Run or Debug on a sample; the Debug Console shows `QSCORE v<version>` (`Version.h`).
 - `on_accept ... WebSocket handshake Connection field is missing` in the journal is not an error of a release: something connected to port 5556 without a WebSocket handshake (scanners).
 

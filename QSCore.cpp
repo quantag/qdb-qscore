@@ -29,6 +29,7 @@
 #include "ConfigLoader.h"
 
 #include "Version.h"
+#include "LaunchProgress.h"
 
 #ifdef ENABLE_CUDAQ
 #include "qvm/CudaQVM.h"
@@ -836,8 +837,16 @@ int main(int argc, char *argv[]) {
             session->debugger->getQVM()->setProgramRelative(req.programRelative.value(""));
             bool isRun = req.noDebug.has_value();
             LaunchStatus status;
+            // Launching runs a Python program on the executor first, which can take a
+            // minute: report the progress so the Debug Console does not stay empty
+            LaunchProgress progress([&](const std::string& text) { session->sendOutputMessage(text); },
+                                    req.program.value());
             int ret = session->debugger->launch(isRun, req.program.value(), session->getSessionId(), status);
-            LOGI("QVM launch ret %d", ret);
+            double prepareSeconds = progress.finish();
+            LOGI("QVM launch ret %d in %.1f s", ret, prepareSeconds);
+            if (ret == ERR_OK || ret == ERR_DEMOFILE) {
+                session->sendOutputMessage("Program prepared in " + LaunchProgress::seconds(prepareSeconds));
+            }
 
             std::string msg;
             switch (ret) {
