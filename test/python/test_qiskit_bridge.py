@@ -243,5 +243,35 @@ def _():
     assert code == 0, err
 
 
+@case("many temporary circuits next to a long-lived one: tracing stays linear")
+def _():
+    # An optimizer loop builds a new circuit per evaluation while a module-level circuit
+    # stays alive. Freed circuits must not stay in the tracking list (sync runs on every
+    # program line), or the run time grows quadratically.
+    program = textwrap.dedent('''\
+        from qiskit import QuantumCircuit
+        step = QuantumCircuit(1)
+        step.x(0)
+        def build(angle):
+            circuit = QuantumCircuit(1)
+            circuit.rx(angle, 0)
+            return circuit
+        total = 0
+        for i in range(30000):
+            total += len(build(i * 0.001).data)
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        ''')
+    import time
+    start = time.time()
+    code, out, err = run(program)
+    elapsed = time.time() - start
+    assert code == 0, err
+    got = [n for _, n in instruction_lines(out)]
+    assert got == [program_line(program, "qc.h(0)"), program_line(program, "qc.measure(0, 0)")], got
+    assert elapsed < 30, "%.0f s, expected a few seconds" % elapsed
+
+
 print("%d passed, %d failed" % (len(PASSED), len(FAILED)))
 sys.exit(1 if FAILED else 0)
